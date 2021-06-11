@@ -18,41 +18,48 @@ export default GlueWebFactory;
  * @docmenuorder 1
  * @docname Glue42 Web
  * @intro
- * Glue42 Web allows JavasScript applications to integrate with other applications, part of the same Glue42 Core project via a set of APIs. With Glue42 Web you can share data with other applications, expose functionality, manage windows and notifications.
+ * Glue42 Web allows JavasScript applications to integrate with other applications that are part of the same **Glue42 Core** project via a set of APIs. With Glue42 Web you can share data with other applications, expose functionality, manage windows and notifications.
  *
  * ## Referencing
  *
- * Glue42 Web is available both as a single JavaScript file which you can include into your web applications using a `<script>` tag, and as a node.js module.
- * You can use Glue42 Web in a `script` tag include, e.g.:
+ * Glue42 Web is available both as a single JavaScript file, which you can include in your web applications using a `<script>` tag, and as a Node.js module:
  *
- * @example
  * ```html
  * <script type="text/javascript" src="web.umd.js"></script>
  * ```
  *
- * ...or as a module:
+ * Or:
  *
  * ``` javascript
- * import GlueWeb from `@glue42/web`;
+ * import GlueWeb from "@glue42/web";
  * ```
  *
- * When deploying your application in production, we recommend that you always reference a specific **minified** version, e.g.:
+ * When deploying your application in production, it is recommended to always reference a specific minified version:
  *
  * ```html
  * <script type="text/javascript" src="web.umd.min.js"></script>
  * ```
  *
  * ## Initialization
- * When Glue42 Web is executed, it will attach a factory function to the global (window) object at runtime called **GlueWeb**. This factory function should be invoked with an optional configuration object to init the library and connect to the Glue42 Core Environment. The factory function returns a Promise that resolves with the glue API object.
  *
- * Example:
+ * Glue42 Web attaches a factory function to the global `window` object at runtime - `GlueWeb()`. It can be invoked with an optional configuration object to initialize the library and connect to the **Glue42 Core** environment. The factory function resolves with the `glue` API object:
+ *
  * ```javascript
- *  GlueWeb()
- *   .then((glue) => {
- *      window.glue = glue;
- *      // access APIs from glue object
- * })
- * .catch(console.log);
+ * const initializeGlue42 = async () => {
+ *
+ *     // Initializing the Workspaces library.
+ *     const initOptions = {
+ *         libraries: [GlueWorkspaces]
+ *     };
+ *
+ *     // Use the object returned from the factory function
+ *     // to access the Glue42 APIs.
+ *     const glue = await GlueWeb(initOptions);
+ *
+ *     // Here Glue42 Web is initialized and you can access all Glue42 APIs.
+ * };
+ *
+ * initializeGlue42().catch(console.error);
  * ```
  */
 export namespace Glue42Web {
@@ -115,6 +122,17 @@ export namespace Glue42Web {
     /**
      * @docmenuorder 5
      * @intro
+     *
+     * Using the Window Management API, your application can easily open and manipulate browser windows.
+     * This allows you to transform your traditional single-window web app into a multi-window native-like web application.
+     * The Window Management API enables applications to:
+     *
+     * - open multiple windows;
+     * - manipulate the position and size of opened windows;
+     * - pass context data upon opening new windows;
+     * - listen for and handle events related to opening and closing windows;
+     *
+     * The Window Management API is accessible through the `glue.windows` object.
      */
     export namespace Windows {
         export interface API {
@@ -499,6 +517,12 @@ export namespace Glue42Web {
     /**
      * @docmenuorder 7
      * @intro
+     * The Notifications API provides a way to display native notifications with actions and to handle notification and action clicks.
+     * **Glue42 Core** supports all available `Notification` settings as defined in the [DOM Notifications API](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API).
+     *
+     * The **Glue42 Core** Notifications API extends the DOM Notifications API with the option to handle notification and action clicks using Interop methods.
+     *
+     * The Notifications API is accessible through the `glue.notifications` object.
      */
     export namespace Notifications {
         export interface API {
@@ -569,13 +593,14 @@ export namespace Glue42Web {
     /**
      * @docmenuorder 8
      * @intro
-     * The **Channels** are globally accessed named contexts that allow users to dynamically group applications, instructing them to work over the same shared data object.
+     * The Glue42 Channels are globally accessed named contexts that allow users to dynamically group applications, instructing them to work over the same shared data object.
+     * The Channels API enables you to:
      *
-     * When two applications are on the same channel, they share a context data object, which they can monitor and/or update.
+     * - discover Channels - get the names and contexts of all Channels;
+     * - navigate through Channels - get the current Channel, join and leave Channels, subscribe for the event which fires when the current Channel has changed;
+     * - publish and subscribe - publish data to other applications on the same Channel and subscribe for Channel updates to react to data published by other applications;
      *
-     * The **Channels** API can be accessed through the `glue.channels` object.
-     *
-     * See also the [**Channels**](../../../../core/capabilities/channels/index.html) documentation for more details.
+     * The Channels API is accessible through the `glue.channels` object.
      */
     namespace Channels {
         /**
@@ -691,15 +716,13 @@ export namespace Glue42Web {
     /**
      * @docmenuorder 9
      * @intro
-     * The **Application Management** API provides a way to manage Glue42 Core applications. It offers abstractions for:
+     * The Application Management API provides a way to manage **Glue42 Core** applications. It offers abstractions for:
      *
-     * - **Application** - a program as a logical entity, registered in Glue42 Core with some metadata (name, description, icon, etc.) and with all the configuration needed to spawn one or more instances of it. The **Application Management** API provides facilities for retrieving application metadata and for detecting when an application is started.
+     * - **Application** - a web app as a logical entity, registered in **Glue42 Core** with some metadata (name, title, version, etc.) and with all the configuration needed to spawn one or more instances of it. The Application Management API provides facilities for retrieving application metadata and for detecting when an application has been started;
      *
-     * - **Instance** - a running copy of an application. The **Application Management** API provides facilities for starting/stopping application instances and for managing its windows.
+     * - **Instance** - a running copy of an application. The Application Management API provides facilities for starting/stopping application instances and tracking application and instance related events;
      *
-     * The **Application Management** API can be accessed through `glue.appManager`.
-     *
-     * See the the [AppManager](../../../../core/capabilities/application-management/index.html) documentation for more details.
+     * The Application Management API is accessible through the `glue.appManager` object.
      */
     namespace AppManager {
         /**
@@ -1015,12 +1038,15 @@ export namespace Glue42Web {
 
     /**
      * @docmenuorder 10
+     * @intro
      * In certain workflow scenarios, your application may need to start (or activate) a specific application.
      * For instance, you may have an application showing client portfolios with financial instruments.
      * When the user clicks on an instrument, you want to start an application which shows a chart for that instrument.
      * In other cases, you may want to present the user with several options for executing an action or handling data from the current application.
      *
-     * The [**Intents**](../../../../core/capabilities/intents/index.html) API makes all that possible by enabling applications to register, find and raise Intents.
+     * The Intents API makes all that possible by enabling applications to register, find and raise Intents.
+     *
+     * The Intents API is accessible through the `glue.intents` object.
      */
     namespace Intents {
         export interface API {

@@ -8,11 +8,15 @@ export default WorkspacesFactory;
  * @docmenuorder 1
  * @docName Workspaces
  * @intro
- * The **Workspaces API** enables advanced window management functionalities. Using Workspaces, users are able to arrange multiple applications within the same visual window (called **Frame**). This arrangement can be performed programmatically or by dragging and dropping applications within the Frame. Users can also save Workspace layouts and restore them within the same Frame or even in different Frames.
+ * The Workspaces API offers advanced window management functionalities. Using Workspaces, users are able to arrange multiple applications 
+ * within the same visual window (called *Frame*). This arrangement can be performed programmatically or by dragging and dropping applications within the Frame. 
+ * Users can also save Workspace Layouts and restore them within the same Frame or even in different Frames.
  *
- * The Glue42 Workspaces enable the users to compose a custom arrangement of applications by treating each application as an individual building block that can be added, removed, moved or resized within the unifying Frame. The Frame can hold multiple Workspaces (as tabs) and can also be maximized, minimized or resized. 
- *
- * See also the [Glue42 Enterprise: Workspaces](https://docs.glue42.com/glue42-concepts/windows/workspaces/javascript/index.html) and [Glue42 Core: Workspaces](https://docs.glue42.com/core/capabilities/workspaces/index.html) documentation for more details.
+ * The Glue42 Workspaces enable the users to compose a custom arrangement of applications by treating each application 
+ * as an individual building block that can be added, removed, moved or resized within a Workspace. 
+ * The Frame can hold multiple Workspaces (as tabs) and can also be maximized, minimized or resized.
+ * 
+ * The Workspaces API is accessible through the `glue.workspaces` object.
  */
 export namespace Glue42Workspaces {
 

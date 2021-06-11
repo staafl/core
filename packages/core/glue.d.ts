@@ -252,6 +252,14 @@ export namespace Glue42Core {
         message?: string;
     }
 
+    /**
+     * @intro
+     * The Logger API enables JavaScript applications to create a hierarchy of sub-loggers mapped to application components
+     * where you can control the level of logging for each component. You can also route the output of log messages (depending on the logging level)
+     * to a variety of targets - the developer console or an external output (usually a rolling file on the desktop, but actually any target the `log4net` library supports).
+     *
+     * The Logger API is accessible through the `glue.logger` object.
+     */
     export namespace Logger {
         export interface API {
 
@@ -329,32 +337,20 @@ export namespace Glue42Core {
      * @docmenuorder 1
      * @docName Interop
      * @intro
-     * The **Interop** API enables applications to:
+     * The Interop API enables applications to:
      *
-     * - **offer functionality** to other applications (JavaScript **and** native executables) by **registering** Interop methods
-     * - **discover applications which offer methods**
-     * - **invoke** (call) methods on the user's desktop and across the network
-     * - **stream and subscribe for real-time data** using the Streaming API.
+     * - offer functionality to other applications by registering Interop methods;
+     * - discover applications which offer methods;
+     * - invoke methods on the user's desktop and across the network;
+     * - stream and subscribe for real-time data using the streaming methods of the Interop API;
      *
-     * We call applications which offer methods and streams *Interop servers*, and applications which consume them - *Interop clients*, and collectively - **Interop instances**.
+     * Applications which offer methods and streams are called *Interop servers*, and applications which consume them - *Interop clients*, and collectively - *Interop instances*.
      *
      * ![Interop instances](../../../../images/interop/interop.gif)
      *
-     * Any running instance of an Interop application is identified by its **Interop instance**, which is a set of known key/value pairs uniquely identifying an application:
+     * Any running instance of an application is identified by its *Interop instance*, which is a set of known key/value pairs uniquely identifying an application.
      *
-     * **Environment** and **region** are used to qualify an instance. Usually **region** is a geographical location and **environment** refers to the deployment model (development or production).
-     *
-     * |Key|Example (Value)|Description|
-     * |---|-------|-----------|
-     * |**application**|Client Portfolio|Application name|
-     * |**region**|TICK42|e.g. EMEA, NA, APAC|
-     * |**environment**|TRAINING|e.g. DEV, SIT, UAT, PROD|
-     * |**service**|null|Optional namespace with a region and environment|
-     * |**machine**|Lambda|User machine name|
-     * |**PID**|2864|Process ID|
-     * |**user**|JSmith|Currently logged on user|
-     *
-     * See also the [**Interop**](../../../../glue42-concepts/data-sharing-between-apps/interop/javascript/index.html) documentation for more details.
+     * The Interop API is accessible through the `glue.interop` object.
      */
     export namespace Interop {
         /**
@@ -965,7 +961,7 @@ export namespace Glue42Core {
     /**
      * @docmenuorder 5
      * @intro
-     * The Glue42 Gateway is a transport with domain specific protocols. It enables the communication between applications running in **Glue42 Desktop**.
+     * The Glue42 Gateway is a transport with domain specific protocols. It enables the communication between applications running in **Glue42 Enterprise**.
      * By default, it uses WebSockets for delivering messages to applications.
      *
      * The Connection module is used to provide connectivity between the Glue42 JavaScript modules (Interop, Metrics, etc.) and the Glue42 Gateway.
@@ -1171,7 +1167,7 @@ export namespace Glue42Core {
      * so that you can optimize your processes or tools. Metrics data is also useful for technical purposes like monitoring how well your hardware infrastructure handles the workload
      * or to track the performance of your applications.
      *
-     * See also the [**Metrics**](../../../../glue42-concepts/metrics/overview/index.html) documentation for more details.
+     * The Metrics API is accessible through the `glue.metrics` object.
      */
     export namespace Metrics {
         /** @docmenuorder 1 */
@@ -1444,18 +1440,19 @@ export namespace Glue42Core {
      * @docName Shared Contexts
      * @docmenuorder 2
      * @intro
-     * A **Shared Context** is a named object (holding a `map` of `key`/`value` pairs) that stores cross application data. The context object can hold any desktop-wide or cross-application data. Any application can update a context or * subscribe for update notifications (by using the name of the context). Apps can also react to context changes (by subscribing for context updates) or update the context at runtime.
+     * A shared context is a named object (holding a `map` of key/value pairs) that stores cross application data.
+     * The context object can hold any cross-application data. Any application can update a context or subscribe for context updates
+     * and react to them by using the name of the context.
      *
-     * The **Shared Contexts** API offers a simple and effective solution for sharing data between your applications. Imagine you have an application showing a list of clients and an application showing client portfolios. What you need, * is your "Portfolio" app to show the portfolio of a specific client that the user has selected from the "Clients" app. You can easily achieve this in a few simple steps by using the **Shared Contexts** API:
+     * The Shared Contexts API offers a simple and effective solution for sharing data between your applications.
+     * Imagine you have an application showing a list of clients and an application showing client portfolios.
+     * What you need, is your "Portfolio" app to show the portfolio of a specific client that the user has selected from the "Clients" app.
+     * You can easily achieve this in a few simple steps by using the Shared Contexts API:
      *
-     * - instruct the "Clients" app to publish updates to a context object, holding the `id` of the currently selected client;
+     * - instruct the "Clients" app to publish updates to a context object holding the `id` of the currently selected client;
      * - instruct the "Portfolio" app to subscribe for updates of that same context object and specify how the "Portfolio" app should handle the received data in order to update its current state;
      *
-     * The **Shared Contexts** API can be accessed through the `glue.contexts` object.
-     *
-     * ![Shared Contexts](../../../../images/shared-contexts/shared-contexts.gif)
-     *
-     * See also the [**Shared Contexts**](../../../../glue42-concepts/data-sharing-between-apps/shared-contexts/javascript/index.html) documentation for more details.
+     * The Shared Contexts API is accessible through the `glue.contexts` object.
      */
     export namespace Contexts {
         export interface API {
@@ -1538,19 +1535,21 @@ export namespace Glue42Core {
     }
 
     /**
-     * @docName Bus
+     * @docName Pub Sub
      * @docmenuorder 3
      * @intro
-     * The **Pub/Sub** API enables applications to:
+     * The Pub/Sub API enables applications to:
      *
      * - publish messages on a specific topic;
      * - subscribe for messages on a specific topic;
      *
-     * When an application publishes a message on a specific topic, the **Pub/Sub** API delivers it to other applications that have subscribed to that topic.
+     * When an application publishes a message on a specific topic, the Pub/Sub API delivers it to other applications that have subscribed to that topic.
      *
-     * The "raw Pub/Sub" support allows Glue42 Desktop to work with applications already using a Pub/Sub technology. Before writing new Pub/Sub based code, please consider the higher level [**Interop**](../../../../glue42-concepts/data-sharing-between-apps/interop/javascript/index.html) services provided by Glue42 Desktop: **Request/Response**, **Streaming**, **Discovery** and **Shared Contexts**. Utilizing these services, instead of creating them from scratch, can save you time and also provide you with a more robust service that can interact with applications by different dev teams and vendors.
+     * The "raw Pub/Sub" support allows Glue42 Enterprise to work with applications already using a Pub/Sub technology.
+     * Before writing new Pub/Sub based code, please consider the higher level Interop services provided by Glue42 Enterprise: Request/Response, Streaming, Discovery and Shared Contexts.
+     * Utilizing these services, instead of creating them from scratch, can save you time and also provide you with a more robust service that can interact with applications by different dev teams and vendors.
      *
-     * See also the [**Pub/Sub**](../../../../glue42-concepts/data-sharing-between-apps/pub-sub/javascript/index.html) documentation for more details.
+     * The Pub/Sub API is accessible through the `glue.bus` object.
      */
     export namespace Bus {
         export interface API {
