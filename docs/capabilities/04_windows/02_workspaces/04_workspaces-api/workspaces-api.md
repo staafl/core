@@ -406,7 +406,7 @@ await myWorkspace.resume();
 
 ### Loading Strategies
 
-When creating a Workspace with the [createWorkspace()](../../../../reference/core/latest/workspaces/index.html#!API-createWorkspace) method or when restoring a Workspace with the [restoreWorkspace()](../../../../reference/core/latest/workspaces/index.html#!API-restoreWorkspace) method you can specify a loading strategy:
+When creating a Workspace with the [createWorkspace()](../../../../reference/core/latest/workspaces/index.html#!API-createWorkspace) method or when restoring a Workspace with the [restoreWorkspace()](../../../../reference/core/latest/workspaces/index.html#!API-restoreWorkspace) method, you can specify a loading strategy:
 
 ```javascript
 const options = { loadingStrategy: "lazy" };
@@ -495,7 +495,7 @@ Locking properties for a [`WorkspaceWindow`](../../../../reference/core/latest/w
 | `allowExtract` | If `false`, will prevent the user from extracting the window from the Workspace. |
 | `showCloseButton` | If `false`, will hide the Close button on the window tab. |
 
-To set the locking properties of a Workspaces and any of its elements when creating it, use the `config` property of the [`WorkspaceDefinition`](../../../../reference/core/latest/workspaces/index.html#!WorkspaceDefinition) object. The locking configuration of a Workspace element will override the locking configuration of the Workspace:
+To set the locking properties of a Workspace and any of its elements when creating it, use the `config` property of the [`WorkspaceDefinition`](../../../../reference/core/latest/workspaces/index.html#!WorkspaceDefinition) object. The locking configuration of a Workspace element will override the locking configuration of the Workspace:
 
 ```javascript
 const definition = {

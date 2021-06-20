@@ -86,7 +86,7 @@ const mode = "merge";
 const importResult = await glue.appManager.inMemory.import(definitions, mode);
 ```
 
-The `import()` method accepts a list of [`Definition`](../../reference/core/latest/appmanager/index.html#Definition) objects as a first parameter and an import mode as a second. There are two import modes - `"replace"` (default) and `"merge"`. Using `"replace"` will replace all existing in-memory definitions with the provided ones, while using `"merge"` will merge the existing ones with the provided ones, replacing the application definitions with the same name. Use the `imported` property of the returned [`ImportResult](../../reference/core/latest/appmanager/index.html#!ImportResult) object to see a list of the successfully imported definitions and its `errors` property to see a list of the errors:
+The `import()` method accepts a list of [`Definition`](../../reference/core/latest/appmanager/index.html#Definition) objects as a first parameter and an import mode as a second. There are two import modes - `"replace"` (default) and `"merge"`. Using `"replace"` will replace all existing in-memory definitions with the provided ones, while using `"merge"` will merge the existing ones with the provided ones, replacing the application definitions with the same name. Use the `imported` property of the returned [`ImportResult`](../../reference/core/latest/appmanager/index.html#!ImportResult) object to see a list of the successfully imported definitions and its `errors` property to see a list of the errors:
 
 ```javascript
 const importedApps = importResult.imported;

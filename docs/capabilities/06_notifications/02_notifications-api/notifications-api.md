@@ -171,7 +171,7 @@ const notification = await glue.notifications.raise(notificationOptions);
 
 ## Default Notification Handlers
 
-In each **Glue42 Core** [Web Client](../../../developers/core-concepts/web-client/overview/index.html) app (including the [Main app](../../../developers/core-concepts/web-platform/overview/index.html)) you can define default handlers for a notification and action clicks. The appropriate handlers will be called when the notification or the action is clicked. Use the `notification` property of the configuration object for the [Glue42 Web](https://www.npmjs.com/package/@glue42/web) library to specify default notification handlers.
+In each **Glue42 Core** [Web Client](../../../developers/core-concepts/web-client/overview/index.html) app (including the [Main app](../../../developers/core-concepts/web-platform/overview/index.html)) you can define default handlers for notification and action clicks. The appropriate handlers will be called when the notification or the action is clicked. Use the `notification` property of the configuration object for the [Glue42 Web](https://www.npmjs.com/package/@glue42/web) library to specify default notification handlers.
 
 Web Client apps:
 
@@ -213,7 +213,7 @@ const { glue } = await GlueWebPlatform(config);
 
 ## Requesting permission
 
-An often neglected UX element is the notification permission request. Usually websites ask for notifications permission as soon as the user lands on the site which in most cases leads to user rejection, because they don't know whether they'll be interested in receiving notifications from the site. Generally, users avoid notifications if they aren't absolutely sure they want to receive them. To make matters worse, once a user declines the request, undoing the rejection becomes complicated as it can't be done programmatically and requires the user to manually find the relevant browser setting, find the site in question and unblock it from sending notifications.
+An often neglected UX element is the notification permission request. Usually websites ask for notifications permission as soon as the user lands on the site which in most cases leads to a rejection by the user, because they don't know whether they'll be interested in receiving notifications from the site. Generally, users avoid notifications if they aren't absolutely sure they want to receive them. To make matters worse, once a user declines the request, undoing the rejection becomes complicated as it can't be done programmatically and requires the user to manually find the relevant browser setting, find the site in question and unblock it from sending notifications.
 
 This is the reason why **Glue42 Core** won't request a permission on startup. A permission will be requested when a [`raise()`](../../../reference/core/latest/notifications/index.html#!API-raise) call is made or when the dedicated [`requestPermission()`](../../../reference/core/latest/notifications/index.html#!API-requestPermission) method is used:
 
@@ -221,3 +221,7 @@ This is the reason why **Glue42 Core** won't request a permission on startup. A 
 // Returns a boolean value.
 const hasPermission = await glue.notifications.requestPermission();
 ```
+
+## Reference
+
+[Notifications API Reference](../../../reference/core/latest/notifications/index.html)
