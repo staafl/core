@@ -1468,6 +1468,16 @@ export namespace Glue42Core {
             all(): string[];
 
             /**
+             * Expicitly creates a context if it doesn't exist, using the specified data and options
+             * This is useful for, e.g., specifying context read and write restrictions. The specified context is subscribed to automatically.
+             * If a context with this name exists, the provided data and options are ignored, and the context is simply subscribed to.
+             * @param name Name of the context to be updated.
+             * @param data The initial data to be contained in the context. If the context already exists, the data provided is ignored.
+             * @param options Options to use for creating the context if it doesn't already exist.
+             */
+            create(name: string, data: any, options?: CreateOptions): Promise<void>;
+
+            /**
              * Updates a context with the supplied object. This method updates only the specified context properties. Any other existing context properties will remain intact.
              * If the context does not exist, the `update()` method will create it.
              *
@@ -1531,6 +1541,25 @@ export namespace Glue42Core {
         export interface PathValue {
             path: string;
             value: any;
+        }
+
+        export interface CreateOptions {
+            /**
+             * Expression specifying read permissions for the newly created context based on the reading peer's identity.
+             * Note the context creator always has write permissions.
+             * @example
+             * `$password ? 'abc-123-.*'` - `password` field from reader's identity to match regex `abc-123-.*`.
+             * `$secret == #secret` - `secret` field from reader's identity to match `secret` field from creator's identity.
+             */
+            readPermissions?: string;
+            /**
+             * Expression specifying write restrictions for the newly created context based on the writing peer's identity
+             * Note the context creator always has write permissions.
+             * @example
+             * `$password ? 'abc-123-.*'` - `password` field from writer's identity to match regex `abc-123-.*`.
+             * `$secret == #secret` - `secret` field from writer's identity to match `secret` field from creator's identity.
+             */
+            writePermissions?: string;
         }
     }
 

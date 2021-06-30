@@ -256,7 +256,8 @@ export class GW3Bridge implements ContextBridge {
         }
     }
 
-    public createContext(name: ContextName, data: any): Promise<string> {
+    public createContext(name: ContextName, data: any, options?: Glue42Core.Contexts.CreateOptions): Promise<string> {
+        options = options || {};
         return this._gw3Session
             .send<ContextMessage>({
                 type: msg.GW_MESSAGE_CREATE_CONTEXT,
@@ -264,15 +265,18 @@ export class GW3Bridge implements ContextBridge {
                 name,
                 data,
                 lifetime: "retained",
+                read_permissions: options.readPermissions,
+                write_permissions: options.writePermissions
             })
             .then((createContextMsg: ContextMessage) => {
                 this._contextNameToId[name] = createContextMsg.context_id;
                 this._contextIdToName[createContextMsg.context_id] = name;
                 const contextData = this._contextNameToData[name] || new ContextData(createContextMsg.context_id, name, true, undefined);
+                contextData.sentExplicitSubscription = true;
                 contextData.isAnnounced = true;
                 contextData.name = name;
                 contextData.contextId = createContextMsg.context_id;
-                contextData.context = data;
+                contextData.context = createContextMsg.data || data;
                 this._contextNameToData[name] = contextData;
                 return createContextMsg.context_id;
             });
@@ -297,9 +301,9 @@ export class GW3Bridge implements ContextBridge {
             return this.createContext(name, delta) as any as Promise<void>;
         }
 
-        // TODO: explain why --> because this
         let currentContext = contextData.context;
-        if (!contextData.hasCallbacks()) {
+        if (!contextData.sentExplicitSubscription &&
+            !contextData.hasCallbacks()) {
             currentContext = await this.get(contextData.name);
         }
 
@@ -409,7 +413,9 @@ export class GW3Bridge implements ContextBridge {
         }
 
         // 2)
-        if (contextData && !contextData.hasCallbacks()) {
+        if (contextData &&
+            !contextData.hasCallbacks() &&
+            !contextData.sentExplicitSubscription) {
             return new Promise<any>(async (resolve, _) => {
                 this.subscribe(name, (data: any, _d: any, _r: string[], un: ContextSubscriptionKey) => {
                     this.unsubscribe(un);
@@ -525,13 +531,9 @@ export class GW3Bridge implements ContextBridge {
                 return;
             }
 
-            const hadCallbacks = contextData.hasCallbacks();
-
             delete contextData.updateCallbacks[subscriptionKey];
 
-            if (contextData.isAnnounced &&
-                hadCallbacks &&
-                !contextData.hasCallbacks() &&
+            if (!contextData.hasCallbacks() &&
                 contextData.sentExplicitSubscription) {
                 // (3) -> (2)
                 this.sendUnsubscribe(contextData);
