@@ -17,31 +17,30 @@ export function startGW() {
     const g = GW.create({ port: defaultWSPort });
 
     GW.configure_logging({
-        level: "error",
+        level: "debug",
         appender: (logInfo: any) => {
             const message = logInfo.output;
             const ll = logInfo.level;
-
             switch (ll) {
                 case "trace":
                     // tslint:disable-next-line:no-console
-                    // console.info(message);
+                    console.info(message);
                     break;
                 case "debug":
                     // tslint:disable-next-line:no-console
-                    // console.info(message);
+                    console.info(message);
                     break;
                 case "info":
                     // tslint:disable-next-line:no-console
-                    //console.info(message);
+                    console.info(message);
                     break;
                 case "warn":
                     // tslint:disable-next-line: no-console
-                    // console.warn(message);
+                    console.warn(message);
                     break;
                 case "error":
                     // tslint:disable-next-line:no-console
-                    // console.error(message);
+                    console.error(message);
                     break;
             }
         }

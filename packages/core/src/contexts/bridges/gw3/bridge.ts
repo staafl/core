@@ -278,6 +278,10 @@ export class GW3Bridge implements ContextBridge {
                 contextData.contextId = createContextMsg.context_id;
                 contextData.context = createContextMsg.data || data;
                 this._contextNameToData[name] = contextData;
+                if (!createContextMsg.data &&
+                    contextData.hasCallbacks()) {
+                    this.invokeUpdateCallbacks(data);
+                }
                 return createContextMsg.context_id;
             });
     }
@@ -476,7 +480,6 @@ export class GW3Bridge implements ContextBridge {
         const hadCallbacks = contextData.hasCallbacks();
 
         contextData.updateCallbacks[thisCallbackSubscriptionNumber] = callback;
-
         if (!hadCallbacks) {
             // first subscriber: (2) -> (3)
 
@@ -499,7 +502,6 @@ export class GW3Bridge implements ContextBridge {
                 // which we'll push through subscribeToContextUpdatedMessages
                 // (not that we have a snapshot right now - it's not our activity,
                 // and we haven't subscribed already so we can't have received updates)
-
                 return this.sendSubscribe(contextData)
                     .then(() => thisCallbackSubscriptionNumber);
             } else {
