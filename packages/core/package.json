@@ -1,6 +1,6 @@
 {
     "name": "@glue42/core",
-    "version": "5.4.8",
+    "version": "5.4.9-core-5.4.9.0",
     "description": "Glue42 core library",
     "main": "dist/core.umd.js",
     "module": "dist/core.es.js",
@@ -38,7 +38,7 @@
         "ws": "7.4.6"
     },
     "devDependencies": {
-        "@glue42/gateway-ws": "^3.0.13-beta.2",
+        "@glue42/gateway-ws": "^3.0.13-beta.3",
         "@types/chai": "^4.2.7",
         "@types/lodash.isequal": "^4.5.5",
         "@types/lodash.ismatch": "^4.4.6",

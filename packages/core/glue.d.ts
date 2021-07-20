@@ -1545,21 +1545,27 @@ export namespace Glue42Core {
 
         export interface CreateOptions {
             /**
-             * Expression specifying read permissions for the newly created context based on the reading peer's identity.
+             * Expression or object specifying read permissions for the newly created context based on the reading peer's identity.
+             * If using an object, peer is permissioned if its identity matches all or any properties.
              * Note the context creator always has write permissions.
              * @example
-             * `$password ? 'abc-123-.*'` - `password` field from reader's identity to match regex `abc-123-.*`.
-             * `$secret == #secret` - `secret` field from reader's identity to match `secret` field from creator's identity.
+             * { password: 'mellon', magicWord: 'sesame' } - both `password` and `magicWord` fields from reader's identity must match 'mellon' and 'sesame' respectively.
+             * { $mode: 'any', password: 'mellon', magicWord: 'sesame' } - either `password` and `magicWord` fields from reader's identity must match 'mellon' and 'sesame' respectively.
+             * `$password ? 'abc-123-.*'` - `password` field from reader's identity must match regex `abc-123-.*`.
+             * `$secret == #secret` - `secret` field from reader's identity must match `secret` field from creator's identity.
              */
-            readPermissions?: string;
+            readPermissions?: string | object;
             /**
-             * Expression specifying write restrictions for the newly created context based on the writing peer's identity
+             * Expression or object specifying write restrictions for the newly created context based on the writing peer's identity
+             * If using an object, peer is permissioned if its identity matches all properties.
              * Note the context creator always has write permissions.
              * @example
-             * `$password ? 'abc-123-.*'` - `password` field from writer's identity to match regex `abc-123-.*`.
-             * `$secret == #secret` - `secret` field from writer's identity to match `secret` field from creator's identity.
+             * { password: 'mellon', magicWord: 'sesame' } - both `password` and `magicWord` fields from writer's identity must match 'mellon' and 'sesame' respectively.
+             * { $mode: 'any', password: 'mellon', magicWord: 'sesame' } - either `password` and `magicWord` fields from writer's identity must match 'mellon' and 'sesame' respectively.
+             * `$password ? 'abc-123-.*'` - `password` field from writer's identity must match regex `abc-123-.*`.
+             * `$secret == #secret` - `secret` field from writer's identity must match `secret` field from creator's identity.
              */
-            writePermissions?: string;
+            writePermissions?: string | object;
         }
     }
 
