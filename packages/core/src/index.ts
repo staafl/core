@@ -305,7 +305,9 @@ const GlueCore = (userConfig?: Glue42Core.Config, ext?: Glue42Core.Extension): P
                     return {
                         name: key,
                         duration: t.endTime - t.startTime,
-                        marks: t.marks
+                        marks: t.marks,
+                        startTime: t.startTime,
+                        endTime: t.endTime
                     };
                 });
             }

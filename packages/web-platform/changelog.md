@@ -1,3 +1,5 @@
+1.6.3
+chore: bump due to dependencies update
 1.6.2
 chore: updated @glue42/desktop dependency
 1.6.1

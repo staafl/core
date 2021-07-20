@@ -5,7 +5,8 @@ import {
     IntentResolution,
     Listener,
     OpenError,
-    ResolveError, TargetApp,
+    ResolveError,
+    TargetApp
 } from "@finos/fdc3";
 import { Glue42 } from "@glue42/desktop";
 import createChannelsAgent from "./channels/channels";
@@ -94,8 +95,11 @@ const createIntentsAgent = (): Partial<DesktopAgent> => {
         if (typeof context !== "undefined" && typeof context.type !== "string") {
             throw new Error("Please provide the context.type as a string!");
         }
-        if (typeof target !== "undefined" && (typeof target === "string" || typeof target.name !== "string")) {
-            throw new Error("Please provide the target as a string or as an AppData !");
+        if (typeof target !== "undefined" && ((typeof target !== "string" && typeof target !== "object"))) {
+            throw new Error("Please provide the target as a string or as an AppData!");
+        }
+        if (typeof target === "object" && typeof target.name !== "string") {
+            throw new Error("Please provide the target.name as a string!");
         }
 
         // target not provided => reuse (@glue42/web takes care of starting a new instance if there isn't a running one)
@@ -138,6 +142,16 @@ const createIntentsAgent = (): Partial<DesktopAgent> => {
     };
 
     const raiseIntentForContext = async (context: Context, target?: TargetApp): Promise<IntentResolution> => {
+        if (typeof context !== "undefined" && typeof context.type !== "string") {
+            throw new Error("Please provide the context.type as a string!");
+        }
+        if (typeof target !== "undefined" && ((typeof target !== "string" && typeof target !== "object"))) {
+            throw new Error("Please provide the target as a string or as an AppData!");
+        }
+        if (typeof target === "object" && typeof target.name !== "string") {
+            throw new Error("Please provide the target.name as a string!");
+        }
+
         const appIntents: AppIntent[] = await findIntentsByContext(context);
 
         if (!appIntents || appIntents.length === 0) {

@@ -1,3 +1,5 @@
+1.4.3
+chore: bump due to dependencies update
 1.4.2
 chore: resolved dependency vulnerabilities
 chore: updated @glue42/desktop dependency

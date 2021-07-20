@@ -1,3 +1,5 @@
+2.2.2
+chore: bump due to dependencies update
 2.2.1
 chore: Resolved dependency vulnerabilities
 chore: updated @glue42/desktop dependency
