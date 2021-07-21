@@ -948,7 +948,10 @@ export class GW3Bridge implements ContextBridge {
         if (typeof permissionsObjectOrString !== "object") {
             return permissionsObjectOrString as string;
         }
-        return Object.entries(permissionsObjectOrString).map((x) => `$${x[0]} == '${x[1]}'`).join(
-            (permissionsObjectOrString as any).$mode === "any" ? " || " : " && ");
+        return Object
+            .entries(permissionsObjectOrString)
+            .filter((x) => x[0] !== "$mode")
+            .map((x) => `$${x[0]} == '${x[1]}'`)
+                .join((permissionsObjectOrString as any).$mode === "any" ? " || " : " && ");
     }
 }
