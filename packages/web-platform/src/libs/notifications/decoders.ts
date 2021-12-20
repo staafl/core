@@ -1,11 +1,12 @@
 import { Glue42Web } from "@glue42/web";
 import { anyJson, array, boolean, constant, Decoder, number, object, oneOf, optional, string } from "decoder-validate";
 import { nonEmptyStringDecoder, nonNegativeNumberDecoder } from "../../shared/decoders";
-import { NotificationsOperationsTypes, PermissionRequestResult, RaiseNotificationConfig } from "./types";
+import { NotificationsOperationsTypes, PermissionQueryResult, PermissionRequestResult, RaiseNotificationConfig } from "./types";
 
-export const notificationsOperationDecoder: Decoder<NotificationsOperationsTypes> = oneOf<"raiseNotification" | "requestPermission">(
+export const notificationsOperationDecoder: Decoder<NotificationsOperationsTypes> = oneOf<"raiseNotification" | "requestPermission" | "getPermission">(
     constant("raiseNotification"),
-    constant("requestPermission")
+    constant("requestPermission"),
+    constant("getPermission")
 );
 
 
@@ -29,6 +30,7 @@ const glue42NotificationOptionsDecoder: Decoder<Glue42Web.Notifications.RaiseOpt
     title: nonEmptyStringDecoder,
     clickInterop: optional(interopActionSettingsDecoder),
     actions: optional(array(glue42NotificationActionDecoder)),
+    focusPlatformOnDefaultClick: optional(boolean()),
     badge: optional(string()),
     body: optional(string()),
     data: optional(anyJson()),
@@ -55,4 +57,12 @@ export const raiseNotificationDecoder: Decoder<RaiseNotificationConfig> = object
 
 export const permissionRequestResultDecoder: Decoder<PermissionRequestResult> = object({
     permissionGranted: boolean()
+});
+
+export const permissionQueryResultDecoder: Decoder<PermissionQueryResult> = object({
+    permission: oneOf<"default" | "granted" | "denied">(
+        constant("default"),
+        constant("granted"),
+        constant("denied")
+    )
 });

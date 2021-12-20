@@ -1,3 +1,54 @@
+## Glue42 Core v2.1.0 (2021-09-23)
+
+#### :rocket: New Feature
+* `web-platform`, `workspaces-api`
+  * [#245](https://github.com/Glue42/core/pull/245) Implemented workspace is selected property ([@SvetozarMateev](https://github.com/SvetozarMateev))
+* `golden-layout`, `workspaces-api`, `workspaces-ui-core`
+  * [#243](https://github.com/Glue42/core/pull/243) Implemented container maximization in workspaces ([@SvetozarMateev](https://github.com/SvetozarMateev))
+* `web-platform`, `web-worker`, `web`
+  * [#219](https://github.com/Glue42/core/pull/219) Implemented Advanced Notifications ([@flashd2n](https://github.com/flashd2n))
+* `golden-layout`, `web-platform`, `web`, `workspaces-api`, `workspaces-ui-core`
+  * [#212](https://github.com/Glue42/core/pull/212) Implemented workspace constraints ([@SvetozarMateev](https://github.com/SvetozarMateev))
+
+#### :bug: Bug Fix
+* `workspaces-api`, `workspaces-ui-core`
+  * [#237](https://github.com/Glue42/core/pull/237) Improved workspace events when the frame is a platform ([@SvetozarMateev](https://github.com/SvetozarMateev))
+* `fdc3`
+  * [#226](https://github.com/Glue42/core/pull/226) Fixed an issue with the validation of `raiseIntent()` ([@ggeorgievx](https://github.com/ggeorgievx))
+* `golden-layout`, `web-platform`, `workspaces-api`, `workspaces-ui-core`
+  * [#216](https://github.com/Glue42/core/pull/216) Bugfix/invalid boxes size in workspaces ([@SvetozarMateev](https://github.com/SvetozarMateev))
+
+#### :nail_care: Enhancement
+* `web-platform`, `workspaces-api`
+  * [#247](https://github.com/Glue42/core/pull/247) Added all typings coming with Enterprise 3.12 ([@flashd2n](https://github.com/flashd2n))
+* `web-platform`, `web-worker`, `web`
+  * [#242](https://github.com/Glue42/core/pull/242) Added an option to focus the platform on default click of the notification ([@flashd2n](https://github.com/flashd2n))
+
+#### :memo: Documentation
+* `core`, `web`
+  * [#230](https://github.com/Glue42/core/pull/230) Fixed @ symbols and links in package descriptions ([@arjunah](https://github.com/arjunah))
+* `react-hooks`
+  * [#229](https://github.com/Glue42/core/pull/229) SE optimization ([@arjunah](https://github.com/arjunah))
+* Other
+  * [#225](https://github.com/Glue42/core/pull/225) Minor doc fixes ([@arjunah](https://github.com/arjunah))
+  * [#215](https://github.com/Glue42/core/pull/215) Updated creation of channel selector widget ([@swseverance](https://github.com/swseverance))
+* `core`, `web`, `workspaces-api`
+  * [#223](https://github.com/Glue42/core/pull/223) Fixed API descriptions and links. ([@arjunah](https://github.com/arjunah))
+* `fdc3`, `web-platform`, `web`, `workspaces-api`, `workspaces-ui-core`
+  * [#199](https://github.com/Glue42/core/pull/199) Restructured and edited docs. ([@arjunah](https://github.com/arjunah))
+
+#### :house: Internal
+* `core`, `dev-workspaces-frame`, `fdc3`, `golden-layout`, `ng`, `react-hooks`, `web-platform`, `web`, `workspaces-ui-core`
+  * [#224](https://github.com/Glue42/core/pull/224) Updated desktop and deps vulnerabilities ([@flashd2n](https://github.com/flashd2n))
+
+#### Committers: 6
+- Georgi Georgiev ([@ggeorgievx](https://github.com/ggeorgievx))
+- Hristo Ivanov ([@arjunah](https://github.com/arjunah))
+- Kalin Kostov ([@flashd2n](https://github.com/flashd2n))
+- Solar ([@Indeavr](https://github.com/Indeavr))
+- Svetozar Mateev ([@SvetozarMateev](https://github.com/SvetozarMateev))
+- [@swseverance](https://github.com/swseverance)
+
 ## Glue42 Core v2.0.0 (2021-05-11)
 
 #### :rocket: New Feature

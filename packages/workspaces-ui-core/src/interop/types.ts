@@ -271,6 +271,11 @@ export interface LockGroupArguments {
     config?: {
         allowExtract?: boolean;
         allowDrop?: boolean;
+        allowDropHeader?: boolean;
+        allowDropLeft?: boolean;
+        allowDropTop?: boolean;
+        allowDropRight?: boolean;
+        allowDropBottom?: boolean;
         showMaximizeButton?: boolean;
         showEjectButton?: boolean;
         showAddWindowButton?: boolean;
@@ -281,6 +286,7 @@ export interface LockRowArguments {
     type: "row";
     itemId: string;
     config?: {
+        allowSplitters?: boolean;
         allowDrop?: boolean;
     };
 }
@@ -289,6 +295,7 @@ export interface LockColumnArguments {
     type: "column";
     itemId: string;
     config: {
+        allowSplitters?: boolean;
         allowDrop?: boolean;
     };
 }

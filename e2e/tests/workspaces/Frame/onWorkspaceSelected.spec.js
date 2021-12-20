@@ -91,6 +91,26 @@ describe('frame.onWorkspaceSelected() Should ', () => {
         }).then(ready).catch(done);
     });
 
+    it('be invoked with a workspace that is focused', (done) => {
+        let firstWorkspace = undefined;
+        const ready = gtf.waitFor(2, done);
+        defaultFrame.workspaces().then((wsps) => {
+            firstWorkspace = wsps[0];
+
+            return defaultFrame.createWorkspace(basicConfig);
+        }).then(() => {
+            return defaultFrame.onWorkspaceSelected((w) => {
+                if (w.id === firstWorkspace.id && w.isSelected) {
+                    ready();
+                }
+            });
+        }).then(unsub => {
+            unSubFuncs.push(unsub);
+
+            return firstWorkspace.focus();
+        }).then(ready).catch(done);
+    });
+
     it('not be invoked when a workspace with noTabHeader:true is opened', (done) => {
         const ready = gtf.waitFor(2, done);
         defaultFrame.onWorkspaceSelected((w) => {

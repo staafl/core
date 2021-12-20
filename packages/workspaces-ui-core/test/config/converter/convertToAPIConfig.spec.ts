@@ -3,7 +3,6 @@ import { ConfigConverter } from "../../../src/config/converter";
 import { ColumnItem, RowItem, GroupItem, WorkspaceItem } from "../../../src/types/internal";
 import { expect } from "chai";
 import { WorkspacesConfigurationFactory } from "../../../src/config/factory";
-import sinon from "sinon";
 
 describe("convertToAPIConfig() Should", () => {
     const mockId = "mock";
@@ -68,13 +67,15 @@ describe("convertToAPIConfig() Should", () => {
                     width: undefined,
                     positionIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 id: undefined
             };
@@ -120,6 +121,7 @@ describe("convertToAPIConfig() Should", () => {
                 config: {
                     activeTabIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
@@ -131,7 +133,8 @@ describe("convertToAPIConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 id: undefined
             };
@@ -225,13 +228,15 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowSplitters: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             id: undefined,
                             children: []
@@ -246,13 +251,15 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowSplitters: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             id: undefined,
                             children: []
@@ -267,13 +274,15 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowSplitters: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             id: undefined,
                             children: []
@@ -288,13 +297,15 @@ describe("convertToAPIConfig() Should", () => {
                     width: undefined,
                     positionIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 id: undefined
             };
@@ -363,6 +374,11 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowDropHeader: undefined,
+                                allowDropLeft: undefined,
+                                allowDropTop: undefined,
+                                allowDropRight: undefined,
+                                allowDropBottom: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
@@ -373,7 +389,8 @@ describe("convertToAPIConfig() Should", () => {
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             id: undefined,
                             children: []
@@ -388,6 +405,11 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowDropHeader: undefined,
+                                allowDropLeft: undefined,
+                                allowDropTop: undefined,
+                                allowDropRight: undefined,
+                                allowDropBottom: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
@@ -398,7 +420,8 @@ describe("convertToAPIConfig() Should", () => {
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             id: undefined,
                             children: []
@@ -413,6 +436,11 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowDropHeader: undefined,
+                                allowDropLeft: undefined,
+                                allowDropTop: undefined,
+                                allowDropRight: undefined,
+                                allowDropBottom: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
@@ -423,7 +451,8 @@ describe("convertToAPIConfig() Should", () => {
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             id: undefined,
                             children: []
@@ -438,13 +467,15 @@ describe("convertToAPIConfig() Should", () => {
                     width: undefined,
                     positionIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 id: undefined
             };
@@ -492,6 +523,11 @@ describe("convertToAPIConfig() Should", () => {
                 width: undefined,
                 positionIndex: undefined,
                 allowDrop: undefined,
+                allowDropHeader: undefined,
+                allowDropLeft: undefined,
+                allowDropTop: undefined,
+                allowDropRight: undefined,
+                allowDropBottom: undefined,
                 isPinned: undefined,
                 widthInPx: undefined,
                 heightInPx: undefined,
@@ -502,7 +538,8 @@ describe("convertToAPIConfig() Should", () => {
                 minWidth: undefined,
                 maxWidth: undefined,
                 minHeight: undefined,
-                maxHeight: undefined
+                maxHeight: undefined,
+                isMaximized: undefined
             },
             id: undefined
         };
@@ -544,6 +581,11 @@ describe("convertToAPIConfig() Should", () => {
                 positionIndex: undefined,
                 allowExtract: undefined,
                 allowDrop: undefined,
+                allowDropHeader: undefined,
+                allowDropLeft: undefined,
+                allowDropTop: undefined,
+                allowDropRight: undefined,
+                allowDropBottom: undefined,
                 isPinned: undefined,
                 widthInPx: undefined,
                 heightInPx: undefined,
@@ -553,7 +595,8 @@ describe("convertToAPIConfig() Should", () => {
                 minWidth: undefined,
                 maxWidth: undefined,
                 minHeight: undefined,
-                maxHeight: undefined
+                maxHeight: undefined,
+                isMaximized: undefined
             },
             id: undefined
         };
@@ -613,6 +656,7 @@ describe("convertToAPIConfig() Should", () => {
                 config: {
                     activeTabIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
@@ -624,7 +668,8 @@ describe("convertToAPIConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 id: undefined
             }],
@@ -676,6 +721,7 @@ describe("convertToAPIConfig() Should", () => {
                 config: {
                     activeTabIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
@@ -687,7 +733,8 @@ describe("convertToAPIConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 id: undefined,
             }],
@@ -745,6 +792,11 @@ describe("convertToAPIConfig() Should", () => {
                     width: undefined,
                     positionIndex: undefined,
                     allowDrop: undefined,
+                    allowDropHeader: undefined,
+                    allowDropLeft: undefined,
+                    allowDropTop: undefined,
+                    allowDropRight: undefined,
+                    allowDropBottom: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
@@ -755,7 +807,8 @@ describe("convertToAPIConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
             }],
             id: undefined,
@@ -803,13 +856,15 @@ describe("convertToAPIConfig() Should", () => {
                     width: undefined,
                     positionIndex: undefined,
                     allowDrop: undefined,
+                    allowSplitters: undefined,
                     isPinned: undefined,
                     widthInPx: undefined,
                     heightInPx: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    isMaximized: undefined
                 },
                 children: [
                     {
@@ -823,13 +878,15 @@ describe("convertToAPIConfig() Should", () => {
                             width: undefined,
                             positionIndex: undefined,
                             allowDrop: undefined,
+                            allowSplitters: undefined,
                             isPinned: undefined,
                             widthInPx: undefined,
                             heightInPx: undefined,
                             minWidth: undefined,
                             maxWidth: undefined,
                             minHeight: undefined,
-                            maxHeight: undefined
+                            maxHeight: undefined,
+                            isMaximized: undefined
                         },
                         children: [{
                             type: "group",
@@ -842,6 +899,11 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowDropHeader: undefined,
+                                allowDropLeft: undefined,
+                                allowDropTop: undefined,
+                                allowDropRight: undefined,
+                                allowDropBottom: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
@@ -852,7 +914,8 @@ describe("convertToAPIConfig() Should", () => {
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             children: [
                                 mockAppConfig
@@ -870,13 +933,15 @@ describe("convertToAPIConfig() Should", () => {
                             width: undefined,
                             positionIndex: undefined,
                             allowDrop: undefined,
+                            allowSplitters: undefined,
                             isPinned: undefined,
                             widthInPx: undefined,
                             heightInPx: undefined,
                             minWidth: undefined,
                             maxWidth: undefined,
                             minHeight: undefined,
-                            maxHeight: undefined
+                            maxHeight: undefined,
+                            isMaximized: undefined
                         },
                         children: [{
                             type: "row",
@@ -889,13 +954,15 @@ describe("convertToAPIConfig() Should", () => {
                                 width: undefined,
                                 positionIndex: undefined,
                                 allowDrop: undefined,
+                                allowSplitters: undefined,
                                 isPinned: undefined,
                                 widthInPx: undefined,
                                 heightInPx: undefined,
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                isMaximized: undefined
                             },
                             children: [{
                                 type: "group",
@@ -908,6 +975,11 @@ describe("convertToAPIConfig() Should", () => {
                                     width: undefined,
                                     positionIndex: undefined,
                                     allowDrop: undefined,
+                                    allowDropHeader: undefined,
+                                    allowDropLeft: undefined,
+                                    allowDropTop: undefined,
+                                    allowDropRight: undefined,
+                                    allowDropBottom: undefined,
                                     isPinned: undefined,
                                     widthInPx: undefined,
                                     heightInPx: undefined,
@@ -918,7 +990,8 @@ describe("convertToAPIConfig() Should", () => {
                                     minWidth: undefined,
                                     maxWidth: undefined,
                                     minHeight: undefined,
-                                    maxHeight: undefined
+                                    maxHeight: undefined,
+                                    isMaximized: undefined
                                 },
                                 children: [
                                     mockAppConfig

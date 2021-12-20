@@ -23,7 +23,7 @@ export class LayoutStateResolver {
             await this.waitForWindowContentItem(windowId);
             windowContentItem = store.getWindowContentItem(windowId);
         }
-        const wrapper = new WorkspaceWindowWrapper(this,windowContentItem, this._frameId);
+        const wrapper = new WorkspaceWindowWrapper(this, windowContentItem, this._frameId);
         return wrapper.summary;
     }
 
@@ -31,7 +31,7 @@ export class LayoutStateResolver {
         windowId = Array.isArray(windowId) ? windowId[0] : windowId;
         const windowContentItem = contentItem || store.getWindowContentItem(windowId);
 
-        const wrapper = new WorkspaceWindowWrapper(this,windowContentItem, this._frameId);
+        const wrapper = new WorkspaceWindowWrapper(this, windowContentItem, this._frameId);
         return wrapper.summary;
     }
 
@@ -71,15 +71,34 @@ export class LayoutStateResolver {
     public isWindowMaximized(id: string | string[]): boolean {
         const placementId = idAsString(id);
         const windowContentItem = store.getWindowContentItem(placementId);
-        const wrapper = new WorkspaceWindowWrapper(this,windowContentItem, this._frameId);
+        const wrapper = new WorkspaceWindowWrapper(this, windowContentItem, this._frameId);
 
         return wrapper.isMaximized;
+    }
+
+    public isWindowInMaximizedContainer(id: string | string[]): boolean {
+        const placementId = Array.isArray(id) ? id[0] : id;
+        const windowContentItem = store.getWindowContentItem(placementId);
+
+        const findMaximizedItem = (contentItem: GoldenLayout.ContentItem | GoldenLayout.Root): GoldenLayout.ContentItem => {
+            if (!contentItem || contentItem.isRoot) {
+                return;
+            }
+
+            if (contentItem.hasId("__glMaximised")) {
+                return contentItem as GoldenLayout.ContentItem;
+            }
+
+            return findMaximizedItem(contentItem.parent);
+        };
+
+        return !!findMaximizedItem(windowContentItem);
     }
 
     public isWindowSelected(id: string | string[]): boolean {
         const placementId = idAsString(id);
         const windowContentItem = store.getWindowContentItem(placementId);
-        const wrapper = new WorkspaceWindowWrapper(this,windowContentItem, this._frameId);
+        const wrapper = new WorkspaceWindowWrapper(this, windowContentItem, this._frameId);
         return wrapper.isSelected;
     }
 
@@ -106,7 +125,7 @@ export class LayoutStateResolver {
     public getContainerSummary(containerId: string | string[]): ContainerSummary {
         containerId = idAsString(containerId);
         const contentItem = store.getContainer(containerId);
-        const wrapper = new WorkspaceContainerWrapper(this,contentItem, this._frameId);
+        const wrapper = new WorkspaceContainerWrapper(this, contentItem, this._frameId);
 
         return wrapper.summary;
     }
@@ -116,19 +135,19 @@ export class LayoutStateResolver {
             throw new Error(`Tried to get container summary from item ${item.type} ${item.config.id}`);
         }
 
-        const wrapper = new WorkspaceContainerWrapper(this,item, this._frameId, workspaceId);
+        const wrapper = new WorkspaceContainerWrapper(this, item, this._frameId, workspaceId);
 
         return wrapper.summary;
     }
 
     public getContainerConfig(containerId: string | string[]): GoldenLayout.ItemConfig {
         const contentItem = store.getContainer(containerId);
-        const wrapper = new WorkspaceContainerWrapper(this,contentItem, this._frameId);
+        const wrapper = new WorkspaceContainerWrapper(this, contentItem, this._frameId);
 
         return wrapper.config;
     }
 
-    public isWindowInWorkspace(windowId: string) {
+    public isWindowInWorkspace(windowId: string): boolean {
         return !!store.getWindowContentItem(windowId);
     }
 
@@ -152,9 +171,9 @@ export class LayoutStateResolver {
         }
     }
 
-    public extractWindowSummariesFromSnapshot(snapshot: GoldenLayout.Config) {
+    public extractWindowSummariesFromSnapshot(snapshot: GoldenLayout.Config): WindowSummary[] {
         const result: WindowSummary[] = [];
-        const getAllWindows = (item: GoldenLayout.ItemConfig, parentId: string) => {
+        const getAllWindows = (item: GoldenLayout.ItemConfig, parentId: string): void => {
             if (item.type === "component") {
                 result.push({
                     itemId: idAsString(item.id),
@@ -164,7 +183,7 @@ export class LayoutStateResolver {
                 return;
             }
 
-            item.content.forEach((c: any) => getAllWindows(c, idAsString(item.id)));
+            item.content.forEach((c) => getAllWindows(c, idAsString(item.id)));
         };
 
         getAllWindows(snapshot as unknown as GoldenLayout.ItemConfig, undefined);
@@ -172,7 +191,7 @@ export class LayoutStateResolver {
         return result;
     }
 
-    public isWindowLoaded(id: string | string[]) {
+    public isWindowLoaded(id: string | string[]): boolean {
         return this.frameController.hasFrame(idAsString(id));
     }
 
@@ -216,7 +235,7 @@ export class LayoutStateResolver {
         return result;
     }
 
-    private waitForWindowContentItem(windowId: string) {
+    private waitForWindowContentItem(windowId: string): Promise<void> {
         return new Promise<void>((res) => {
             const unsub = this._layoutEventEmitter.onContentComponentCreated((component) => {
                 if (component.config.id === windowId) {

@@ -7,6 +7,7 @@ import AddApplicationPopup from './defaultComponents/popups/addApplication/AddAp
 import AddWorkspacePopup from './defaultComponents/popups/addWorkspace/AddWorkspacePopup';
 import SaveWorkspacePopup from './defaultComponents/popups/saveWorkspace/SaveWorkspacePopup';
 import WorkspaceContents from "./defaultComponents/WorkspaceContents";
+import MoveArea from "./defaultComponents/MoveArea";
 import useWorkspacePopup from './useWorkspacePopup';
 import useWorkspaceWindowClicked from './useWorkspaceWindowClicked';
 
@@ -24,7 +25,8 @@ import {
     AddWorkspacePopupProps,
     SaveWorkspacePopupProps,
     AddApplicationPopupProps,
-    WorkspaceContentsProps
+    WorkspaceContentsProps,
+    MoveAreaProps
 } from './types/internal';
 import WorkspacesElementCreationWrapper from './WorkspacesElementCreationWrapper'
 import workspacesManager from './workspacesManager';
@@ -41,7 +43,8 @@ export {
     WorkspacePopup,
     useWorkspacePopup,
     useWorkspaceWindowClicked,
-    WorkspaceContents
+    WorkspaceContents,
+    MoveArea
 };
 export const notifyMoveAreaChanged: () => void = () => workspacesManager?.notifyMoveAreaChanged();
 export const getComponentBounds: () => Bounds = () => workspacesManager?.getComponentBounds();
@@ -60,6 +63,7 @@ export {
     AddWorkspacePopupProps,
     SaveWorkspacePopupProps,
     AddApplicationPopupProps,
-    WorkspaceContentsProps
+    WorkspaceContentsProps,
+    MoveAreaProps
 };
 export default WorkspacesElementCreationWrapper;

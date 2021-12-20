@@ -93,8 +93,9 @@ export class PlatformController {
 
             await definition.start(this.glueController.clientGlue, definition.config, platformControls);
 
-        } catch (error) {
-            const message = `Plugin: ${definition.name} threw while initiating: ${JSON.stringify(error.message)}`;
+        } catch (error: any) {
+            const stringError = typeof error === "string" ? error : JSON.stringify(error.message);
+            const message = `Plugin: ${definition.name} threw while initiating: ${stringError}`;
 
             if (definition.critical) {
                 throw new Error(message);
@@ -164,9 +165,10 @@ export class PlatformController {
         Object.values(this.controllers).forEach((controller, idx) => {
             try {
                 controller.handleClientUnloaded?.(client.windowId, client.win);
-            } catch (error) {
+            } catch (error: any) {
+                const stringError = typeof error === "string" ? error : JSON.stringify(error.message);
                 const controllerName = Object.keys(this.controllers)[idx];
-                this.logger?.error(`${controllerName} controller threw when handling unloaded client ${client.windowId} with error message: ${JSON.stringify(error.message)}`);
+                this.logger?.error(`${controllerName} controller threw when handling unloaded client ${client.windowId} with error message: ${stringError}`);
             }
         });
     }

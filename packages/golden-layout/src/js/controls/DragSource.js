@@ -13,6 +13,7 @@ lm.controls.DragSource = function (element, itemConfig, layoutManager, customDra
 	this._itemConfig = itemConfig;
 	this._layoutManager = layoutManager;
 	this._dragListener = null;
+	this._dragProxy = null;
 
 	this._createDragListener(customDragListener);
 };
@@ -50,9 +51,9 @@ lm.utils.copy(lm.controls.DragSource.prototype, {
 		if (lm.utils.isFunction(itemConfig)) {
 			itemConfig = itemConfig();
 		}
-		var contentItem = this._layoutManager._$normalizeContentItem($.extend(true, {}, itemConfig)),
-			dragProxy = new lm.controls.DragProxy(x, y, this._dragListener, this._layoutManager, contentItem, null);
+		var contentItem = this._layoutManager._$normalizeContentItem($.extend(true, {}, itemConfig));
+			this._dragProxy = new lm.controls.DragProxy(x, y, this._dragListener, this._layoutManager, contentItem, null);
 
-		this._layoutManager.transitionIndicator.transitionElements(this._element, dragProxy.element);
+		this._layoutManager.transitionIndicator.transitionElements(this._element, this._dragProxy.element);
 	}
 });

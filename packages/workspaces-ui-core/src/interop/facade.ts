@@ -480,27 +480,27 @@ export class GlueFacade {
         return manager.hibernateWorkspace(operationArguments.workspaceId);
     }
 
-    private async handleResumeWorkspace(operationArguments: WorkspaceSelector) {
+    private async handleResumeWorkspace(operationArguments: WorkspaceSelector): Promise<void> {
         return manager.resumeWorkspace(operationArguments.workspaceId);
     }
 
-    private handleLockWorkspace(operationArguments: LockWorkspaceArguments) {
+    private handleLockWorkspace(operationArguments: LockWorkspaceArguments): void {
         return manager.lockWorkspace(operationArguments);
     }
 
-    private handleLockWindow(operationArguments: LockWindowArguments) {
+    private handleLockWindow(operationArguments: LockWindowArguments): void {
         return manager.lockWindow(operationArguments);
     }
 
-    private handleLockContainer(operationArguments: LockContainerArguments) {
+    private handleLockContainer(operationArguments: LockContainerArguments): void {
         return manager.lockContainer(operationArguments);
     }
 
-    private handleResizeItem(operationArguments: ResizeItemArguments) {
+    private handleResizeItem(operationArguments: ResizeItemArguments): void {
         return manager.resizeItem(operationArguments);
     }
 
-    private publishEventData(action: EventActionType, payload: EventPayload, type: "workspace" | "frame" | "box" | "window") {
+    private publishEventData(action: EventActionType, payload: EventPayload, type: "workspace" | "frame" | "box" | "window"): void {
         const hasEventMethod = this._glue.agm.methods().some(m => m.name === this._workspacesEventMethod);
 
         if (hasEventMethod) {

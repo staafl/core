@@ -37,8 +37,7 @@ const SaveWorkspacePopup: React.FC<SaveWorkspacePopupProps> = ({ workspaceId, re
     useEffect(() => {
         let shouldUpdate = true;
         
-        glue.workspaces.getAllWorkspaces().then((allWorkspaces: any[]) => {
-            const myWorkspace = allWorkspaces.find((w) => w.id === workspaceId);
+        glue.workspaces.getWorkspaceById(workspaceId).then((myWorkspace: any) => {
             if (shouldUpdate) {
                 setWorkspaceName(myWorkspace.layoutName || "");
             }

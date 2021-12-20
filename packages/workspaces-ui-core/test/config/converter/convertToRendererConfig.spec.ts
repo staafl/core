@@ -87,6 +87,7 @@ describe("convertToRendererConfig() Should", () => {
                 workspacesOptions: {},
                 workspacesConfig: {
                     allowDrop: undefined,
+                    allowSplitters:undefined,
                     isPinned: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
@@ -215,6 +216,7 @@ describe("convertToRendererConfig() Should", () => {
                 ] as object[],
                 workspacesConfig: {
                     allowDrop: undefined,
+                    allowSplitters:undefined,
                     isPinned: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
@@ -283,6 +285,7 @@ describe("convertToRendererConfig() Should", () => {
                         ],
                         workspacesConfig: {
                             allowDrop: undefined,
+                            allowSplitters:undefined,
                             isPinned: undefined,
                             minWidth: undefined,
                             maxWidth: undefined,
@@ -300,6 +303,7 @@ describe("convertToRendererConfig() Should", () => {
                         ],
                         workspacesConfig: {
                             allowDrop: undefined,
+                            allowSplitters:undefined,
                             isPinned: undefined,
                             minWidth: undefined,
                             maxWidth: undefined,
@@ -316,6 +320,7 @@ describe("convertToRendererConfig() Should", () => {
                             emptyWindowPlaceholder
                         ], workspacesConfig: {
                             allowDrop: undefined,
+                            allowSplitters:undefined,
                             isPinned: undefined,
                             minWidth: undefined,
                             maxWidth: undefined,
@@ -326,6 +331,7 @@ describe("convertToRendererConfig() Should", () => {
                 ],
                 workspacesConfig: {
                     allowDrop: undefined,
+                    allowSplitters:undefined,
                     isPinned: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
@@ -379,6 +385,11 @@ describe("convertToRendererConfig() Should", () => {
                 ],
                 workspacesConfig: {
                     allowDrop: undefined,
+                    allowDropHeader: undefined,
+                    allowDropLeft: undefined,
+                    allowDropTop: undefined,
+                    allowDropRight: undefined,
+                    allowDropBottom: undefined,
                     allowExtract: undefined,
                     showEjectButton: undefined,
                     showMaximizeButton: undefined,
@@ -402,6 +413,7 @@ describe("convertToRendererConfig() Should", () => {
                 ],
                 workspacesConfig: {
                     allowDrop: undefined,
+                    allowSplitters:undefined,
                     isPinned: undefined,
                     minWidth: undefined,
                     maxWidth: undefined,
@@ -441,6 +453,11 @@ describe("convertToRendererConfig() Should", () => {
             ],
             workspacesConfig: {
                 allowDrop: undefined,
+                allowDropHeader: undefined,
+                allowDropLeft: undefined,
+                allowDropTop: undefined,
+                allowDropRight: undefined,
+                allowDropBottom: undefined,
                 allowExtract: undefined,
                 showEjectButton: undefined,
                 showMaximizeButton: undefined,
@@ -543,6 +560,11 @@ describe("convertToRendererConfig() Should", () => {
             ],
             workspacesConfig: {
                 allowDrop: undefined,
+                allowDropHeader: undefined,
+                allowDropLeft: undefined,
+                allowDropTop: undefined,
+                allowDropRight: undefined,
+                allowDropBottom: undefined,
                 allowExtract: undefined,
                 showEjectButton: undefined,
                 showMaximizeButton: undefined,
@@ -601,6 +623,7 @@ describe("convertToRendererConfig() Should", () => {
                     ],
                     workspacesConfig: {
                         allowDrop: undefined,
+                        allowSplitters:undefined,
                         isPinned: undefined,
                         minWidth: undefined,
                         maxWidth: undefined,
@@ -658,6 +681,7 @@ describe("convertToRendererConfig() Should", () => {
                     ],
                     workspacesConfig: {
                         allowDrop: undefined,
+                        allowSplitters:undefined,
                         isPinned: undefined,
                         minWidth: undefined,
                         maxWidth: undefined,
@@ -702,6 +726,11 @@ describe("convertToRendererConfig() Should", () => {
             ],
             workspacesConfig: {
                 allowDrop: undefined,
+                allowDropHeader: undefined,
+                allowDropLeft: undefined,
+                allowDropTop: undefined,
+                allowDropRight: undefined,
+                allowDropBottom: undefined,
                 allowExtract: undefined,
                 showEjectButton: undefined,
                 showMaximizeButton: undefined,
@@ -801,6 +830,11 @@ describe("convertToRendererConfig() Should", () => {
                                 ],
                                 workspacesConfig: {
                                     allowDrop: undefined,
+                                    allowDropHeader: undefined,
+                                    allowDropLeft: undefined,
+                                    allowDropTop: undefined,
+                                    allowDropRight: undefined,
+                                    allowDropBottom: undefined,
                                     allowExtract: undefined,
                                     showEjectButton: undefined,
                                     showMaximizeButton: undefined,
@@ -814,6 +848,7 @@ describe("convertToRendererConfig() Should", () => {
                             }],
                             workspacesConfig: {
                                 allowDrop: undefined,
+                                allowSplitters:undefined,
                                 isPinned: undefined,
                                 minWidth: undefined,
                                 maxWidth: undefined,
@@ -861,6 +896,11 @@ describe("convertToRendererConfig() Should", () => {
                                     ],
                                     workspacesConfig: {
                                         allowDrop: undefined,
+                                        allowDropHeader: undefined,
+                                        allowDropLeft: undefined,
+                                        allowDropTop: undefined,
+                                        allowDropRight: undefined,
+                                        allowDropBottom: undefined,
                                         allowExtract: undefined,
                                         showEjectButton: undefined,
                                         showMaximizeButton: undefined,
@@ -874,6 +914,7 @@ describe("convertToRendererConfig() Should", () => {
                                 }],
                                 workspacesConfig: {
                                     allowDrop: undefined,
+                                    allowSplitters:undefined,
                                     isPinned: undefined,
                                     minWidth: undefined,
                                     maxWidth: undefined,
@@ -884,6 +925,7 @@ describe("convertToRendererConfig() Should", () => {
                             }],
                             workspacesConfig: {
                                 allowDrop: undefined,
+                                allowSplitters:undefined,
                                 isPinned: undefined,
                                 minWidth: undefined,
                                 maxWidth: undefined,
@@ -895,6 +937,7 @@ describe("convertToRendererConfig() Should", () => {
                     ],
                     workspacesConfig: {
                         allowDrop: undefined,
+                        allowSplitters:undefined,
                         isPinned: undefined,
                         minWidth: undefined,
                         maxWidth: undefined,

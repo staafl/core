@@ -1,6 +1,6 @@
 {
     "name": "@glue42/core",
-    "version": "5.4.9",
+    "version": "5.4.13",
     "description": "Glue42 core library",
     "main": "dist/core.umd.js",
     "module": "dist/core.es.js",
@@ -25,7 +25,8 @@
         "publish:beta": "npm publish --tag beta",
         "build": "npm run tslint && tsc -p ./tsconfig.json && rollup -c",
         "build:tests": "tsc -p ./tsconfig.test.json",
-        "audit": "node ../../scripts/audit/index.js"
+        "audit": "echo no audit found",
+        "audit:V1": "node ../../scripts/audit/index.js"
     },
     "author": {
         "name": "Glue42",

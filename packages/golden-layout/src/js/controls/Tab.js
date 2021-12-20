@@ -10,6 +10,8 @@ lm.controls.Tab = function (header, contentItem) {
 	this.header = header;
 	this.contentItem = contentItem;
 	this.element = $(lm.controls.Tab._template);
+	this._elementOffset = 0;
+	this._xOfLastReorder = 0;
 	this.titleElement = this.element.find('.lm_title');
 	this.closeElement = this.element.find('.lm_close_tab');
 	this.closeElement[contentItem.config.isClosable ? 'show' : 'hide']();
@@ -24,8 +26,9 @@ lm.controls.Tab = function (header, contentItem) {
 		this._layoutManager.config.settings.reorderEnabled === true &&
 		contentItem.config.reorderEnabled === true
 	) {
-		this._dragListener = new lm.utils.DragListener(this.element);
+		this._dragListener = new lm.utils.TabDragListener(this.element);
 		this._dragListener.on('dragStart', this._onDragStart, this);
+		this._dragListener.on('reorderStart', this._onReorderStart, this);
 		this.contentItem.on('destroy', this._dragListener.destroy, this._dragListener);
 	}
 
@@ -113,6 +116,7 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 		if (this._dragListener) {
 			this.contentItem.off('destroy', this._dragListener.destroy, this._dragListener);
 			this._dragListener.off('dragStart', this._onDragStart);
+			this._dragListener.off('reorderStart', this._onReorderStart);
 			this._dragListener = null;
 		}
 		this.element.remove();
@@ -134,6 +138,7 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 		const isWorkspaceLayout = this.contentItem.layoutManager.config.settings.mode === "workspace";
 		const hasLessThanTwoTabs = this.contentItem.parent.header.tabs.length < 2;
 		const isMissingWindowId = !this.contentItem.config.windowId && (this.contentItem.config.componentState && !this.contentItem.config.componentState.windowId);
+		const isWorkspaceExtractEnabled = !this.contentItem.layoutManager.config.settings.workspaceInnerDrag && isWorkspaceLayout;
 
 		if (isWorkspaceLayout && hasLessThanTwoTabs) {
 			return;
@@ -150,6 +155,10 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 			return;
 		}
 
+		if (isWorkspaceExtractEnabled) {
+			return;
+		}
+		this._layoutManager.restoreMaximizedContainers.apply(this._layoutManager);
 		const newProxy = new lm.controls.DragProxy(
 			x,
 			y,
@@ -162,6 +171,56 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 		this._layoutManager._dragProxies.push(newProxy);
 	},
 
+	_onReorderStart: function (x, y) {
+		if (this.contentItem.config.workspacesConfig && this.contentItem.config.workspacesConfig.allowExtract === false) {
+			return;
+		}
+		const tabX = this.element[0].getBoundingClientRect().x;
+		const parentX = this.header.element[0].getBoundingClientRect().x;
+		const tabXParentOffset = tabX - parentX;
+		const tabWidth = this.element[0].getBoundingClientRect().width;
+		this._elementOffset = tabXParentOffset - x;
+
+		this._xOfLastReorder = x;
+		this.element.css("position", `absolute`);
+		this.element.css("z-index", `42`);
+		this.element.css("left", `${x + this._elementOffset}px`);
+		this.element.css("width", `${tabWidth}px`);
+
+		this._dragListener.on("reorder", this._onReorder, this);
+		this._dragListener.on("reorderStop", this._onReorderStop, this);
+
+	},
+	_onReorder: function (x, y) {
+		this.element.css("left", `${x + this._elementOffset}px`);
+		const tabIndex = this.header.tabs.indexOf(this);
+
+		if (this._xOfLastReorder > x && tabIndex > 0) {
+			const previousTabDimensions = lm.utils.getBounds(this.header.tabs[tabIndex - 1].element);
+
+			if (x < previousTabDimensions.x + previousTabDimensions.width / 2) {
+				this.header.moveTab(tabIndex, tabIndex - 1);
+				this._xOfLastReorder = x;
+			}
+		} else if (this._xOfLastReorder < x && tabIndex < this.header.tabs.length - 1) {
+			const nextTabDimensions = lm.utils.getBounds(this.header.tabs[tabIndex + 1].element);
+
+			if (x > nextTabDimensions.x + nextTabDimensions.width / 2) {
+				this.header.moveTab(tabIndex, tabIndex + 1);
+				this._xOfLastReorder = x;
+			}
+		}
+		this.element.css("z-index", `42`);
+	},
+	_onReorderStop: function (x, y) {
+		this.element.css("left", "");
+		this.element.css("width", "");
+		this.element.css("position", "");
+		this.element.css("z-index", `auto`);
+
+		this._dragListener.off("reorder", this._onReorder);
+		this._dragListener.off("reorderStop", this._onReorderStop);
+	},
 	/**
 	 * Callback when the tab is clicked
 	 *

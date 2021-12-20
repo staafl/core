@@ -10,7 +10,6 @@ describe("addWindow() Should", () => {
     });
 
     describe("", () => {
-
         const config = {
             children: [
                 {
@@ -144,6 +143,43 @@ describe("addWindow() Should", () => {
                     expect(windowContext).to.eql(context);
                 });
             });
+
+            it(`reject when the parent is a ${parentType} and there is a maximized window in the workspace`, (done) => {
+                const window = workspace.getAllWindows()[0];
+                const box = workspace.getAllBoxes().find(p => p.type === parentType);
+                window.maximize().then(() => {
+                    return box.addWindow({
+                        type: "window",
+                        appName: "noGlueApp",
+                        config: {
+                            allowExtract: false,
+                            showCloseButton: false
+                        }
+                    })
+                }).then(() => {
+                    done("Should not resolve");
+                }).catch(() => done());
+            });
+
+            Array.from(["row", "column", "group"]).forEach((maximizedParentType)=>{
+                it(`reject when the parent is a ${parentType} and there is a maximized ${maximizedParentType} in the workspace`, (done) => {
+                    const parent = workspace.getAllBoxes().find(p => p.type === maximizedParentType);
+                    const box = workspace.getAllBoxes().find(p => p.type === parentType);
+                    parent.maximize().then(() => {
+                        return box.addWindow({
+                            type: "window",
+                            appName: "noGlueApp",
+                            config: {
+                                allowExtract: false,
+                                showCloseButton: false
+                            }
+                        })
+                    }).then(() => {
+                        done("Should not resolve");
+                    }).catch(() => done());
+                });
+            })
+          
 
             Array.from(["42", 42, [], {}, undefined, null]).forEach((input) => {
                 it(`reject when the parent is ${parentType} and the argument is ${JSON.stringify(input)}`, (done) => {
@@ -537,13 +573,13 @@ describe("addWindow() Should", () => {
                     showCloseButton: false
                 }
             });
-    
+
             await secondWorkspace.refreshReference();
-    
+
             expect(window.allowExtract).to.be.false;
             expect(window.showCloseButton).to.be.false;
         });
-    
+
         it(`lock the window when the paret is a group and locking config has been passed`, async () => {
             const secondWorkspace = await glue.workspaces.createWorkspace({
                 children: [
@@ -562,13 +598,13 @@ describe("addWindow() Should", () => {
                     showCloseButton: false
                 }
             });
-    
+
             await secondWorkspace.refreshReference();
-    
+
             expect(window.allowExtract).to.be.false;
             expect(window.showCloseButton).to.be.false;
         });
-    
+
         it(`lock the window when the paret is a group with windows and locking config has been passed`, async () => {
             const secondWorkspace = await glue.workspaces.createWorkspace({
                 children: [
@@ -590,13 +626,13 @@ describe("addWindow() Should", () => {
                     showCloseButton: false
                 }
             });
-    
+
             await secondWorkspace.refreshReference();
-    
+
             expect(window.allowExtract).to.be.false;
             expect(window.showCloseButton).to.be.false;
         });
-    
+
         it(`lock the window when the paret is a row and locking config has been passed`, async () => {
             const secondWorkspace = await glue.workspaces.createWorkspace({
                 children: [
@@ -615,9 +651,9 @@ describe("addWindow() Should", () => {
                     showCloseButton: false
                 }
             });
-    
+
             await secondWorkspace.refreshReference();
-    
+
             expect(window.allowExtract).to.be.false;
             expect(window.showCloseButton).to.be.false;
         });

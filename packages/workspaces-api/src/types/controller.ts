@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Glue42Workspaces } from "../../workspaces";
-import { AddItemResult, WorkspaceSnapshotResult, FrameSnapshotResult } from "./protocol";
+import { AddItemResult, WorkspaceSnapshotResult, FrameSnapshotResult, WorkspaceStreamData } from "./protocol";
 import { SubscriptionConfig, WorkspaceEventType, WorkspaceEventAction } from "./subscription";
 import { RefreshChildrenConfig } from "./privateData";
 import { Child, ContainerLockConfig, SubParentTypes } from "./builders";
 import { GDWindow } from "./glue";
 import { UnsubscribeFunction } from "callback-registry";
-import { Constraints, WorkspaceLockConfig, WorkspaceWindowLockConfig } from "./temp";
 
 export interface WorkspacesController {
     checkIsInSwimlane(windowId: string): Promise<boolean>;
@@ -18,8 +17,11 @@ export interface WorkspacesController {
     processGlobalSubscription(callback: (callbackData: unknown) => void, streamType: WorkspaceEventType, action: WorkspaceEventAction): Promise<Glue42Workspaces.Unsubscribe>;
     getFrame(selector: { windowId?: string; predicate?: (frame: Glue42Workspaces.Frame) => boolean }): Promise<Glue42Workspaces.Frame>;
     getFrames(predicate?: (frame: Glue42Workspaces.Frame) => boolean): Promise<Glue42Workspaces.Frame[]>;
+    getWorkspaceById(workspaceId: string): Promise<Glue42Workspaces.Workspace>;
+    transformStreamPayloadToWorkspace(payload: WorkspaceStreamData): Promise<Glue42Workspaces.Workspace>;
     getWorkspace(predicate: (workspace: Glue42Workspaces.Workspace) => boolean): Promise<Glue42Workspaces.Workspace>;
     getWorkspaces(predicate?: (workspace: Glue42Workspaces.Workspace) => boolean): Promise<Glue42Workspaces.Workspace[]>;
+    getWorkspacesByFrameId(frameId: string): Promise<Glue42Workspaces.Workspace[]>;
     getAllWorkspaceSummaries(): Promise<Glue42Workspaces.WorkspaceSummary[]>;
     getWindow(predicate: (swimlaneWindow: Glue42Workspaces.WorkspaceWindow) => boolean): Promise<Glue42Workspaces.WorkspaceWindow>;
     getParent(predicate: (parent: Glue42Workspaces.WorkspaceBox) => boolean): Promise<Glue42Workspaces.WorkspaceBox>;
@@ -56,8 +58,8 @@ export interface WorkspacesController {
     iterateFilterChildren(children: Child[], predicate: (child: Child) => boolean): Child[];
     hibernateWorkspace(workspaceId: string): Promise<void>;
     resumeWorkspace(workspaceId: string): Promise<void>;
-    lockWorkspace(workspaceId: string, config?: WorkspaceLockConfig): Promise<void>;
-    lockWindow(windowPlacementId: string, config?: WorkspaceWindowLockConfig): Promise<void>;
+    lockWorkspace(workspaceId: string, config?: Glue42Workspaces.WorkspaceLockConfig): Promise<void>;
+    lockWindow(windowPlacementId: string, config?: Glue42Workspaces.WorkspaceWindowLockConfig): Promise<void>;
     lockContainer(itemId: string, type: SubParentTypes["type"], config?: ContainerLockConfig): Promise<void>;
-    getFrameConstraints(frameId: string): Promise<Constraints>;
+    getFrameConstraints(frameId: string): Promise<Glue42Workspaces.FrameConstraints>;
 }

@@ -4,8 +4,8 @@ import { BridgeOperation, LibController } from "../../common/types";
 import { GlueController } from "../../controllers/glue";
 import { ServiceWorkerController } from "../../controllers/serviceWorker";
 import logger from "../../shared/logger";
-import { notificationsOperationDecoder, permissionRequestResultDecoder, raiseNotificationDecoder } from "./decoders";
-import { GlueNotificationData, NotificationEventPayload, NotificationsOperationsTypes, PermissionRequestResult, RaiseNotificationConfig } from "./types";
+import { notificationsOperationDecoder, permissionQueryResultDecoder, permissionRequestResultDecoder, raiseNotificationDecoder } from "./decoders";
+import { GlueNotificationData, NotificationEventPayload, NotificationsOperationsTypes, PermissionQueryResult, PermissionRequestResult, RaiseNotificationConfig } from "./types";
 
 export class NotificationsController implements LibController {
 
@@ -13,7 +13,8 @@ export class NotificationsController implements LibController {
 
     private operations: { [key in NotificationsOperationsTypes]: BridgeOperation } = {
         raiseNotification: { name: "raiseNotification", execute: this.handleRaiseNotification.bind(this), dataDecoder: raiseNotificationDecoder },
-        requestPermission: { name: "requestPermission", resultDecoder: permissionRequestResultDecoder, execute: this.handleRequestPermission.bind(this) }
+        requestPermission: { name: "requestPermission", resultDecoder: permissionRequestResultDecoder, execute: this.handleRequestPermission.bind(this) },
+        getPermission: { name: "getPermission", resultDecoder: permissionQueryResultDecoder, execute: this.handleGetPermission.bind(this) }
     }
 
     constructor(
@@ -124,10 +125,25 @@ export class NotificationsController implements LibController {
         this.logger?.trace(`[${commandId}] notification with a title: ${settings.title} was successfully raised`);
     }
 
+    private async handleGetPermission(_: unknown, commandId: string): Promise<PermissionQueryResult> {
+        this.logger?.trace(`[${commandId}] handling a get permission message`);
+
+        const permissionValue = Notification.permission;
+
+        this.logger?.trace(`[${commandId}] permission for raising notifications is: ${permissionValue}`);
+
+        return { permission: permissionValue };
+    }
+
+
     private async handleRequestPermission(_: unknown, commandId: string): Promise<PermissionRequestResult> {
         this.logger?.trace(`[${commandId}] handling a request permission message`);
 
-        const permissionValue = await Notification.requestPermission();
+        let permissionValue = Notification.permission;
+
+        if (permissionValue !== "granted") {
+            permissionValue = await Notification.requestPermission();
+        }
 
         const permissionGranted = permissionValue === "granted";
 
@@ -174,6 +190,10 @@ export class NotificationsController implements LibController {
                 timestamp: event.target.timestamp,
                 vibrate: event.target.vibrate
             };
+
+            if (settings.focusPlatformOnDefaultClick) {
+                window.focus();
+            }
 
             this.handleNotificationClick({ action: "", glueData, definition });
         };

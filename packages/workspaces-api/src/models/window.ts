@@ -1,4 +1,4 @@
-import { checkThrowCallback, nonEmptyStringDecoder, windowLockConfigDecoder } from "../shared//decoders";
+import { checkThrowCallback, nonEmptyStringDecoder, windowLockConfigDecoder, elementResizeConfigDecoder } from "../shared//decoders";
 import { SubscriptionConfig } from "../types/subscription";
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { WindowPrivateData } from "../types/privateData";
@@ -7,8 +7,6 @@ import { GDWindow } from "../types/glue";
 import { Row } from "./row";
 import { Column } from "./column";
 import { Group } from "./group";
-import { WorkspaceWindowLockConfig } from "../types/temp";
-import { number, optional } from "decoder-validate";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -74,6 +72,14 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         return getData(this).config.showCloseButton;
     }
 
+    public get width(): number {
+        return getData(this).config.widthInPx;
+    }
+
+    public get height(): number {
+        return getData(this).config.heightInPx;
+    }
+
     public get minWidth(): number {
         return getData(this).config.minWidth;
     }
@@ -104,14 +110,6 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
 
     public get appName(): string {
         return getData(this).config.appName;
-    }
-
-    public get width(): number {
-        return getData(this).config.widthInPx;
-    }
-
-    public get height(): number {
-        return getData(this).config.heightInPx;
     }
 
     public async forceLoad(): Promise<void> {
@@ -224,7 +222,7 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         await this.workspace.refreshReference();
     }
 
-    public async lock(config?: WorkspaceWindowLockConfig | ((config: WorkspaceWindowLockConfig) => WorkspaceWindowLockConfig)): Promise<void> {
+    public async lock(config?: Glue42Workspaces.WorkspaceWindowLockConfig | ((config: Glue42Workspaces.WorkspaceWindowLockConfig) => Glue42Workspaces.WorkspaceWindowLockConfig)): Promise<void> {
         let lockConfigResult = undefined;
 
         if (typeof config === "function") {
@@ -243,20 +241,19 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         await this.workspace.refreshReference();
     }
 
-    public async setSize(width?: number, height?: number): Promise<void> {
-        if (!width && !height) {
-            throw new Error("Expected either width or height to be passed}");
-        }
+    public async setSize(config: Glue42Workspaces.ElementResizeConfig): Promise<void> {
+        const verifiedConfig = elementResizeConfigDecoder.runWithException(config);
 
-        optional(number().where(n => n > 0, "The height should be positive")).runWithException(height);
-        optional(number().where(n => n > 0, "The width should be positive")).runWithException(width);
+        if (!verifiedConfig.width && !verifiedConfig.height) {
+            throw new Error("Expected either width or height to be passed.");
+        }
 
         const myId = getData(this).id;
         const controller = getData(this).controller;
 
         await controller.resizeItem(myId, {
-            height,
-            width,
+            height: verifiedConfig.height,
+            width: verifiedConfig.width,
             relative: false
         });
 

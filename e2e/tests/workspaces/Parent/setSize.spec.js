@@ -120,7 +120,7 @@ describe("setSize() Should", () => {
     it("enlarge the width of the group when the parent is a group", async () => {
         const group = workspace.getAllGroups()[0];
         const newWidth = group.width + 10;
-        await group.setSize(newWidth);
+        await group.setSize({ width: newWidth });
 
         expect(group.width).to.eql(newWidth);
     });
@@ -128,7 +128,7 @@ describe("setSize() Should", () => {
     it("enlarge the height of the group when the parent is a group", async () => {
         const group = workspace.getAllGroups()[0];
         const newHeight = group.height + 10;
-        await group.setSize(undefined, newHeight);
+        await group.setSize({ height: newHeight });
 
         expect(Math.abs(group.height - newHeight) <= 1).to.be.true;
     });
@@ -138,7 +138,7 @@ describe("setSize() Should", () => {
         const newHeight = group.height + 10;
         const newWidth = group.width + 10;
 
-        await group.setSize(newWidth, newHeight);
+        await group.setSize({ width: newWidth, height: newHeight });
 
         expect(group.width).to.eql(newWidth);
         expect(Math.abs(group.height - newHeight) <= 1).to.be.true;
@@ -147,7 +147,7 @@ describe("setSize() Should", () => {
     it("reduce the width of the group when the parent is a group", async () => {
         const group = workspace.getAllGroups()[0];
         const newWidth = group.width - 10;
-        await group.setSize(newWidth);
+        await group.setSize({ width: newWidth });
 
         expect(group.width).to.eql(newWidth);
     });
@@ -155,7 +155,7 @@ describe("setSize() Should", () => {
     it("reduce the height of the group when the parent is a group", async () => {
         const group = workspace.getAllGroups()[0];
         const newHeight = group.height - 10;
-        await group.setSize(undefined, newHeight);
+        await group.setSize({ height: newHeight });
 
         expect(Math.abs(group.height - newHeight) <= 1).to.be.true;
     });
@@ -164,7 +164,7 @@ describe("setSize() Should", () => {
         const group = workspace.getAllGroups()[0];
         const newWidth = group.width - 10;
         const newHeight = group.height - 10;
-        await group.setSize(newWidth, newHeight);
+        await group.setSize({ width: newWidth, height: newHeight });
 
         expect(group.width).to.eql(newWidth);
         expect(Math.abs(group.height - newHeight) <= 1).to.be.true;
@@ -174,7 +174,7 @@ describe("setSize() Should", () => {
     Array.from([undefined, null, () => { }, {}, "42", true, -1, 0]).forEach((arg) => {
         it(`reject when the passed arguments are ${typeof arg}`, (done) => {
             const group = workspace.getAllGroups()[0];
-            group.setSize(arg, arg).then(() => {
+            group.setSize({ width: arg, height: arg }).then(() => {
                 done("Should not resolve");
             }).catch(() => done());
         });

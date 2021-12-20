@@ -691,7 +691,7 @@ lm.utils.copy(lm.LayoutManager.prototype, {
 			const isAllowDropExplicitlyTrue = allContentItems[i].config.workspacesConfig && allContentItems[i].config.workspacesConfig.allowDrop === true;
 
 			if (this.config.workspacesOptions.allowDrop === false && !isAllowDropExplicitlyTrue) {
-				return;
+				continue;
 			}
 
 			if (allContentItems[i].config.workspacesConfig && allContentItems[i].config.workspacesConfig.allowDrop === false) {
@@ -708,9 +708,15 @@ lm.utils.copy(lm.LayoutManager.prototype, {
 				this._itemAreas.push(area);
 				var header = {};
 				lm.utils.copy(header, area);
-				lm.utils.copy(header, area.contentItem._contentAreaDimensions.header.highlightArea);
-				header.surface = (header.x2 - header.x1) * (header.y2 - header.y1);
-				this._itemAreas.push(header);
+				if (area.contentItem._contentAreaDimensions.header) {
+					lm.utils.copy(header, area.contentItem._contentAreaDimensions.header.highlightArea);
+					header.surface = (header.x2 - header.x1) * (header.y2 - header.y1);
+					this._itemAreas.push(header);
+				}
+
+				if (allContentItems[i]._dropSegment) {
+					allContentItems[i]._dropSegment = null;
+				}
 			}
 		}
 
@@ -1126,6 +1132,13 @@ lm.utils.copy(lm.LayoutManager.prototype, {
 				this._findAllStackContainersRecursive(stackContainers, item);
 			}
 		}, this));
+	},
+	restoreMaximizedContainers: function () {
+		this.root.getItemsByFilter((item) => {
+			return item.hasId("__glMaximised") && item.type !== "component";
+		}).forEach((item) => {
+			this._$minimiseItem(item);
+		});
 	}
 });
 /**

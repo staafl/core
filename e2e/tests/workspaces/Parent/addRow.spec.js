@@ -390,7 +390,94 @@ describe("addRow() Should", () => {
         expect(row.children[0].allowDrop).to.be.true;
     });
 
+    // allowSplitters
+    it("add a locked row when a config with allowSplitters:false is passed", async () => {
+        const column = workspace.getAllColumns()[0];
 
+        const row = await column.addRow({
+            children: [
+                {
+                    type: "window",
+                    appName: "noGlueApp"
+                },
+                {
+                    type: "window",
+                    appName: "noGlueApp",
+                }
+            ],
+            config: {
+                allowSplitters: false
+            }
+        });
+
+        await workspace.refreshReference();
+
+        expect(row.allowSplitters).to.be.false;
+    });
+
+    it("add a row with locked contents when a config with allowSplitters:false is passed", async () => {
+        const column = workspace.getAllColumns()[0];
+
+        const row = await column.addRow({
+            children: [
+                {
+                    type: "column",
+                    children: [
+                        {
+                            type: "group",
+                            children: [
+                                {
+                                    type: "window",
+                                    appName: "noGlueApp"
+                                },
+                            ]
+                        }
+                    ]
+                }
+            ],
+            config: {
+                allowSplitters: false
+            }
+        });
+
+        await workspace.refreshReference();
+
+        expect(row.children[0].allowSplitters).to.be.false;
+    });
+
+    it("add a locked row with unlocked contents when the children override the allowSplitters constraint", async () => {
+        const column = workspace.getAllColumns()[0];
+
+        const row = await column.addRow({
+            children: [
+                {
+                    type: "column",
+                    children: [
+                        {
+                            type: "group",
+                            children: [
+                                {
+                                    type: "window",
+                                    appName: "noGlueApp"
+                                },
+                            ]
+                        }
+                    ],
+                    config: {
+                        allowSplitters: true
+                    }
+                }
+            ],
+            config: {
+                allowSplitters: false
+            }
+        });
+
+        await workspace.refreshReference();
+
+        expect(row.allowSplitters).to.be.false;
+        expect(row.children[0].allowSplitters).to.be.true;
+    });
 
     it("reject when the parent is a row and is passed a row definition", (done) => {
         const allBoxes = workspace.getAllBoxes();
@@ -415,7 +502,7 @@ describe("addRow() Should", () => {
         column.addRow({ type: "column", children: [] }).then(() => {
             done("Should not resolve");
         }).catch(() => done());
-    })
+    });
 
     it("reject when the parent is a column and the arguments is a group definition", (done) => {
         const allBoxes = workspace.getAllBoxes();
@@ -423,7 +510,7 @@ describe("addRow() Should", () => {
         column.addRow({ type: "group", children: [] }).then(() => {
             done("Should not resolve");
         }).catch(() => done());
-    })
+    });
 
     it("reject when the parent is a row and the arguments is a window definition", (done) => {
         const allBoxes = workspace.getAllBoxes();
@@ -431,5 +518,29 @@ describe("addRow() Should", () => {
         column.addRow({ type: "window" }).then(() => {
             done("Should not resolve");
         }).catch(() => done());
-    })
+    });
+
+    it("reject when there is a maximized window in the workspace", (done) => {
+        const allBoxes = workspace.getAllBoxes();
+        const window = workspace.getAllWindows()[0];
+        const column = allBoxes.find(p => p.type === "column");
+        window.maximize().then(() => {
+            return column.addRow({ type: "row", children: [] });
+        }).then(() => {
+            done("Should not resolve");
+        }).catch(() => done());
+    });
+
+    Array.from(["row", "column", "group"]).forEach((maximizedParentType) => {
+        it(`reject when there is a maximized ${maximizedParentType} in the workspace`, (done) => {
+            const allBoxes = workspace.getAllBoxes();
+            const parent = allBoxes.find(b => b.type === maximizedParentType);
+            const column = allBoxes.find(p => p.type === "column");
+            parent.maximize().then(() => {
+                return column.addRow({ type: "row", children: [] });
+            }).then(() => {
+                done("Should not resolve");
+            }).catch(() => done());
+        });
+    });
 });

@@ -1,3 +1,16 @@
+1.7.2
+chore: bump due to dependencies update
+1.7.1
+feat: added support for getPermission
+1.7.0
+feat: added isSelected to the workspace object and dependencies update inline with 3.12 Enterprise release
+1.6.6
+feat: added an option to focus the platform when a notification receives a default click
+1.6.5
+feat: added allowSplitters to rows and columns and allowDropLeft, allowDropTop, allowDropRight, allowDropBottom, allowDropHeader to the groups
+chore: Resolved dependency vulnerabilities
+1.6.4
+chore: bump due to dependencies update
 1.6.3
 chore: bump due to dependencies update
 1.6.2

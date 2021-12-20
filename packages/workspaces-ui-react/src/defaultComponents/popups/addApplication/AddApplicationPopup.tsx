@@ -14,15 +14,27 @@ const AddApplicationPopup: React.FC<AddApplicationPopupProps> = ({ workspaceId, 
 
     useEffect(() => {
         let shouldUpdate = true;
-        glue.workspaces.getAllWorkspaces().then((allWorkspaces: any) => {
-            const myWorkspace = allWorkspaces.find((w: any) => w.id === workspaceId);
-            const parent = myWorkspace.getBox((p: any) => p.id === boxId) || myWorkspace;
+        if (glue.workspaces.getWorkspaceById) {
+            glue.workspaces.getWorkspaceById(workspaceId).then((myWorkspace: any) => {
+                const parent = myWorkspace.getBox((p: any) => p.id === boxId) || myWorkspace;
 
-            if (!shouldUpdate) {
-                return;
-            }
-            setParent(parent);
-        });
+                if (!shouldUpdate) {
+                    return;
+                }
+                setParent(parent);
+            });
+        } else {
+            glue.workspaces.getAllWorkspaces().then((allWorkspaces: any) => {
+                const myWorkspace = allWorkspaces.find((w: any) => w.id === workspaceId);
+                const parent = myWorkspace.getBox((p: any) => p.id === boxId) || myWorkspace;
+    
+                if (!shouldUpdate) {
+                    return;
+                }
+                setParent(parent);
+            });
+        }
+
 
         return () => {
             shouldUpdate = false;

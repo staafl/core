@@ -7,7 +7,6 @@ import { Frame } from "./frame";
 import { SubscriptionConfig } from "../types/subscription";
 import { WorkspacePrivateData } from "../types/privateData";
 import { Glue42Workspaces } from "../../workspaces";
-import { WorkspaceLockConfig } from "../types/temp";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -45,12 +44,16 @@ export class Workspace implements Glue42Workspaces.Workspace {
         return getData(this).config.title;
     }
 
-    public get layoutName(): string | undefined {
+    public get layoutName(): string {
         return getData(this).config.layoutName;
     }
 
-    public get isHibernated(): boolean {
+    public get isHibernated(): boolean | undefined {
         return getData(this).config.isHibernated;
+    }
+
+    public get isSelected(): boolean {
+        return getData(this).config.isSelected;
     }
 
     public get children(): Glue42Workspaces.WorkspaceElement[] {
@@ -362,7 +365,7 @@ export class Workspace implements Glue42Workspaces.Workspace {
         await this.refreshReference();
     }
 
-    public async lock(config?: WorkspaceLockConfig | ((config: WorkspaceLockConfig) => WorkspaceLockConfig)): Promise<void> {
+    public async lock(config?: Glue42Workspaces.WorkspaceLockConfig | ((config: Glue42Workspaces.WorkspaceLockConfig) => Glue42Workspaces.WorkspaceLockConfig)): Promise<void> {
         let lockConfigResult = undefined;
 
         if (typeof config === "function") {
@@ -391,7 +394,6 @@ export class Workspace implements Glue42Workspaces.Workspace {
         await getData(this).controller.lockWorkspace(this.id, verifiedConfig);
         await this.refreshReference();
     }
-
 
     public async onClosed(callback: () => void): Promise<Glue42Workspaces.Unsubscribe> {
         checkThrowCallback(callback);

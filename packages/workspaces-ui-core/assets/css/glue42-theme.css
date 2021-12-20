@@ -1,7 +1,5 @@
 :root {
-  --t42-primary-base: 208, 74%;
-  --t42-primary: hsl(var(--t42-primary-base), 48%);
-  --t42-danger-color: #c71a1a;
+  --t42-wsp-close-color: #c71a1a;
 }
 .dark {
   --t42-bg-light-base: 0, 0%;
@@ -21,6 +19,7 @@
   --t42-border: 0.0625rem solid var(--t42-color-opacity-10);
   --t42-icon-color: var(--t42-link-color);
   --t42-list-group-hover-bg-special: hsla(var(--t42-content-color-base), 100%, 0.065);
+  --t42-wsp-controls: hsl(0, 0%, 35%);
   --t42-header-top-bg: rgb(var(--t42-bg-dark));
   --t42-header-bg: rgb(var(--t42-bg-mid));
   --t42-tab-bg: rgb(var(--t42-bg-dark));
@@ -56,6 +55,7 @@
   --t42-header-top-bg: rgb(var(--t42-bg-mid));
   --t42-header-bg: rgb(var(--t42-bg-dark));
   --t42-tab-bg: rgb(var(--t42-bg-light));
+  --t42-wsp-controls: hsl(0, 0%, 65%);
   /* bootstrap override per theme */
   --t42-body: rgb(var(--t42-bg-mid));
   --t42-link-hover-color: hsl(var(--t42-bg-light-base), 0%);
@@ -73,11 +73,11 @@
 }
 .lm_dragProxy .lm_content {
   box-sizing: content-box;
-  border: 1px solid var(--t42-primary);
+  border: 1px solid var(--primary);
 }
 .lm_dropTargetIndicator {
   background-color: rgb(var(--t42-bg-mid));
-  border: 2px solid var(--t42-primary);
+  border: 2px solid var(--primary);
   overflow: hidden;
 }
 .lm_dropTargetIndicator .lm_inner {
@@ -173,7 +173,10 @@
   background-color: auto;
 }
 .lm_header .lm_tab .lm_close_tab::before {
-  background-color: var(--t42-content-color);
+  background-color: var(--t42-wsp-controls);
+  transition-timing-function: cubic-bezier(0.45, 0, 0.15, 1);
+  transition-duration: 250ms;
+  transition-property: background-color;
 }
 .lm_header .lm_tab .lm_close_tab:hover {
   background-color: var(--t42-color-opacity-10);
@@ -188,7 +191,7 @@
   background-color: var(--t42-tab-bg);
 }
 .lm_header .lm_tab.lm_active::before {
-  background-color: var(--t42-primary);
+  background-color: var(--primary);
 }
 .lm_header .lm_tab.lm_active .lm_title {
   color: var(--t42-link-color);
@@ -199,7 +202,10 @@
 .lm_controls .lm_minimise::before,
 .lm_controls .lm_popout::before,
 .lm_controls .workspace_content.lm_maximise::before {
-  background-color: var(--t42-content-color-muted);
+  background-color: var(--t42-wsp-controls);
+  transition-timing-function: cubic-bezier(0.45, 0, 0.15, 1);
+  transition-duration: 250ms;
+  transition-property: background-color;
 }
 .lm_controls .lm_minimise:hover::before,
 .lm_controls .lm_popout:hover::before,
@@ -207,22 +213,31 @@
   background-color: var(--t42-content-color);
 }
 .lm_controls .lm_restore::after {
-  border-color: var(--t42-content-color-muted);
+  border-color: var(--t42-wsp-controls);
+  transition-timing-function: cubic-bezier(0.45, 0, 0.15, 1);
+  transition-duration: 250ms;
+  transition-property: border-color;
 }
 .lm_controls .lm_restore:hover::after {
   border-color: var(--t42-content-color);
 }
 .lm_controls .lm_close::before {
-  background-color: var(--t42-content-color);
+  background-color: var(--t42-wsp-controls);
+  transition-timing-function: cubic-bezier(0.45, 0, 0.15, 1);
+  transition-duration: 250ms;
+  transition-property: background-color;
 }
 .lm_controls .lm_close:hover {
-  background-color: var(--t42-danger-color);
+  background-color: var(--t42-wsp-close-color);
 }
 .lm_controls .lm_close:hover::before {
   background-color: hsl(var(--t42-content-color-base), 100%);
 }
 .lm_controls li::before {
-  color: var(--t42-content-color-muted);
+  color: var(--t42-wsp-controls);
+  transition-timing-function: cubic-bezier(0.45, 0, 0.15, 1);
+  transition-duration: 250ms;
+  transition-property: color, background-color;
 }
 .lm_controls li:hover {
   background-color: var(--t42-header-bg);
@@ -248,14 +263,15 @@
 .add-button::before,
 .lm_add_button::after,
 .add-button::after {
-  color: var(--t42-content-color-muted);
-  background-color: var(--t42-content-color-muted);
+  background-color: var(--t42-wsp-controls);
+  transition-timing-function: cubic-bezier(0.45, 0, 0.15, 1);
+  transition-duration: 250ms;
+  transition-property: background-color;
 }
 .lm_add_button:hover::before,
 .add-button:hover::before,
 .lm_add_button:hover::after,
 .add-button:hover::after {
-  color: var(--t42-link-color);
   background-color: var(--t42-link-color);
 }
 .loading-animation {
@@ -268,7 +284,7 @@
   background: rgb(var(--t42-bg-light));
 }
 .inner .ball + .ball {
-  background: hls(var(--t42-primary-base), 58%);
+  background: hls(var(--primary), 58%);
 }
 .mid .ball {
   background: hsl(var(--t42-content-color-base), 87%);

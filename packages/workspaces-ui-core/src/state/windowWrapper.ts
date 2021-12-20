@@ -61,7 +61,7 @@ export class WorkspaceWindowWrapper {
     }
 
     public get isMaximized(): boolean {
-        return this.windowContentItem?.parent ? this.windowContentItem?.parent?.isMaximized : false;
+        return this.windowContentItem?.parent?.isMaximized ?? false;
     }
 
     public get isSelected(): boolean {
@@ -69,7 +69,7 @@ export class WorkspaceWindowWrapper {
     }
 
     public get index(): number {
-        return this.windowContentItem.parent?.contentItems.indexOf(this.windowContentItem) || 0;
+        return this.windowContentItem.parent?.contentItems?.indexOf(this.windowContentItem) || 0;
     }
 
     public get isTabless(): boolean {
@@ -115,17 +115,18 @@ export class WorkspaceWindowWrapper {
     }
 
     private getSummaryCore(windowContentItem: GoldenLayout.Component, winId: string): WindowSummary {
-        const isFocused = windowContentItem.parent.getActiveContentItem().config.id === windowContentItem.config.id;
+        const parent = windowContentItem?.parent;
+        const activeContentItem = (typeof parent?.getActiveContentItem === "function") ? parent.getActiveContentItem() : undefined;
+        const isFocused = !activeContentItem || activeContentItem.config.id === windowContentItem.config.id;
         const isLoaded = windowContentItem.config.componentState.windowId !== undefined;
         const positionIndex = this.index;
         const workspaceId = store.getByWindowId(winId)?.id;
         const { appName, url, windowId } = windowContentItem.config.componentState;
 
         const userFriendlyParent = this.getUserFriendlyParent(windowContentItem);
-
         return {
             itemId: idAsString(windowContentItem.config.id),
-            parentId: idAsString(userFriendlyParent.config.id),
+            parentId: idAsString(userFriendlyParent?.config?.id) ?? idAsString(windowContentItem.config.id),
             config: {
                 frameId: this.frameId,
                 isFocused,

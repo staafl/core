@@ -24,11 +24,13 @@ declare const GlueWorkspaces: WorkspacesFactoryFunction;
 declare const GlueWebPlatform: Glue42WebPlatformFactoryFunction;
 
 const setupNotifications = () => {
+    window.notificationsFakeTriggerClick = false;
+    window.notificationsFakePermission = "granted";
+    
     window.sinonSandbox = sinon.createSandbox();
 
     window.showNotificationFake = window.sinonSandbox.fake.resolves({});
     window.notificationConstructorFake = window.sinonSandbox.fake();
-    window.notificationsFakeTriggerClick = false;
 
     window.Notification = class FakeNotification {
         constructor(title: string, options: any) {
@@ -46,7 +48,11 @@ const setupNotifications = () => {
         }
 
         static requestPermission() {
-            return "granted";
+            return window.notificationsFakePermission;
+        }
+
+        static get permission() {
+            return window.notificationsFakePermission;
         }
 
         onclick: any;

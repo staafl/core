@@ -421,6 +421,47 @@ describe("properties: ", () => {
         });
     });
 
+    describe("isSelected: Should", () => {
+        afterEach(async () => {
+            const wsps = await glue.workspaces.getAllWorkspaces();
+            await Promise.all(wsps.map((wsp) => wsp.close()));
+        });
+
+        it("be false when another workspace has been selected", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+            const secondWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+
+            await secondWorkspace.focus();
+            await firstWorkspace.refreshReference();
+            expect(firstWorkspace.isSelected).to.be.false;
+        });
+
+        it("be true when the workspace has been selected", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+            const secondWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+
+            await firstWorkspace.focus();
+            expect(firstWorkspace.isSelected).to.be.true;
+        });
+
+        it("be true when the there is only one opened workspace in the frame", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+
+            expect(firstWorkspace.isSelected).to.be.true;
+        });
+
+        it("be true for only one workspace in the frame when there are multiple workspaces present", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+            const secondWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+            const thirdWorkspace = await glue.workspaces.createWorkspace(threeContainersConfig);
+
+            const workspacesInFrame = await firstWorkspace.frame.workspaces();
+            const selectedWorkspaces = workspacesInFrame.filter((w) => w.isSelected);
+
+            expect(selectedWorkspaces.length === 1).to.be.true;
+        });
+    });
+
     describe("constraints: Should", () => {
         afterEach(async () => {
             const wsps = await glue.workspaces.getAllWorkspaces();

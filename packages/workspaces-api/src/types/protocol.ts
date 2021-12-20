@@ -24,7 +24,7 @@ export interface WorkspaceConfigResult {
     name: string;
     positionIndex: number;
     layoutName: string | undefined;
-    isHibernated: boolean;
+    isHibernated?: boolean;
     allowSplitters?: boolean;
     allowDrop?: boolean;
     allowDropLeft?: boolean;
@@ -43,6 +43,7 @@ export interface WorkspaceConfigResult {
     showEjectButtons?: boolean;
     widthInPx?: number;
     heightInPx?: number;
+    isSelected?: boolean;
 }
 
 export interface BaseChildSnapshotConfig {
@@ -60,28 +61,38 @@ export type ParentSnapshotConfig = RowSnapshotConfig | ColumnSnapshotConfig | Gr
 export interface RowSnapshotConfig extends BaseChildSnapshotConfig {
     type?: "row";
     allowDrop?: boolean;
+    allowSplitters?: boolean;
     widthInPx?: number;
     heightInPx?: number;
     isPinned?: boolean;
+    isMaximized?: boolean;
 }
 
 export interface ColumnSnapshotConfig extends BaseChildSnapshotConfig {
     type?: "column";
     allowDrop?: boolean;
+    allowSplitters?: boolean;
     widthInPx?: number;
     heightInPx?: number;
     isPinned?: boolean;
+    isMaximized?: boolean;
 }
 
 export interface GroupSnapshotConfig extends BaseChildSnapshotConfig {
     type?: "group";
     allowDrop?: boolean;
+    allowDropLeft?: boolean;
+    allowDropRight?: boolean;
+    allowDropTop?: boolean;
+    allowDropBottom?: boolean;
+    allowDropHeader?: boolean;
     allowExtract?: boolean;
     showMaximizeButton?: boolean;
     showEjectButton?: boolean;
     showAddWindowButton?: boolean;
     widthInPx?: number;
     heightInPx?: number;
+    isMaximized?: boolean;
 }
 
 export interface SwimlaneWindowSnapshotConfig extends BaseChildSnapshotConfig {
@@ -273,9 +284,12 @@ export interface FrameStreamData {
     frameSummary: FrameSummaryResult;
 }
 
+// the optional workspaceSnapshot is expected only when the last workspace in a Core platform-frame is being closed, which triggers the creation of a default workspace 
+// reason: explicit snapshot in this case will make sure that even if new new workspace was quickly closed (spamming of the close button), the event will provide correct data
 export interface WorkspaceStreamData {
     workspaceSummary: WorkspaceSummaryResult;
     frameSummary: FrameSummaryResult;
+    workspaceSnapshot?: WorkspaceSnapshotResult;
 }
 
 export interface ContainerStreamData {
@@ -303,6 +317,7 @@ export interface LockRowConfig {
     type: "row";
     config?: {
         allowDrop?: boolean;
+        allowSplitters?: boolean;
     };
 }
 
@@ -311,6 +326,7 @@ export interface LockColumnConfig {
     type: "column";
     config?: {
         allowDrop?: boolean;
+        allowSplitters?: boolean;
     };
 }
 
@@ -320,6 +336,11 @@ export interface LockGroupConfig {
     config?: {
         allowExtract?: boolean;
         allowDrop?: boolean;
+        allowDropLeft?: boolean;
+        allowDropRight?: boolean;
+        allowDropTop?: boolean;
+        allowDropBottom?: boolean;
+        allowDropHeader?: boolean;
         showMaximizeButton?: boolean;
         showEjectButton?: boolean;
         showAddWindowButton?: boolean;

@@ -59,6 +59,7 @@ export class ConfigConverter {
             }
 
             glConfig.workspacesConfig.allowDrop = config.config?.allowDrop;
+            glConfig.workspacesConfig.allowSplitters = config.config?.allowSplitters;
             glConfig.workspacesConfig.isPinned = config.config?.isPinned;
             glConfig.workspacesConfig.maxWidth = config.config?.maxWidth;
             glConfig.workspacesConfig.minWidth = config.config?.minWidth;
@@ -80,6 +81,11 @@ export class ConfigConverter {
             }
 
             glConfig.workspacesConfig.allowDrop = config.config?.allowDrop;
+            glConfig.workspacesConfig.allowDropHeader = config.config?.allowDropHeader;
+            glConfig.workspacesConfig.allowDropLeft = config.config?.allowDropLeft;
+            glConfig.workspacesConfig.allowDropRight = config.config?.allowDropRight;
+            glConfig.workspacesConfig.allowDropTop = config.config?.allowDropTop;
+            glConfig.workspacesConfig.allowDropBottom = config.config?.allowDropBottom;
             glConfig.workspacesConfig.allowExtract = config.config?.allowExtract;
             glConfig.workspacesConfig.showMaximizeButton = config.config?.showMaximizeButton;
             glConfig.workspacesConfig.showEjectButton = config.config?.showEjectButton;
@@ -176,25 +182,39 @@ export class ConfigConverter {
                 width: configAsAny.width,
                 height: configAsAny.height,
                 allowDrop: configAsAny.workspacesConfig?.allowDrop,
+                allowDropHeader: configAsAny.workspacesConfig?.allowDropHeader,
+                allowDropLeft: configAsAny.workspacesConfig?.allowDropLeft,
+                allowDropRight: configAsAny.workspacesConfig?.allowDropRight,
+                allowDropTop: configAsAny.workspacesConfig?.allowDropTop,
+                allowDropBottom: configAsAny.workspacesConfig?.allowDropBottom,
                 isPinned: configAsAny.workspacesConfig?.isPinned,
                 allowExtract: configAsAny.workspacesConfig?.allowExtract,
                 showMaximizeButton: configAsAny.workspacesConfig?.showMaximizeButton,
                 showEjectButton: configAsAny.workspacesConfig?.showEjectButton,
                 showAddWindowButton: configAsAny.workspacesConfig?.showAddWindowButton,
+                allowSplitters: configAsAny.workspacesConfig?.allowSplitters,
                 minWidth: configAsAny.workspacesConfig?.minWidth,
                 maxWidth: configAsAny.workspacesConfig?.maxWidth,
                 minHeight: configAsAny.workspacesConfig?.minHeight,
                 maxHeight: configAsAny.workspacesConfig?.maxHeight,
                 widthInPx: configAsAny.workspacesConfig?.widthInPx,
-                heightInPx: configAsAny.workspacesConfig?.heightInPx
+                heightInPx: configAsAny.workspacesConfig?.heightInPx,
+                isMaximized: configAsAny.workspacesConfig?.isMaximized
             }
         };
 
         if (containerResult.type !== "group") {
             delete containerResult.config.allowExtract;
+            delete containerResult.config.allowDropHeader;
+            delete containerResult.config.allowDropLeft;
+            delete containerResult.config.allowDropTop;
+            delete containerResult.config.allowDropRight;
+            delete containerResult.config.allowDropBottom;
             delete containerResult.config.showMaximizeButton;
             delete containerResult.config.showEjectButton;
             delete containerResult.config.showAddWindowButton;
+        } else {
+            delete containerResult.config.allowSplitters;
         }
 
         return containerResult;

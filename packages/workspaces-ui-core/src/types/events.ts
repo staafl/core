@@ -1,4 +1,4 @@
-import { ContainerSummary } from "./internal";
+import { ContainerSummary, WorkspaceSnapshot } from "./internal";
 
 export type EventType = "window" | "workspace" | "frame" | "container";
 export type EventActionType = WindowEventAction | WorkspaceEventAction | FrameEventAction | ContainerEventAction;
@@ -46,6 +46,7 @@ export interface WorkspaceEventPayload {
             name: string;
         };
     };
+    workspaceSnapshot?: WorkspaceSnapshot;
     frameSummary: {
         id: string;
     };

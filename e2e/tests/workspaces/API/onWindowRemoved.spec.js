@@ -1,4 +1,4 @@
-describe('onWindowRemoved ', () => {
+describe("onWindowRemoved ", () => {
     const windowConfig = {
         type: "window",
         appName: "noGlueApp"
@@ -25,6 +25,30 @@ describe('onWindowRemoved ', () => {
     let unSubFuncs = [];
     let timeout;
 
+    const basicMoveToConfig = {
+        children: [
+            {
+                type: "row",
+                children: [
+                    {
+                        type: "column",
+                        children: [{
+                            type: "group",
+                            children: [{
+                                type: "window",
+                                appName: "noGlueApp"
+                            }]
+                        }]
+                    },
+                    {
+                        type: "column",
+                        children: []
+                    }
+                ]
+            }
+        ]
+    };
+
     before(() => coreReady);
 
     afterEach(async () => {
@@ -45,7 +69,7 @@ describe('onWindowRemoved ', () => {
 
     });
 
-    describe('basic ', () => {
+    describe("basic ", () => {
         let defaultFrame;
         let defaultWorkspace;
 
@@ -250,6 +274,66 @@ describe('onWindowRemoved ', () => {
             });
         });
 
+    });
+
+    describe("moveTo ", () => {
+        it("notify that a window has been removed when a window is added through moveTo in the same workspace", (done) => {
+            let workspace = undefined;
+            glue.workspaces.createWorkspace(basicMoveToConfig).then((w) => {
+                workspace = w;
+                return glue.workspaces.onWindowRemoved(() => {
+                    done();
+                });
+            }).then((unSub) => {
+                unSubFuncs.push(unSub);
+                const targetContainer = workspace.getAllBoxes().find(b => !b.children.length);
+                const windowToMove = workspace.getAllWindows()[0];
+
+                return windowToMove.moveTo(targetContainer);
+            }).catch(done);
+        });
+
+        it("notify that a window has been removed when a window is added through moveTo in a different workspace", (done) => {
+            let firstWorkspace = undefined;
+            let secondWorkspace = undefined;
+            glue.workspaces.createWorkspace(basicMoveToConfig).then((w) => {
+                firstWorkspace = w;
+                return glue.workspaces.createWorkspace(basicMoveToConfig);
+            }).then((w) => {
+                secondWorkspace = w;
+                return glue.workspaces.onWindowRemoved(() => {
+                    done();
+                })
+            }).then((unSub) => {
+                unSubFuncs.push(unSub);
+                const targetContainer = firstWorkspace.getAllBoxes().find(b => !b.children.length);
+                const windowToMove = secondWorkspace.getAllWindows()[0];
+
+                return windowToMove.moveTo(targetContainer);
+            }).catch(done);
+        });
+
+        it("notify that a window has been removed with a valid workspaceId when a window is added through moveTo in a different workspace", (done) => {
+            let firstWorkspace = undefined;
+            let secondWorkspace = undefined;
+            glue.workspaces.createWorkspace(basicMoveToConfig).then((w) => {
+                firstWorkspace = w;
+                return glue.workspaces.createWorkspace(basicMoveToConfig);
+            }).then((w) => {
+                secondWorkspace = w;
+                return glue.workspaces.onWindowRemoved((w) => {
+                    if(w.workspaceId===secondWorkspace.id){
+                        done();
+                    }
+                })
+            }).then((unSub) => {
+                unSubFuncs.push(unSub);
+                const targetContainer = firstWorkspace.getAllBoxes().find(b => !b.children.length);
+                const windowToMove = secondWorkspace.getAllWindows()[0];
+
+                return windowToMove.moveTo(targetContainer);
+            }).catch(done);
+        });
     });
 
     // describe('action: closing frame ', () => {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Bridge } from "../communication/bridge";
-import { IsWindowInSwimlaneResult, WorkspaceCreateConfigProtocol, WorkspaceSnapshotResult, FrameSummariesResult, WorkspaceSummariesResult, LayoutSummariesResult, ExportedLayoutsResult, FrameSnapshotResult, AddItemResult, WindowStreamData, FrameStateResult, FrameBoundsResult } from "../types/protocol";
+import { IsWindowInSwimlaneResult, WorkspaceCreateConfigProtocol, WorkspaceSnapshotResult, FrameSummariesResult, WorkspaceSummariesResult, LayoutSummariesResult, ExportedLayoutsResult, FrameSnapshotResult, AddItemResult, WindowStreamData, FrameStateResult, FrameBoundsResult, WorkspaceStreamData } from "../types/protocol";
 import { OPERATIONS } from "../communication/constants";
 import { SubscriptionConfig, WorkspaceEventType, WorkspaceEventAction } from "../types/subscription";
 import { Workspace } from "../models/workspace";
@@ -12,7 +12,6 @@ import { WorkspacesController } from "../types/controller";
 import { GDWindow } from "../types/glue";
 import { BaseController } from "./base";
 import { UnsubscribeFunction } from "callback-registry";
-import { Constraints, WorkspaceLockConfig, WorkspaceWindowLockConfig } from "../types/temp";
 
 export class MainController implements WorkspacesController {
 
@@ -96,6 +95,14 @@ export class MainController implements WorkspacesController {
         return this.base.getFrames(allFrameSummaries.summaries, predicate);
     }
 
+    public getWorkspaceById(workspaceId: string): Promise<Workspace> {
+        return this.base.fetchWorkspace(workspaceId);
+    }
+
+    public transformStreamPayloadToWorkspace(payload: WorkspaceStreamData): Promise<Workspace> {
+        return this.base.transformStreamPayloadToWorkspace(payload);
+    }
+
     public async getWorkspace(predicate: (workspace: Workspace) => boolean): Promise<Workspace> {
         let foundWorkspace: Workspace;
 
@@ -119,6 +126,17 @@ export class MainController implements WorkspacesController {
         });
 
         return matchingWorkspaces;
+    }
+
+    public async getWorkspacesByFrameId(frameId: string): Promise<Workspace[]> {
+        const workspaceSummaries = await this.getAllWorkspaceSummaries();
+        const summariesForFrame = workspaceSummaries.filter((s) => s.frameId === frameId);
+
+        const workspacesForFrame = await Promise.all(summariesForFrame.map((summary) => {
+            return this.base.fetchWorkspace(summary.id);
+        }));
+
+        return workspacesForFrame;
     }
 
     public async getAllWorkspaceSummaries(): Promise<Glue42Workspaces.WorkspaceSummary[]> {
@@ -322,11 +340,11 @@ export class MainController implements WorkspacesController {
         return this.base.resumeWorkspace(workspaceId);
     }
 
-    public lockWorkspace(workspaceId: string, config?: WorkspaceLockConfig): Promise<void> {
+    public lockWorkspace(workspaceId: string, config?: Glue42Workspaces.WorkspaceLockConfig): Promise<void> {
         return this.base.lockWorkspace(workspaceId, config);
     }
 
-    public lockWindow(windowPlacementId: string, config?: WorkspaceWindowLockConfig): Promise<void> {
+    public lockWindow(windowPlacementId: string, config?: Glue42Workspaces.WorkspaceWindowLockConfig): Promise<void> {
         return this.base.lockWindow(windowPlacementId, config);
     }
 
@@ -334,7 +352,7 @@ export class MainController implements WorkspacesController {
         return this.base.lockContainer(itemId, type, config);
     }
 
-    public async getFrameConstraints(frameId: string): Promise<Constraints> {
+    public async getFrameConstraints(frameId: string): Promise<Glue42Workspaces.FrameConstraints> {
         const frameSnapshot = await this.getSnapshot(frameId, "frame");
 
         return {

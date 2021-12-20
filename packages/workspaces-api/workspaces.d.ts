@@ -121,8 +121,12 @@ export namespace Glue42Workspaces {
         newFrame?: NewFrameConfig | boolean;
 
         loadingStrategy?: LoadingStrategy;
+
         /** Used for replacing the specified workspace instead of creating a new one */
         reuseWorkspaceId?: string;
+
+        /** Opens the workspace without a workspace tab element */
+        noTabHeader?: boolean;
     }
 
     /** An object containing the bounds of a frame */
@@ -169,7 +173,12 @@ export namespace Glue42Workspaces {
         saveLayout?: boolean;
     }
 
-    /** The loading strategy used to open new workspaces */
+    /**
+    * The loading strategy used to open new workspaces. 
+    * "direct" will cause all windows to start loading at the same time as soon as the workspace loads
+    * "delayed" will cause all visible/active/selected windows to start loading at the same time as soon as the workspace loads. The rest will be loaded gradually at a specific interval.
+    * "lazy" will cause all visible/active/selected windows to start loading at the same time as soon as the workspace loads. The rest will start loading when the user selects them and not before that.
+   /** The loading strategy used to open new workspaces. "direct" will cause all windows to start loading at the same time, "delayed" */
     export type LoadingStrategy = "direct" | "delayed" | "lazy";
 
     /** An object which represent a workspace element. This is an element can be a box or a workspace window. */
@@ -207,7 +216,245 @@ export namespace Glue42Workspaces {
         /** Used for replacing the specified workspace instead of creating a new one */
         reuseWorkspaceId?: string;
 
+        /** Controls when the windows inside this workspace should load when the workspace is created or restored */
         loadStrategy?: LoadingStrategy;
+
+        /** Controls the users ability to drop outside windows in the workspace */
+        allowDrop?: boolean;
+
+        /** Controls the users ability to drop windows in the left-most zone of the workspace */
+        allowDropLeft?: boolean;
+
+        /** Controls the users ability to drop windows in the top-most zone of the workspace */
+        allowDropTop?: boolean;
+
+        /** Controls the users ability to drop windows in the right-most zone of the workspace */
+        allowDropRight?: boolean;
+
+        /** Controls the users ability to drop windows in the bottom-most zone of the workspace */
+        allowDropBottom?: boolean;
+
+        /** Controls the users ability to extract windows from the workspace */
+        allowExtract?: boolean;
+
+        /** Controls the visibility of the save workspace button located in the workspace tab */
+        showSaveButton?: boolean;
+
+        /** Controls the visibility of the close button located in the workspaces tab */
+        showCloseButton?: boolean;
+
+        /** Prevents the splitters for being draggable, so the windows cannot be resized */
+        allowSplitters?: boolean;
+
+        /** Controls the visibility of all close button located in the windows' tab elements */
+        showWindowCloseButtons?: boolean;
+
+        /** Controls the visibility of all eject buttons located in the groups' headers */
+        showEjectButtons?: boolean;
+
+        /** Controls the visibility of all the add window buttons (the ones with the plus icon) located in the group headers */
+        showAddWindowButtons?: boolean;
+    }
+
+    /** A config object which provides fine grain control when locking a workspace */
+    export interface WorkspaceLockConfig {
+        /** Prevents the splitters for being draggable, so the windows cannot be resized */
+        allowSplitters?: boolean;
+
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the workspace */
+        allowDrop?: boolean;
+
+        /** Controls the users ability to drop windows in left-most zone of the workspace */
+        allowDropLeft?: boolean;
+
+        /** Controls the users ability to drop windows in top-most zone of the workspace */
+        allowDropTop?: boolean;
+
+        /** Controls the users ability to drop windows in right-most zone of the workspace */
+        allowDropRight?: boolean;
+
+        /** Controls the users ability to drop windows in bottom-most zone of the workspace */
+        allowDropBottom?: boolean;
+
+        /** Controls the ability of the users to extract (or rearrange) windows inside the workspace */
+        allowExtract?: boolean;
+
+        /** Controls the visibility of the close button located in the workspaces tab */
+        showCloseButton?: boolean;
+
+        /** Controls the visibility of the save workspace button located in the workspace tab */
+        showSaveButton?: boolean;
+
+        /** Controls the visibility of all the add window buttons (the ones with the plus icon) located in the group headers */
+        showAddWindowButtons?: boolean;
+
+        /** Controls the visibility of all eject buttons located in the groups' headers */
+        showEjectButtons?: boolean;
+
+        /** Controls the visibility of all close button located in the windows' tab elements */
+        showWindowCloseButtons?: boolean;
+    }
+
+    /** A config object which provides fine grain control when locking a window */
+    export interface WorkspaceWindowLockConfig {
+        /**  Blocks the users ability to extract the specified window */
+        allowExtract?: boolean;
+
+        /** Controls the visibility of the close button which is located in the window's tab */
+        showCloseButton?: boolean;
+    }
+
+    /** A config object which provides fine grain control when locking a group */
+    export interface GroupLockConfig {
+        /**  Blocks the users ability to extract windows from the group */
+        allowExtract?: boolean;
+
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the group */
+        allowDrop?: boolean;
+
+        /** Controls the users ability to drop windows in left zone of the group */
+        allowDropLeft?: boolean;
+
+        /** Controls the users ability to drop windows in right zone of the group */
+        allowDropRight?: boolean;
+
+        /** Controls the users ability to drop windows in top zone of the group */
+        allowDropTop?: boolean;
+
+        /** Controls the users ability to drop windows in bottom zone of the group */
+        allowDropBottom?: boolean;
+
+        /** Controls the users ability to drop windows in header zone of the group */
+        allowDropHeader?: boolean;
+
+        /** Controls the visibility of the maximize/restore button located in the group header */
+        showMaximizeButton?: boolean;
+
+        /** Controls the visibility of the eject button located in the group header */
+        showEjectButton?: boolean;
+
+        /** Controls the visibility of the add window buttons (the ones with the plus icon) located in the group header */
+        showAddWindowButton?: boolean;
+    }
+
+    /** A config object which provides fine grain control when locking a row */
+    export interface RowLockConfig {
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the row */
+        allowDrop?: boolean;
+
+        /** Prevents the splitters for being draggable, so the windows cannot be resized within the row */
+        allowSplitters?: boolean;
+    }
+
+    /** A config object which provides fine grain control when locking a column */
+    export interface ColumnLockConfig {
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the column */
+        allowDrop?: boolean;
+
+        /** Prevents the splitters for being draggable, so the windows cannot be resized within the row */
+        allowSplitters?: boolean;
+    }
+
+    /** A config object which defines various workspace window-specific settings */
+    export interface WorkspaceWindowDefinitionConfig {
+        /** Specifies the minimum width in pixels for the workspace window */
+        minWidth?: number;
+
+        /** Specifies the maximum width in pixels for the workspace window */
+        maxWidth?: number;
+
+        /** Specifies the minimum height in pixels for the workspace window */
+        minHeight?: number;
+
+        /** Specifies the maximum height in pixels for the workspace window */
+        maxHeight?: number;
+
+        /**  Blocks the users ability to extract the specified window */
+        allowExtract?: boolean;
+
+        /** Controls the visibility of the close button which is located in the window's tab */
+        showCloseButton?: boolean;
+    }
+
+    /** A config object which defines various group-specific settings */
+    export interface GroupDefinitionConfig {
+        /** Specifies the minimum width in pixels for the group */
+        minWidth?: number;
+
+        /** Specifies the maximum width in pixels for the group */
+        maxWidth?: number;
+
+        /** Specifies the minimum height in pixels for the group */
+        minHeight?: number;
+
+        /** Specifies the maximum height in pixels for the group */
+        maxHeight?: number;
+
+        /**  Blocks the users ability to extract windows from the group */
+        allowExtract?: boolean;
+
+        /** Controls the visibility of the maximize/restore button located in the group header */
+        showMaximizeButton?: boolean;
+
+        /** Controls the visibility of the eject button located in the group header */
+        showEjectButton?: boolean;
+
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the group */
+        allowDrop?: boolean;
+
+        /** Controls the users ability to drop windows in left zone of the group */
+        allowDropLeft?: boolean;
+
+        /** Controls the users ability to drop windows in right zone of the group */
+        allowDropRight?: boolean;
+
+        /** Controls the users ability to drop windows in top zone of the group */
+        allowDropTop?: boolean;
+
+        /** Controls the users ability to drop windows in bottom zone of the group */
+        allowDropBottom?: boolean;
+
+        /** Controls the users ability to drop windows in header zone of the group */
+        allowDropHeader?: boolean;
+
+        /** Controls the visibility of the add window buttons (the ones with the plus icon) located in the group header */
+        showAddWindowButton?: boolean;
+    }
+
+    /** A config object which defines various row-specific settings */
+    export interface RowDefinitionConfig {
+        /** Specifies the minimum height in pixels for the row */
+        minHeight?: number;
+
+        /** Specifies the maximum height in pixels for the row */
+        maxHeight?: number;
+
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the row */
+        allowDrop?: boolean;
+
+        /** Prevents the splitters for being draggable, so the windows cannot be resized within the row */
+        allowSplitters?: boolean;
+
+        /** Specifies if a row should be pinned. A pinned row will always maintain it's height, unless the user manually changes it by dragging the splitter */
+        isPinned?: boolean;
+    }
+
+    /** A config object which defines various column-specific settings */
+    export interface ColumnDefinitionConfig {
+        /** Specifies the minimum width in pixels for the column */
+        minWidth?: number;
+
+        /** Specifies the maximum width in pixels for the column */
+        maxWidth?: number;
+
+        /** (Enterprise only) Controls the ability of the users to drop outside windows in the column */
+        allowDrop?: boolean;
+
+        /** Prevents the splitters for being draggable, so the windows cannot be resized within the column */
+        allowSplitters?: boolean;
+
+        /** Specifies if a column should be pinned. A pinned column will always maintain it's width, unless the user manually changes it by dragging the splitter */
+        isPinned?: boolean;
     }
 
     /** An object describing the possible options when defining a new workspace */
@@ -239,7 +486,8 @@ export namespace Glue42Workspaces {
         /** An array of all the box's children which will also be opened. */
         children?: Array<WorkspaceWindowDefinition | BoxDefinition>;
 
-        config?: any;
+        /** An optional config object which defines various box-specific settings */
+        config?: GroupDefinitionConfig | RowDefinitionConfig | ColumnDefinitionConfig;
     }
 
     /** An object describing the possible options when opening a window inside a workspace. */
@@ -255,72 +503,45 @@ export namespace Glue42Workspaces {
 
         /** An object which will be passed to the newly created window. This object is then accessible via the Windows API */
         context?: any;
+
+        /** A config object which defines various workspace window-specific settings */
+        config?: WorkspaceWindowDefinitionConfig;
     }
 
-    /** An object describing the basic details of a frame */
-    export interface FrameSummary {
-        /** An unique string identifier of the frame */
-        id: string;
+    /** A config object which shows the possible frame size constraints, which are calculated using all internal elements' constraints */
+    export interface FrameConstraints {
+        /** Shows the minimum width of the frame */
+        minWidth: number;
+
+        /** Shows the maximum width of the frame */
+        maxWidth: number;
+
+        /** Shows the minimum height of the frame */
+        minHeight: number;
+
+        /** Shows the maximum height of the frame */
+        maxHeight: number;
     }
 
-    /** An object describing the basic details of a workspace */
-    export interface WorkspaceSummary {
-        /** An unique string identifier of the workspace */
-        id: string;
+    /** A config object which defines how a workspace element should be resized */
+    export interface ElementResizeConfig {
+        /** Defines the desired new width of the element */
+        width?: number;
 
-        /** The string id of the frame containing this workspace */
-        frameId: string;
-
-        /** The position of this workspace regarding it's siblings */
-        positionIndex: number;
-
-        /** The title of the workspace */
-        title: string;
-
-        /** The name of the originating layout of the current workspace if any */
-        layoutName: string | undefined;
-    }
-
-    /** An object describing the basic details of a workspace window */
-    export interface WorkspaceWindowSummary {
-        /** An unique string identifier of the window */
-        id: string | undefined;
-
-        /** An unique string identifier of the workspace element that hosts the window */
-        elementId: string;
-
-        /** The type of the workspace element */
-        type: "window";
-
-        /** The string id of the frame containing this window */
-        frameId: string;
-
-        /** The application name of the window if it was registered as an application */
-        appName: string;
-
-        /** The string id of the workspace containing this window */
-        workspaceId: string;
-
-        /** The position of this window regarding it's siblings */
-        positionIndex: number;
-
-        /** A flag showing whether or not the window is maximized within it's box */
-        isMaximized: boolean;
-
-        /** A flag showing whether or not the window's content is loaded */
-        isLoaded: boolean;
-
-        /** A flag showing whether or not the window has focus */
-        focused: boolean;
-
-        /** The title of the window */
-        title: string;
+        /** Defines the desired new height of the element */
+        height?: number;
     }
 
     /** An object describing a workspace layout without the underlying structure */
     export interface WorkspaceLayoutSummary {
         /** An unique string name and identifier of the layout */
         name: string;
+    }
+
+    /** An object describing the basic details of a frame */
+    export interface FrameSummary {
+        /** An unique string identifier of the frame */
+        id: string;
     }
 
     /** An object describing a frame */
@@ -391,6 +612,11 @@ export namespace Glue42Workspaces {
          * Returns a collection of all workspaces present in this frame.
          */
         workspaces(): Promise<Workspace[]>;
+
+        /**
+        * Returns the current size constraints this frame. The constraints are calculated using all of the individual constraints of the elements within the workspaces in the frame.
+        */
+        getConstraints(): Promise<FrameConstraints>;
 
         /**
          * Opens a new workspace in this frame by restoring a previously saved workspace layout.
@@ -470,6 +696,84 @@ export namespace Glue42Workspaces {
          * @param callback Callback function to handle the event. Receives the loaded window as a parameter.
          */
         onWindowLoaded(callback: (window: WorkspaceWindow) => void): Promise<Unsubscribe>;
+    }
+
+    /** An object describing the basic details of a workspace */
+    export interface WorkspaceSummary {
+        /** An unique string identifier of the workspace */
+        id: string;
+
+        /** The string id of the frame containing this workspace */
+        frameId: string;
+
+        /** The position of this workspace regarding it's siblings */
+        positionIndex: number;
+
+        /** The title of the workspace */
+        title: string;
+
+        /** The name of the originating layout of the current workspace if any */
+        layoutName: string | undefined;
+
+        /** Indicates if the workspace is hibernated */
+        isHibernated?: boolean;
+
+        /** Indicates if the workspace is selected in its frame. Can be undefined if using with an older version of GlueDesktop or GlueCore */
+        isSelected?: boolean;
+
+        /** Indicates if dragging of splitters is allowed in the workspace */
+        allowSplitters?: boolean;
+
+        /** Indicates if dropping outsize windows to the workspace is allowed */
+        allowDrop?: boolean;
+
+        /** Indicates if dropping windows in the left-most zone of the workspace is allowed */
+        allowDropLeft?: boolean;
+
+        /** Indicates if dropping windows in the top-most zone of the workspace is allowed */
+        allowDropTop?: boolean;
+
+        /** Indicates if dropping windows in the right-most zone of the workspace is allowed */
+        allowDropRight?: boolean;
+
+        /** Indicates if dropping windows in the bottom-most zone of the workspace is allowed */
+        allowDropBottom?: boolean;
+
+        /** Indicates if extracting windows from the workspace is allowed */
+        allowExtract?: boolean;
+
+        /** Indicates if the close button for this workspace is visible to the user */
+        showCloseButton?: boolean;
+
+        /** Indicates if the save button for this workspace is visible to the user */
+        showSaveButton?: boolean;
+
+        /** Returns the minimum width of the workspace, calculated by the constraints of all elements inside it */
+        minWidth?: number;
+
+        /** Returns the minimum height of the workspace, calculated by the constraints of all elements inside it */
+        minHeight?: number;
+
+        /** Returns the maximum width of the workspace, calculated by the constraints of all elements inside it */
+        maxWidth?: number;
+
+        /** Returns the maximum height of the workspace, calculated by the constraints of all elements inside it */
+        maxHeight?: number;
+
+        /** Returns the current width of the workspace */
+        width?: number;
+
+        /** Returns the current height of the workspace */
+        height?: number;
+
+        /** Indicates if the close buttons of the windows within this workspace are visible to the user */
+        showWindowCloseButtons?: boolean;
+
+        /** Indicates if the eject buttons of the windows within this workspace are visible to the user */
+        showEjectButtons?: boolean;
+
+        /** Indicates if the window add buttons within this workspace are visible to the user */
+        showAddWindowButtons?: boolean;
     }
 
     /** An object describing a workspace */
@@ -643,6 +947,22 @@ export namespace Glue42Workspaces {
         bundleToColumn(): Promise<void>;
 
         /**
+         * Puts the workspace in a hibernated state. All the windows are closed, but the workspace structure remains.
+         */
+        hibernate(): Promise<void>;
+
+        /**
+         * Resumes a hibernated workspace. All the windows prior to the hibernation are reloaded.
+         */
+        resume(): Promise<void>;
+
+        /**
+         * Locks the workspace using a provided config object, which restricts various modification functionalities of the workspace
+         * @param config This can be either an object or a function. When the object is provided, it overrides all other lock properties. When a function is provided, it will be called with the current lock settings and it should return a lock config, which will override the current settings. The function is recommended in all cases where overriding of the settings is not desired.
+         */
+        lock(config?: WorkspaceLockConfig | ((config: WorkspaceLockConfig) => WorkspaceLockConfig)): Promise<void>;
+
+        /**
          * Notifies when this workspace is closed.
          * @param callback Callback function to handle the event.
          */
@@ -684,6 +1004,30 @@ export namespace Glue42Workspaces {
 
         /** An number representing the positing of this box relative to it's siblings */
         positionIndex: number;
+
+        /** Indicates if dropping windows inside this box is allowed */
+        allowDrop?: boolean;
+
+        /** Returns the minimum width of the box, calculated by the size constraints of the elements inside it */
+        minWidth?: number;
+
+        /** Returns the minimum height of the box, calculated by the size constraints of the elements inside it */
+        minHeight?: number;
+
+        /** Returns the maximum width of the box, calculated by the size constraints of the elements inside it */
+        maxWidth?: number;
+
+        /** Returns the maximum height of the box, calculated by the size constraints of the elements inside it */
+        maxHeight?: number;
+
+        /** Returns the current width of the box, can be undefined if the API is used with old versions of Enterprise or Core */
+        width?: number;
+
+        /** Returns the current height of the box, can be undefined if the API is used with old versions of Enterprise or Core */
+        height?: number;
+
+        /** Returns whether or not the box is maximized */
+        isMaximized?: boolean;
     }
 
     /** An object describing a workspace box */
@@ -750,16 +1094,151 @@ export namespace Glue42Workspaces {
     /** An object describing a row type workspace box */
     export interface Row extends Box {
         type: "row";
+
+        /** Indicates if dragging of splitters is allowed in the row */
+        allowSplitters?: boolean;
+
+        /** Indicates whether or not the row is pinned */
+        isPinned?: boolean;
+
+        /**
+         * Locks the row using a provided config object, which restricts various modification functionalities of the row
+         * @param config This can be either an object or a function. When the object is provided, it overrides all other lock properties. When a function is provided, it will be called with the current lock settings and it should return a lock config, which will override the current settings. The function is recommended in all cases where overriding of the settings is not desired.
+         */
+        lock(config?: RowLockConfig | ((config: RowLockConfig) => RowLockConfig)): Promise<void>;
+
+        /**
+         * Sets a new height for the row
+         * @param height A required number which should be the new height of the row
+         */
+        setHeight(height: number): Promise<void>;
     }
 
     /** An object describing a column type workspace box */
     export interface Column extends Box {
         type: "column";
+
+        /** Indicates if dragging of splitters is allowed in the column */
+        allowSplitters?: boolean;
+
+        /** Indicates whether or not the column is pinned */
+        isPinned?: boolean;
+
+        /**
+         * Locks the column using a provided config object, which restricts various modification functionalities of the column
+         * @param config This can be either an object or a function. When the object is provided, it overrides all other lock properties. When a function is provided, it will be called with the current lock settings and it should return a lock config, which will override the current settings. The function is recommended in all cases where overriding of the settings is not desired.
+         */
+        lock(config?: ColumnLockConfig | ((config: ColumnLockConfig) => ColumnLockConfig)): Promise<void>;
+
+        /**
+         * Sets a new width for the column
+         * @param width A required number which should be the new width of the column
+         */
+        setWidth(width: number): Promise<void>;
     }
 
     /** An object describing a group type workspace box */
     export interface Group extends Box {
         type: "group";
+
+        /** Controls the users ability to extract windows from the group */
+        allowExtract?: boolean;
+
+        /** Controls the users ability to drop windows in the left zone of the group */
+        allowDropLeft?: boolean;
+
+        /** Controls the users ability to drop windows in the right zone of the group */
+        allowDropRight?: boolean;
+
+        /** Controls the users ability to drop windows in the top zone of the group */
+        allowDropTop?: boolean;
+
+        /** Controls the users ability to drop windows in the bottom zone of the group */
+        allowDropBottom?: boolean;
+
+        /** Controls the users ability to drop windows in header zone of the group */
+        allowDropHeader?: boolean;
+
+        /** Controls the visibility of the maximize/restore button located in the group header */
+        showMaximizeButton?: boolean;
+
+        /** Controls the visibility of the eject button located in the group header */
+        showEjectButton?: boolean;
+
+        /** Controls the visibility of the add window buttons (the ones with the plus icon) located in the group header */
+        showAddWindowButton?: boolean;
+
+        /**
+         * Locks the group using a provided config object, which restricts various modification functionalities of the group
+         * @param config This can be either an object or a function. When the object is provided, it overrides all other lock properties. When a function is provided, it will be called with the current lock settings and it should return a lock config, which will override the current settings. The function is recommended in all cases where overriding of the settings is not desired.
+         */
+        lock(config?: GroupLockConfig | ((config: GroupLockConfig) => GroupLockConfig)): Promise<void>;
+
+        /**
+         * Sets a new size for the group
+         * @param sizeConfig A config object which should be the new size of the group.
+         */
+        setSize(sizeConfig: ElementResizeConfig): Promise<void>;
+    }
+
+    /** An object describing the basic details of a workspace window */
+    export interface WorkspaceWindowSummary {
+        /** An unique string identifier of the window */
+        id: string | undefined;
+
+        /** An unique string identifier of the workspace element that hosts the window */
+        elementId: string;
+
+        /** The type of the workspace element */
+        type: "window";
+
+        /** The string id of the frame containing this window */
+        frameId: string;
+
+        /** The application name of the window if it was registered as an application */
+        appName: string;
+
+        /** The string id of the workspace containing this window */
+        workspaceId: string;
+
+        /** The position of this window regarding it's siblings */
+        positionIndex: number;
+
+        /** A flag showing whether or not the window is maximized within it's box */
+        isMaximized: boolean;
+
+        /** A flag showing whether or not the window's content is loaded */
+        isLoaded: boolean;
+
+        /** A flag showing whether or not the window has focus */
+        focused: boolean;
+
+        /** The title of the window */
+        title: string;
+
+        /** Show whether or not the user can extract the specified window */
+        allowExtract?: boolean;
+
+        /** Indicates whether the close button which is located in the window's tab is visible */
+        showCloseButton?: boolean;
+
+        /** Indicates the current width of the window */
+        width?: number;
+
+        /** Indicates the current height of the window */
+        height?: number;
+
+        /** Indicates the configured minimum width of the window */
+        minWidth?: number;
+
+        /** Indicates the configured height width of the window */
+        minHeight?: number;
+
+        /** Indicates the configured maximum width of the window */
+        maxWidth?: number;
+
+        /** Indicates the configured maximum height of the window */
+        maxHeight?: number;
     }
 
     /** An object describing a window part of an existing workspace */
@@ -820,6 +1299,18 @@ export namespace Glue42Workspaces {
          * @param box An object describing the new box of the window.
          */
         moveTo(box: WorkspaceBox): Promise<void>;
+
+        /**
+         * Sets a new size for the window
+         * @param sizeConfig A config object which should be the new size of the window.
+         */
+        setSize(sizeConfig: ElementResizeConfig): Promise<void>;
+
+        /**
+         * Locks the window using a provided config object, which restricts various modification functionalities of the window
+         * @param config This can be either an object or a function. When the object is provided, it overrides all other lock properties. When a function is provided, it will be called with the current lock settings and it should return a lock config, which will override the current settings. The function is recommended in all cases where overriding of the settings is not desired.
+         */
+        lock(config?: Glue42Workspaces.WorkspaceWindowLockConfig | ((config: Glue42Workspaces.WorkspaceWindowLockConfig) => Glue42Workspaces.WorkspaceWindowLockConfig)): Promise<void>;
 
         /**
          * Notifies when this window was removed from the workspace.
@@ -1020,6 +1511,12 @@ export namespace Glue42Workspaces {
          * @param predicate A filtering function (predicate) called for each open workspace.
          */
         getWorkspace(predicate: (workspace: Workspace) => boolean): Promise<Workspace>;
+
+        /**
+         * Returns an instance of the workspace with the passed id. The performance is better than getWorkspace when querying for a workspace by id.
+         * @param workspaceId The id of the desired workspace 
+         */
+        getWorkspaceById(workspaceId: string): Promise<Workspace>;
 
         /**
          * Returns all workspaces which satisfy the provided predicate. If no predicate is provided, will return all workspaces.

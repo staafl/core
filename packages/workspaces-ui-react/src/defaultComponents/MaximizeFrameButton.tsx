@@ -3,7 +3,7 @@ import { MaximizeFrameButtonProps } from "../types/internal";
 import HeaderButton from "./HeaderButton";
 
 const MaximizeFrameButton: React.FC<MaximizeFrameButtonProps> = ({ title, children, ...props }) => {
-    return <HeaderButton {...props} title={title || "maximize"} className={"lm_maximise"}>{children}</HeaderButton>
+    return <HeaderButton {...props} title={title || "maximize"} className={"lm_maximise"} id={"workspaces-maximize-frame-button"}>{children}</HeaderButton>
 };
 
 export default MaximizeFrameButton;

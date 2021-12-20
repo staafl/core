@@ -16,6 +16,7 @@ import { WorkspaceContainerWrapper } from "../state/containerWrapper";
 import { WorkspaceWrapper } from "../state/workspaceWrapper";
 import { WorkspaceWindowWrapper } from "../state/windowWrapper";
 import uiExecutor from "../uiExecutor";
+import { LockGroupArguments } from "../interop/types";
 
 export class LayoutController {
     private readonly _maximizedId = "__glMaximised";
@@ -293,7 +294,7 @@ export class LayoutController {
             type: "component",
             workspacesConfig: {},
             id,
-            noTabHeader: config.workspacesOptions?.noTabHeader,
+            noTabHeader: config?.workspacesOptions?.noTabHeader,
             title: (config?.workspacesOptions as any)?.title || this._configFactory.getWorkspaceTitle(store.workspaceTitles)
         };
 
@@ -314,8 +315,6 @@ export class LayoutController {
         }
 
         this.setupContentLayouts(id);
-
-        this.emitter.raiseEvent("workspace-added", { workspace: store.getById(id) });
     }
 
     public reinitializeWorkspace(id: string, config: GoldenLayout.Config): Promise<unknown> {
@@ -329,9 +328,8 @@ export class LayoutController {
 
     public removeWorkspace(workspaceId: string): void {
         const workspaceToBeRemoved = store.getWorkspaceLayoutItemById(workspaceId);
-
         if (!workspaceToBeRemoved) {
-            throw new Error(`Could find workspace to remove with id ${workspaceId}`);
+            throw new Error(`Could not find workspace to remove with id ${workspaceId}`);
         }
         store.removeById(workspaceId);
         workspaceToBeRemoved.remove();
@@ -459,9 +457,17 @@ export class LayoutController {
         }
 
         const item = layoutWithWindow.layout.root.getItemsById(windowId)[0];
+        const workspace = store.getById(item.layoutManager.root.config.id);
+        const workspaceWrapper = new WorkspaceWrapper(this._stateResolver, workspace, undefined, this._frameId);
+
+        if (workspaceWrapper.hasMaximizedItems && !item.parent.hasId(this._maximizedId)) {
+            throw new Error(`Could not maximize window ${windowId}, because workspace ${workspace.id} contains another maximized item`);
+        }
+
         if (item.parent.hasId(this._maximizedId)) {
             return;
         }
+
         item.parent.toggleMaximise();
     }
 
@@ -479,6 +485,37 @@ export class LayoutController {
         const item = layoutWithWindow.layout.root.getItemsById(windowId)[0];
         if (item.parent.hasId(this._maximizedId)) {
             item.parent.toggleMaximise();
+        }
+    }
+
+    public maximizeContainer(itemId: string): void {
+        const contentItem = store.getContainer(itemId);
+
+        if (!contentItem) {
+            throw new Error(`Could not find item ${itemId} in frame ${this._frameId}`);
+        }
+
+        const workspace = store.getById(contentItem.layoutManager.root.config.id);
+        const workspaceWrapper = new WorkspaceWrapper(this._stateResolver, workspace, undefined, this._frameId);
+
+        if (workspaceWrapper.hasMaximizedItems && !contentItem.hasId("__glMaximised")) {
+            throw new Error(`Could not maximize container ${itemId}, because workspace ${workspace.id} contains another maximized item`);
+        }
+
+        if (!contentItem.hasId("__glMaximised")) {
+            (contentItem.layoutManager as any)._$maximiseItem(contentItem);
+        }
+    }
+
+    public restoreContainer(itemId: string): void {
+        const contentItem = store.getContainer(itemId);
+
+        if (!contentItem) {
+            throw new Error(`Could not find item ${itemId} in frame ${this._frameId}`);
+        }
+
+        if (contentItem.hasId("__glMaximised")) {
+            (contentItem.layoutManager as any)._$minimiseItem(contentItem);
         }
     }
 
@@ -536,7 +573,7 @@ export class LayoutController {
     public hideLoadingIndicator(itemId: string): void {
         const windowContentItem = store.getWindowContentItem(itemId);
 
-        if (windowContentItem) {
+        if (windowContentItem?.tab) {
             const hibernationIcon = windowContentItem.tab.element[0].getElementsByClassName("lm_hibernationIcon")[0];
             hibernationIcon?.remove();
         }
@@ -779,7 +816,51 @@ export class LayoutController {
         wrapper.allowDrop = false;
     }
 
-    public enableGroupDrop(itemId: string, allowDrop: boolean): void {
+    public enableColumnSplitters(itemId: string, allowSplitters: boolean): void {
+        const containerContenteItem = store.getContainer(itemId);
+
+        if (containerContenteItem.type !== "column") {
+            throw new Error(`Expected item with type column but received ${containerContenteItem.type} ${itemId}`);
+        }
+
+        const wrapper = new WorkspaceContainerWrapper(this._stateResolver, containerContenteItem, this._frameId);
+        wrapper.allowSplitters = allowSplitters;
+    }
+
+    public disableColumnSplitters(itemId: string): void {
+        const containerContenteItem = store.getContainer(itemId);
+
+        if (containerContenteItem.type !== "column") {
+            throw new Error(`Expected item with type column but received ${containerContenteItem.type} ${itemId}`);
+        }
+
+        const wrapper = new WorkspaceContainerWrapper(this._stateResolver, containerContenteItem, this._frameId);
+        wrapper.allowSplitters = false;
+    }
+
+    public enableRowSplitters(itemId: string, allowSplitters: boolean): void {
+        const containerContenteItem = store.getContainer(itemId);
+
+        if (containerContenteItem.type !== "row") {
+            throw new Error(`Expected item with type row but received ${containerContenteItem.type} ${itemId}`);
+        }
+
+        const wrapper = new WorkspaceContainerWrapper(this._stateResolver, containerContenteItem, this._frameId);
+        wrapper.allowSplitters = allowSplitters;
+    }
+
+    public disableRowSplitters(itemId: string): void {
+        const containerContenteItem = store.getContainer(itemId);
+
+        if (containerContenteItem.type !== "row") {
+            throw new Error(`Expected item with type row but received ${containerContenteItem.type} ${itemId}`);
+        }
+
+        const wrapper = new WorkspaceContainerWrapper(this._stateResolver, containerContenteItem, this._frameId);
+        wrapper.allowSplitters = false;
+    }
+
+    public enableGroupDrop(itemId: string, groupDropOptions: LockGroupArguments["config"]): void {
         const containerContenteItem = store.getContainer(itemId);
 
         if (containerContenteItem.type !== "stack") {
@@ -787,10 +868,15 @@ export class LayoutController {
         }
 
         const wrapper = new WorkspaceContainerWrapper(this._stateResolver, containerContenteItem, this._frameId);
-        wrapper.allowDrop = allowDrop;
+        wrapper.allowDrop = groupDropOptions.allowDrop;
+        wrapper.allowDropHeader = groupDropOptions.allowDropHeader;
+        wrapper.allowDropLeft = groupDropOptions.allowDropLeft;
+        wrapper.allowDropTop = groupDropOptions.allowDropTop;
+        wrapper.allowDropRight = groupDropOptions.allowDropRight;
+        wrapper.allowDropBottom = groupDropOptions.allowDropBottom;
     }
 
-    public disableGroupDrop(itemId: string): void {
+    public disableGroupDrop(itemId: string, groupDropOptions: LockGroupArguments["config"]): void {
         const containerContenteItem = store.getContainer(itemId);
 
         if (containerContenteItem.type !== "stack") {
@@ -799,6 +885,11 @@ export class LayoutController {
 
         const wrapper = new WorkspaceContainerWrapper(this._stateResolver, containerContenteItem, this._frameId);
         wrapper.allowDrop = false;
+        wrapper.allowDropHeader = groupDropOptions.allowDropHeader;
+        wrapper.allowDropLeft = groupDropOptions.allowDropLeft;
+        wrapper.allowDropTop = groupDropOptions.allowDropTop;
+        wrapper.allowDropRight = groupDropOptions.allowDropRight;
+        wrapper.allowDropBottom = groupDropOptions.allowDropBottom;
     }
 
     public enableGroupMaximizeButton(itemId: string, showMaximizeButton: boolean): void {
@@ -1214,6 +1305,15 @@ export class LayoutController {
                 if (!item.config.id || !item.config.id.length) {
                     item.addId(this._configFactory.getId());
                 }
+                if (item.type === "row" || item.type === "column" || item.type === "stack") {
+                    item.on("maximized", () => {
+                        this.emitter.raiseEvent("container-maximized", { container: item });
+                    });
+
+                    item.on("minimized", () => {
+                        this.emitter.raiseEvent("container-restored", { container: item });
+                    });
+                }
             } else {
                 item.on("size-changed", () => {
                     const windowWithChangedSize = store.getById(id).windows.find((w) => w.id === item.config.id);
@@ -1277,13 +1377,11 @@ export class LayoutController {
             stack.on("maximized", () => {
                 maximizeButton.addClass("lm_restore");
                 maximizeButton.attr("title", this._stackRestoreLabel);
-                this.emitter.raiseEvent("stack-maximized", { stack });
             });
 
             stack.on("minimized", () => {
                 maximizeButton.removeClass("lm_restore");
                 maximizeButton.attr("title", this._stackMaximizeLabel);
-                this.emitter.raiseEvent("stack-restored", { stack });
             });
 
             if (!this._options.disableCustomButtons) {
@@ -1351,7 +1449,7 @@ export class LayoutController {
                 this.emitter.raiseEvent("tab-drag-start", { tab });
             });
 
-            tab._dragListener.on("dragEnd", () => {
+            tab._dragListener.on("dragStop", () => {
                 this.emitter.raiseEvent("tab-drag-end", { tab });
             });
 
@@ -1371,7 +1469,7 @@ export class LayoutController {
                 return;
             }
 
-            const wrapper = new WorkspaceWindowWrapper(this._stateResolver,tab.contentItem, this._frameId);
+            const wrapper = new WorkspaceWindowWrapper(this._stateResolver, tab.contentItem, this._frameId);
 
             if ((layout.config.workspacesOptions as any).showWindowCloseButtons === false && wrapper.showCloseButton !== true) {
                 uiExecutor.hideWindowCloseButton(tab.contentItem);
@@ -1401,6 +1499,10 @@ export class LayoutController {
 
         layout.on("activeContentItemChanged", (component: GoldenLayout.Component) => {
             this.emitter.raiseEvent("workspace-global-selection-changed", { component, workspaceId: id });
+        });
+
+        layout.on("itemDropped", (item: GoldenLayout.ContentItem) => {
+            this.emitter.raiseEvent("item-dropped", { item });
         });
 
         layout._ignorePinned = true;
@@ -1530,6 +1632,10 @@ export class LayoutController {
                 }
 
                 this.refreshTabSizeClass(tab);
+
+                tab._dragListener.on("reorderStop", () => {
+                    store.syncWorkspaceOrder();
+                });
             });
 
             store.workspaceLayout.on("tabCloseRequested", (tab: GoldenLayout.Tab) => {
@@ -1734,35 +1840,40 @@ export class LayoutController {
     }
 
     private applyLockConfig(itemConfig: GoldenLayout.ItemConfig, parent: GoldenLayout.ContentItem, workspaceWrapper: WorkspaceWrapper, isParentWorkspace: boolean): void {
-        const parentAllowDrop = isParentWorkspace ? workspaceWrapper.allowDrop : (parent.config.workspacesConfig as any).allowDrop;
+        const parentAllowDrop = isParentWorkspace ? workspaceWrapper.allowDrop : parent.config.workspacesConfig.allowDrop;
+        const parentAllowSplitters = isParentWorkspace ? workspaceWrapper.allowSplitters : parent.config.workspacesConfig.allowSplitters;
+
         if (itemConfig.type === "stack") {
-            if (typeof (itemConfig.workspacesConfig as any).allowDrop === "undefined") {
-                (itemConfig.workspacesConfig as any).allowDrop = (itemConfig.workspacesConfig as any).allowDrop ?? parentAllowDrop;
+            if (typeof itemConfig.workspacesConfig.allowDrop === "undefined") {
+                itemConfig.workspacesConfig.allowDrop = itemConfig.workspacesConfig.allowDrop ?? parentAllowDrop;
             }
 
-            if (typeof (itemConfig.workspacesConfig as any).allowExtract === "undefined") {
+            if (typeof itemConfig.workspacesConfig.allowExtract === "undefined") {
                 const parentAllowExtract = workspaceWrapper.allowExtract;
-                (itemConfig.workspacesConfig as any).allowExtract = (itemConfig.workspacesConfig as any).allowExtract ?? parentAllowExtract;
+                itemConfig.workspacesConfig.allowExtract = itemConfig.workspacesConfig.allowExtract ?? parentAllowExtract;
             }
 
-            if (typeof (itemConfig.workspacesConfig as any).showAddWindowButton === "undefined") {
-                (itemConfig.workspacesConfig as any).showAddWindowButton = workspaceWrapper.showAddWindowButtons;
+            if (typeof itemConfig.workspacesConfig.showAddWindowButton === "undefined") {
+                itemConfig.workspacesConfig.showAddWindowButton = workspaceWrapper.showAddWindowButtons;
             }
 
-            if (typeof (itemConfig.workspacesConfig as any).showEjectButton === "undefined") {
-                (itemConfig.workspacesConfig as any).showEjectButton = workspaceWrapper.showEjectButtons;
+            if (typeof itemConfig.workspacesConfig.showEjectButton === "undefined") {
+                itemConfig.workspacesConfig.showEjectButton = workspaceWrapper.showEjectButtons;
             }
         } else if (itemConfig.type === "row" || itemConfig.type === "column") {
-            if (typeof (itemConfig.workspacesConfig as any).allowDrop === "undefined") {
-                (itemConfig.workspacesConfig as any).allowDrop = (itemConfig.workspacesConfig as any).allowDrop ?? parentAllowDrop;
+            if (typeof itemConfig.workspacesConfig.allowDrop === "undefined") {
+                itemConfig.workspacesConfig.allowDrop = itemConfig.workspacesConfig.allowDrop ?? parentAllowDrop;
+            }
+            if (typeof itemConfig.workspacesConfig.allowSplitters === "undefined") {
+                itemConfig.workspacesConfig.allowSplitters = itemConfig.workspacesConfig.allowSplitters ?? parentAllowSplitters;
             }
         } else if (itemConfig.type === "component") {
-            if (typeof (itemConfig.workspacesConfig as any).allowExtract === "undefined") {
-                const parentAllowExtract = isParentWorkspace ? workspaceWrapper.allowExtract : (parent.config.workspacesConfig as any).allowExtract;
-                (itemConfig.workspacesConfig as any).allowExtract = parentAllowExtract;
+            if (typeof itemConfig.workspacesConfig.allowExtract === "undefined") {
+                const parentAllowExtract = isParentWorkspace ? workspaceWrapper.allowExtract : parent.config.workspacesConfig.allowExtract;
+                itemConfig.workspacesConfig.allowExtract = parentAllowExtract;
             }
-            if (typeof (itemConfig.workspacesConfig as any).showCloseButton === "undefined") {
-                (itemConfig.workspacesConfig as any).allowExtract = workspaceWrapper.showWindowCloseButtons;
+            if (typeof itemConfig.workspacesConfig.showCloseButton === "undefined") {
+                itemConfig.workspacesConfig.allowExtract = workspaceWrapper.showWindowCloseButtons;
             }
         }
     }

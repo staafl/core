@@ -1,3 +1,15 @@
+1.8.1
+chore: added noTabHeader to the workspace restore options
+1.8.0
+feat: updated all typings to be inline with Enterprise 3.12
+feat: added isSelected to the workspace object
+feat: implemented the maximization of containers
+1.7.5
+feat: added allowSplitters to rows and columns and allowDropLeft, allowDropTop, allowDropRight, allowDropBottom, allowDropHeader to the groups
+fix: started firing open and close workspace events when the last workspace in a frame acting like a platform has been closed
+chore: Resolved dependency vulnerabilities
+1.7.4
+feat: added getWorkspaceById method and made internal performance optimizations
 1.7.3
 chore: bump due to dependencies update
 1.7.2

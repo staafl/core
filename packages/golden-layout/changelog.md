@@ -1,3 +1,9 @@
+2.2.0
+feat: Added improved behavior of maximized components being manipulated
+2.1.6
+feat: Greater control over the splitters and the dropping options
+2.1.5
+feat: Improved the dragging behavior of window and workspace tabs
 2.1.4
 feat: The pinned row/columns will try to maintain their user set pinned width or height when recovering from an invalid size
 fix: Increased the default min size to improve the UX when the tabs reach minWidth

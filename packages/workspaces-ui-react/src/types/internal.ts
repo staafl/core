@@ -217,3 +217,5 @@ export interface SaveWorkspaceButtonProps {
 export interface WorkspaceContentsProps {
   workspaceId: string;
 }
+
+export type MoveAreaProps = React.DetailedHTMLProps<React.HtmlHTMLAttributes<HTMLDivElement>, HTMLDivElement>;;

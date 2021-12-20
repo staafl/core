@@ -113,6 +113,12 @@ lm.utils.copy(lm.controls.Header.prototype, {
 		this.tabs.splice(index, 0, tab);
 		this._updateTabSizesWithoutDropdown();
 	},
+	moveTab: function (fromIndex, toIndex) {
+		lm.utils.moveInArray(this.tabs, fromIndex, toIndex);
+
+		this._updateTabSizesWithoutDropdown();
+		this.parent._syncContentItemOrder();
+	},
 
 	/**
 	 * Finds a tab based on the contentItem its associated with and removes it.
@@ -337,7 +343,6 @@ lm.utils.copy(lm.controls.Header.prototype, {
 		this.parent.emit("popoutRequested");
 		// Do nothing the workspaces application should handle the popout behaviour
 	},
-
 
 	/**
 	 * Invoked when the header's background is clicked (not it's tabs or controls)

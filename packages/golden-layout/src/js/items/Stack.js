@@ -118,6 +118,12 @@ lm.utils.copy(lm.items.Stack.prototype, {
 			console.log("returning 0", obj);
 			return 0;
 		}
+		const heightWithoutClone = obj.height();
+
+		if (heightWithoutClone > 0) {
+			return heightWithoutClone;
+		}
+		
 		var clone = obj.clone();
 		clone.css("visibility", "hidden");
 		$('body').append(clone);
@@ -259,6 +265,9 @@ lm.utils.copy(lm.items.Stack.prototype, {
 	 */
 	_$onDrop: function (contentItem) {
 
+		if (this._dropSegment === null) {
+			return;
+		}
 		/*
 		 * The item was dropped on the header area. Just add it as a child of this stack and
 		 * get the hell out of this logic
@@ -360,7 +369,8 @@ lm.utils.copy(lm.items.Stack.prototype, {
 				return;
 			}
 		}
-
+		this._dropSegment = null;
+		this._resetHeaderDropZone();
 		this.layoutManager.dropTargetIndicator.highlightArea(null);
 	},
 
@@ -375,22 +385,28 @@ lm.utils.copy(lm.items.Stack.prototype, {
 			contentWidth = contentArea.x2 - contentArea.x1,
 			contentHeight = contentArea.y2 - contentArea.y1;
 
-		this._contentAreaDimensions = {
-			header: {
-				hoverArea: {
-					x1: headerArea.x1,
-					y1: headerArea.y1,
-					x2: headerArea.x2,
-					y2: headerArea.y2
-				},
-				highlightArea: {
-					x1: headerArea.x1,
-					y1: headerArea.y1,
-					x2: headerArea.x2,
-					y2: headerArea.y2
+		if (!this.config.workspacesConfig ||
+			(this.config.workspacesConfig.allowDrop !== false && this.config.workspacesConfig.allowDropHeader !== false) ||
+			this.config.workspacesConfig.allowDropHeader === true) {
+			this._contentAreaDimensions = {
+				header: {
+					hoverArea: {
+						x1: headerArea.x1,
+						y1: headerArea.y1,
+						x2: headerArea.x2,
+						y2: headerArea.y2
+					},
+					highlightArea: {
+						x1: headerArea.x1,
+						y1: headerArea.y1,
+						x2: headerArea.x2,
+						y2: headerArea.y2
+					}
 				}
-			}
-		};
+			};
+		} else {
+			this._contentAreaDimensions = {};
+		}
 
 		/**
 		 * If this Stack is a parent to rows, columns or other stacks only its
@@ -425,66 +441,81 @@ lm.utils.copy(lm.items.Stack.prototype, {
 
 		if (this.layoutManager.config.settings.mode !== "workspace") {
 
-			this._contentAreaDimensions.left = {
-				hoverArea: {
-					x1: contentArea.x1,
-					y1: contentArea.y1,
-					x2: contentArea.x1 + contentWidth * 0.25,
-					y2: contentArea.y2
-				},
-				highlightArea: {
-					x1: contentArea.x1,
-					y1: contentArea.y1,
-					x2: contentArea.x1 + contentWidth * 0.5,
-					y2: contentArea.y2
-				}
-			};
+			if (!this.config.workspacesConfig ||
+				(this.config.workspacesConfig.allowDrop !== false && this.config.workspacesConfig.allowDropLeft !== false) ||
+				this.config.workspacesConfig.allowDropLeft === true) {
+				this._contentAreaDimensions.left = {
+					hoverArea: {
+						x1: contentArea.x1,
+						y1: contentArea.y1,
+						x2: contentArea.x1 + contentWidth * 0.25,
+						y2: contentArea.y2
+					},
+					highlightArea: {
+						x1: contentArea.x1,
+						y1: contentArea.y1,
+						x2: contentArea.x1 + contentWidth * 0.5,
+						y2: contentArea.y2
+					}
+				};
+			}
 
-			this._contentAreaDimensions.top = {
-				hoverArea: {
-					x1: contentArea.x1 + contentWidth * 0.25,
-					y1: contentArea.y1,
-					x2: contentArea.x1 + contentWidth * 0.75,
-					y2: contentArea.y1 + contentHeight * 0.5
-				},
-				highlightArea: {
-					x1: contentArea.x1,
-					y1: contentArea.y1,
-					x2: contentArea.x2,
-					y2: contentArea.y1 + contentHeight * 0.5
-				}
-			};
+			if (!this.config.workspacesConfig ||
+				(this.config.workspacesConfig.allowDrop !== false && this.config.workspacesConfig.allowDropTop !== false) ||
+				this.config.workspacesConfig.allowDropTop === true) {
+				this._contentAreaDimensions.top = {
+					hoverArea: {
+						x1: contentArea.x1 + contentWidth * 0.25,
+						y1: contentArea.y1,
+						x2: contentArea.x1 + contentWidth * 0.75,
+						y2: contentArea.y1 + contentHeight * 0.5
+					},
+					highlightArea: {
+						x1: contentArea.x1,
+						y1: contentArea.y1,
+						x2: contentArea.x2,
+						y2: contentArea.y1 + contentHeight * 0.5
+					}
+				};
+			}
 
-			this._contentAreaDimensions.right = {
-				hoverArea: {
-					x1: contentArea.x1 + contentWidth * 0.75,
-					y1: contentArea.y1,
-					x2: contentArea.x2,
-					y2: contentArea.y2
-				},
-				highlightArea: {
-					x1: contentArea.x1 + contentWidth * 0.5,
-					y1: contentArea.y1,
-					x2: contentArea.x2,
-					y2: contentArea.y2
-				}
-			};
+			if (!this.config.workspacesConfig ||
+				(this.config.workspacesConfig.allowDrop !== false && this.config.workspacesConfig.allowDropRight !== false) ||
+				this.config.workspacesConfig.allowDropRight === true) {
+				this._contentAreaDimensions.right = {
+					hoverArea: {
+						x1: contentArea.x1 + contentWidth * 0.75,
+						y1: contentArea.y1,
+						x2: contentArea.x2,
+						y2: contentArea.y2
+					},
+					highlightArea: {
+						x1: contentArea.x1 + contentWidth * 0.5,
+						y1: contentArea.y1,
+						x2: contentArea.x2,
+						y2: contentArea.y2
+					}
+				};
+			}
 
-			this._contentAreaDimensions.bottom = {
-				hoverArea: {
-					x1: contentArea.x1 + contentWidth * 0.25,
-					y1: contentArea.y1 + contentHeight * 0.5,
-					x2: contentArea.x1 + contentWidth * 0.75,
-					y2: contentArea.y2
-				},
-				highlightArea: {
-					x1: contentArea.x1,
-					y1: contentArea.y1 + contentHeight * 0.5,
-					x2: contentArea.x2,
-					y2: contentArea.y2
-				}
-			};
-
+			if (!this.config.workspacesConfig ||
+				(this.config.workspacesConfig.allowDrop !== false && this.config.workspacesConfig.allowDropBottom !== false) ||
+				this.config.workspacesConfig.allowDropBottom === true) {
+				this._contentAreaDimensions.bottom = {
+					hoverArea: {
+						x1: contentArea.x1 + contentWidth * 0.25,
+						y1: contentArea.y1 + contentHeight * 0.5,
+						x2: contentArea.x1 + contentWidth * 0.75,
+						y2: contentArea.y2
+					},
+					highlightArea: {
+						x1: contentArea.x1,
+						y1: contentArea.y1 + contentHeight * 0.5,
+						x2: contentArea.x2,
+						y2: contentArea.y2
+					}
+				};
+			}
 		}
 
 
@@ -595,5 +626,25 @@ lm.utils.copy(lm.items.Stack.prototype, {
 		var highlightArea = this._contentAreaDimensions[segment].highlightArea;
 		this.layoutManager.dropTargetIndicator.highlightArea(highlightArea);
 		this._dropSegment = segment;
+	},
+
+	_syncContentItemOrder: function () {
+		const newContentOrder = [];
+		this.header.tabs.forEach((t) => {
+			const tabContentItemId = Array.isArray(t.contentItem.config.id) ? t.contentItem.config.id[0] : t.contentItem.config.id;
+			const nextContentItem = this.contentItems.find((ci) => {
+				const contentItemId = Array.isArray(ci.config.id) ? ci.config.id[0] : ci.config.id;
+
+				return tabContentItemId === contentItemId;
+			});
+
+			if (nextContentItem) {
+				newContentOrder.push(nextContentItem);
+			}
+		});
+
+		if (this.contentItems.length === newContentOrder.length) {
+			this.contentItems = newContentOrder;
+		}
 	}
 });

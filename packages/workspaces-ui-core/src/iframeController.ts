@@ -28,7 +28,8 @@ export class IFrameController {
         jFrame.css("height", `${bounds.height}px`);
     }
 
-    public selectionChanged(toFront: string[], toBack: string[]) {
+    // The windows which are send to the back must be first
+    public selectionChanged(toFront: string[], toBack: string[]): void {
         toBack.forEach(id => {
             $(this._idToFrame[id]).css("z-index", "-1");
         });

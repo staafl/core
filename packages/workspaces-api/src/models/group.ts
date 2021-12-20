@@ -1,8 +1,6 @@
 import { Base } from "./base/base";
 import { Glue42Workspaces } from "../../workspaces.d";
-import { groupLockConfigDecoder } from "../shared/decoders";
-import { GroupLockConfig } from "../types/temp";
-import { number, optional } from "decoder-validate";
+import { elementResizeConfigDecoder, groupLockConfigDecoder } from "../shared/decoders";
 
 interface PrivateData {
     base: Base;
@@ -43,17 +41,41 @@ export class Group implements Glue42Workspaces.Group {
     public get children(): Glue42Workspaces.WorkspaceElement[] {
         return getBase(this).getAllChildren(this);
     }
+
     public get parent(): Glue42Workspaces.Workspace | Glue42Workspaces.WorkspaceBox {
         return getBase(this).getMyParent(this);
     }
+
     public get frame(): Glue42Workspaces.Frame {
         return getBase(this).getMyFrame(this);
     }
+
     public get workspace(): Glue42Workspaces.Workspace {
         return getBase(this).getMyWorkspace(this);
     }
+
     public get allowExtract(): boolean {
         return getBase(this).getAllowExtract(this);
+    }
+
+    public get allowDropLeft(): boolean {
+        return getBase(this).getAllowDropLeft(this);
+    }
+
+    public get allowDropRight(): boolean {
+        return getBase(this).getAllowDropRight(this);
+    }
+
+    public get allowDropTop(): boolean {
+        return getBase(this).getAllowDropTop(this);
+    }
+
+    public get allowDropBottom(): boolean {
+        return getBase(this).getAllowDropBottom(this);
+    }
+
+    public get allowDropHeader(): boolean {
+        return getBase(this).getAllowDropHeader(this);
     }
 
     public get allowDrop(): boolean {
@@ -96,6 +118,10 @@ export class Group implements Glue42Workspaces.Group {
         return getBase(this).getHeightInPx(this);
     }
 
+    public get isMaximized(): boolean {
+        return getBase(this).getIsMaximized(this);
+    }
+
     public addWindow(definition: Glue42Workspaces.WorkspaceWindowDefinition): Promise<Glue42Workspaces.WorkspaceWindow> {
         return getBase(this).addWindow(this, definition, "group");
     }
@@ -128,12 +154,17 @@ export class Group implements Glue42Workspaces.Group {
         return getBase(this).close(this);
     }
 
-    public lock(config?: GroupLockConfig | ((config: GroupLockConfig) => GroupLockConfig)): Promise<void> {
+    public lock(config?: Glue42Workspaces.GroupLockConfig | ((config: Glue42Workspaces.GroupLockConfig) => Glue42Workspaces.GroupLockConfig)): Promise<void> {
         let lockConfigResult = undefined;
 
         if (typeof config === "function") {
             const currentLockConfig = {
                 allowDrop: this.allowDrop,
+                allowDropHeader: this.allowDropHeader,
+                allowDropLeft: this.allowDropLeft,
+                allowDropRight: this.allowDropRight,
+                allowDropTop: this.allowDropTop,
+                allowDropBottom: this.allowDropBottom,
                 allowExtract: this.allowExtract,
                 showAddWindowButton: this.showAddWindowButton,
                 showEjectButton: this.showEjectButton,
@@ -148,15 +179,15 @@ export class Group implements Glue42Workspaces.Group {
         return getBase(this).lockContainer(this, verifiedConfig);
     }
 
-    public async setSize(width?: number, height?: number): Promise<void> {
-        if (!width && !height) {
-            throw new Error("Expected either width or height to be passed}");
+    public async setSize(config: Glue42Workspaces.ElementResizeConfig): Promise<void> {
+        const verifiedConfig = elementResizeConfigDecoder.runWithException(config);
+
+        if (!verifiedConfig.width && !verifiedConfig.height) {
+            throw new Error("Expected either width or height to be passed.");
         }
 
-        optional(number().where(n => n > 0, "The height should be positive")).runWithException(height);
-        optional(number().where(n => n > 0, "The width should be positive")).runWithException(width);
 
-        return getBase(this).setSize(this, width, height);
+        return getBase(this).setSize(this, config.width, config.height);
     }
 
 }

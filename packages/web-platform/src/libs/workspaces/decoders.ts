@@ -143,6 +143,11 @@ export const groupDefinitionConfigDecoder: Decoder<GroupDefinitionConfig> = obje
     maxHeight: optional(number()),
     allowExtract: optional(boolean()),
     allowDrop: optional(boolean()),
+    allowDropHeader: optional(boolean()),
+    allowDropLeft: optional(boolean()),
+    allowDropTop: optional(boolean()),
+    allowDropRight: optional(boolean()),
+    allowDropBottom: optional(boolean()),
     showMaximizeButton: optional(boolean()),
     showEjectButton: optional(boolean()),
     showAddWindowButton: optional(boolean())
@@ -152,6 +157,7 @@ export const rowDefinitionConfigDecoder: Decoder<RowDefinitionConfig> = object({
     minHeight: optional(number()),
     maxHeight: optional(number()),
     allowDrop: optional(boolean()),
+    allowSplitters: optional(boolean()),
     isPinned: optional(boolean())
 });
 
@@ -159,6 +165,7 @@ export const columnDefinitionConfigDecoder: Decoder<ColumnDefinitionConfig> = ob
     minWidth: optional(number()),
     maxWidth: optional(number()),
     allowDrop: optional(boolean()),
+    allowSplitters: optional(boolean()),
     isPinned: optional(boolean())
 });
 
@@ -307,7 +314,8 @@ export const workspaceSummaryDecoder: Decoder<Glue42Workspaces.WorkspaceSummary>
     positionIndex: number(),
     title: nonEmptyStringDecoder,
     focused: boolean(),
-    layoutName: optional(nonEmptyStringDecoder)
+    layoutName: optional(nonEmptyStringDecoder),
+    isSelected: optional(boolean())
 });
 
 export const containerSummaryDecoder: Decoder<Glue42Workspaces.BoxSummary> = object({
@@ -367,10 +375,10 @@ export const workspaceConfigResultDecoder: Decoder<WorkspaceConfigResult> = obje
     showAddWindowButtons: optional(boolean()),
     showEjectButtons: optional(boolean()),
     showWindowCloseButtons: optional(boolean()),
-    minWidth:optional(number()),
-    maxWidth:optional(number()),
-    minHeight:optional(number()),
-    maxHeight:optional(number()),
+    minWidth: optional(number()),
+    maxWidth: optional(number()),
+    minHeight: optional(number()),
+    maxHeight: optional(number()),
     widthInPx: optional(number()),
     heightInPx: optional(number())
 });
@@ -697,6 +705,7 @@ export const lockRowDecoder: Decoder<LockRowConfig> = object({
     type: constant("row"),
     config: optional(object({
         allowDrop: optional(boolean()),
+        allowSplitters: optional(boolean()),
     }))
 });
 
@@ -705,6 +714,8 @@ export const lockColumnDecoder: Decoder<LockColumnConfig> = object({
     type: constant("column"),
     config: optional(object({
         allowDrop: optional(boolean()),
+        allowSplitters: optional(boolean()),
+
     }))
 });
 
@@ -714,6 +725,11 @@ export const lockGroupDecoder: Decoder<LockGroupConfig> = object({
     config: optional(object({
         allowExtract: optional(boolean()),
         allowDrop: optional(boolean()),
+        allowDropHeader: optional(boolean()),
+        allowDropLeft: optional(boolean()),
+        allowDropTop: optional(boolean()),
+        allowDropRight: optional(boolean()),
+        allowDropBottom: optional(boolean()),
         showMaximizeButton: optional(boolean()),
         showEjectButton: optional(boolean()),
         showAddWindowButton: optional(boolean()),

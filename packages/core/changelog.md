@@ -1,3 +1,11 @@
+5.4.13
+chore: minor changes to package.json
+5.4.12
+fix: isLocal should be coming from the resolved identity
+5.4.11
+chore: resolved dependency vulnerabilities
+5.4.10
+docs: improved the d.ts for better reference documentation
 5.4.9
 fix: Glue performance events backwards compat fix
 5.4.8

@@ -1,8 +1,6 @@
 import { Base } from "./base/base";
 import { Glue42Workspaces } from "../../workspaces.d";
-import { columnLockConfigDecoder } from "../shared/decoders";
-import { ColumnLockConfig } from "../types/temp";
-import { number } from "decoder-validate";
+import { columnLockConfigDecoder, nonNegativeNumberDecoder } from "../shared/decoders";
 
 interface PrivateData {
     base: Base;
@@ -43,17 +41,25 @@ export class Column implements Glue42Workspaces.Column {
     public get children(): Glue42Workspaces.WorkspaceElement[] {
         return getBase(this).getAllChildren(this);
     }
+
     public get parent(): Glue42Workspaces.Workspace | Glue42Workspaces.WorkspaceBox {
         return getBase(this).getMyParent(this);
     }
+
     public get frame(): Glue42Workspaces.Frame {
         return getBase(this).getMyFrame(this);
     }
+
     public get workspace(): Glue42Workspaces.Workspace {
         return getBase(this).getMyWorkspace(this);
     }
+
     public get allowDrop(): boolean {
         return getBase(this).getAllowDrop(this);
+    }
+
+    public get allowSplitters(): boolean {
+        return getBase(this).getAllowSplitters(this);
     }
 
     public get minWidth(): number {
@@ -82,6 +88,10 @@ export class Column implements Glue42Workspaces.Column {
 
     public get isPinned(): boolean {
         return getBase(this).getIsPinned(this);
+    }
+
+    public get isMaximized(): boolean {
+        return getBase(this).getIsMaximized(this);
     }
 
     public addWindow(definition: Glue42Workspaces.WorkspaceWindowDefinition): Promise<Glue42Workspaces.WorkspaceWindow> {
@@ -123,12 +133,13 @@ export class Column implements Glue42Workspaces.Column {
         return getBase(this).close(this);
     }
 
-    public lock(config?: ColumnLockConfig | ((config: ColumnLockConfig) => ColumnLockConfig)): Promise<void> {
+    public lock(config?: Glue42Workspaces.ColumnLockConfig | ((config: Glue42Workspaces.ColumnLockConfig) => Glue42Workspaces.ColumnLockConfig)): Promise<void> {
         let lockConfigResult = undefined;
 
         if (typeof config === "function") {
             const currentLockConfig = {
                 allowDrop: this.allowDrop,
+                allowSplitters: this.allowSplitters
             };
 
             lockConfigResult = config(currentLockConfig);
@@ -141,7 +152,7 @@ export class Column implements Glue42Workspaces.Column {
     }
 
     public async setWidth(width: number): Promise<void> {
-        number().where(n => n > 0, "The value should be positive").runWithException(width);
+        nonNegativeNumberDecoder.runWithException(width);
         return getBase(this).setWidth(this, width);
     }
 }

@@ -66,6 +66,7 @@ export class ServiceWorkerController {
         });
 
         const glueData: GlueNotificationData = {
+            focusPlatformOnDefaultClick: settings.focusPlatformOnDefaultClick,
             clickInterop: settings.clickInterop,
             actions: settings.actions,
             id

@@ -6,7 +6,7 @@ import { AllLayoutsFullConfig, AllLayoutsSummariesResult, GetAllLayoutsConfig, L
 import { HelloSuccess, OpenWindowConfig, CoreWindowData, WindowHello, WindowOperationTypes, SimpleWindowCommand, WindowTitleConfig, WindowBoundsResult, WindowMoveResizeConfig, WindowUrlResult, FrameWindowBoundsResult } from "../windows/protocol";
 import { IntentsOperationTypes, WrappedIntentFilter, WrappedIntents } from "../intents/protocol";
 import { LibDomains } from "./types";
-import { NotificationEventPayload, NotificationsOperationTypes, PermissionRequestResult, RaiseNotification } from "../notifications/protocol";
+import { NotificationEventPayload, NotificationsOperationTypes, PermissionQueryResult, PermissionRequestResult, RaiseNotification } from "../notifications/protocol";
 
 export const nonEmptyStringDecoder: Decoder<string> = string().where((s) => s.length > 0, "Expected a non-empty string");
 export const nonNegativeNumberDecoder: Decoder<number> = number().where((num) => num >= 0, "Expected a non-negative number");
@@ -59,11 +59,12 @@ export const layoutsOperationTypesDecoder: Decoder<LayoutsOperationTypes> = oneO
     constant("remove")
 );
 
-export const notificationsOperationTypesDecoder: Decoder<NotificationsOperationTypes> = oneOf<"raiseNotification" | "requestPermission" | "notificationShow" | "notificationClick">(
+export const notificationsOperationTypesDecoder: Decoder<NotificationsOperationTypes> = oneOf<"raiseNotification" | "requestPermission" | "notificationShow" | "notificationClick" | "getPermission">(
     constant("raiseNotification"),
     constant("requestPermission"),
     constant("notificationShow"),
-    constant("notificationClick")
+    constant("notificationClick"),
+    constant("getPermission")
 );
 
 export const windowRelativeDirectionDecoder: Decoder<Glue42Web.Windows.RelativeDirection> = oneOf<"top" | "left" | "right" | "bottom">(
@@ -556,6 +557,7 @@ export const glue42NotificationOptionsDecoder: Decoder<Glue42Web.Notifications.R
     title: nonEmptyStringDecoder,
     clickInterop: optional(interopActionSettingsDecoder),
     actions: optional(array(glue42NotificationActionDecoder)),
+    focusPlatformOnDefaultClick: optional(boolean()),
     badge: optional(string()),
     body: optional(string()),
     data: optional(anyJson()),
@@ -582,6 +584,14 @@ export const raiseNotificationDecoder: Decoder<RaiseNotification> = object({
 
 export const permissionRequestResultDecoder: Decoder<PermissionRequestResult> = object({
     permissionGranted: boolean()
+});
+
+export const permissionQueryResultDecoder: Decoder<PermissionQueryResult> = object({
+    permission: oneOf<"default" | "granted" | "denied">(
+        constant("default"),
+        constant("granted"),
+        constant("denied")
+    )
 });
 
 export const notificationEventPayloadDecoder: Decoder<NotificationEventPayload> = object({

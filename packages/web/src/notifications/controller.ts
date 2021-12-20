@@ -5,7 +5,7 @@ import { GlueBridge } from "../communication/bridge";
 import { glue42NotificationOptionsDecoder, notificationsOperationTypesDecoder } from "../shared/decoders";
 import { IoC } from "../shared/ioc";
 import { LibController } from "../shared/types";
-import { NotificationEventPayload, operations, PermissionRequestResult, RaiseNotification } from "./protocol";
+import { NotificationEventPayload, operations, PermissionQueryResult, PermissionRequestResult, RaiseNotification } from "./protocol";
 import { generate } from "shortid";
 
 export class NotificationsController implements LibController {
@@ -60,10 +60,18 @@ export class NotificationsController implements LibController {
     private toApi(): Glue42Web.Notifications.API {
         const api: Glue42Web.Notifications.API = {
             raise: this.raise.bind(this),
-            requestPermission: this.requestPermission.bind(this)
+            requestPermission: this.requestPermission.bind(this),
+            getPermission: this.getPermission.bind(this)
         };
 
         return Object.freeze(api);
+    }
+
+    private async getPermission(): Promise<"default" | "granted" | "denied"> {
+
+        const queryResult = await this.bridge.send<void, PermissionQueryResult>("notifications", operations.getPermission, undefined);
+
+        return queryResult.permission;
     }
 
     private async requestPermission(): Promise<boolean> {

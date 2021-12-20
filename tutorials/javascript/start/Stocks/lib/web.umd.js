@@ -19,6 +19,18 @@
     PERFORMANCE OF THIS SOFTWARE.
     ***************************************************************************** */
 
+    function __rest(s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    }
+
     function __awaiter(thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
         return new (P || (P = Promise))(function (resolve, reject) {
@@ -30,7 +42,7 @@
     }
 
     const defaultConfig = {
-        logger: "trace",
+        logger: "info",
         gateway: { webPlatform: {} },
         libraries: []
     };
@@ -38,19 +50,19 @@
         var _a;
         const combined = Object.assign({}, defaultConfig, config);
         if (combined.systemLogger) {
-            combined.logger = (_a = combined.systemLogger.level) !== null && _a !== void 0 ? _a : "trace";
+            combined.logger = (_a = combined.systemLogger.level) !== null && _a !== void 0 ? _a : "info";
         }
         return combined;
     };
 
     const checkSingleton = () => {
         const glue42CoreNamespace = window.glue42core;
+        if (glue42CoreNamespace && glue42CoreNamespace.webStarted) {
+            throw new Error("The Glue42 Core Web has already been started for this application.");
+        }
         if (!glue42CoreNamespace) {
             window.glue42core = { webStarted: true };
             return;
-        }
-        if (glue42CoreNamespace.webStarted) {
-            throw new Error("The Glue42 Core Web has already been started for this application.");
         }
         glue42CoreNamespace.webStarted = true;
     };
@@ -215,7 +227,7 @@
         return __assign.apply(this, arguments);
     };
 
-    function __rest(s, e) {
+    function __rest$1(s, e) {
         var t = {};
         for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
             t[p] = s[p];
@@ -307,7 +319,7 @@
         return paths.map(function (path) { return (typeof path === 'string' ? "." + path : "[" + path + "]"); }).join('');
     };
     var prependAt = function (newAt, _a) {
-        var at = _a.at, rest = __rest(_a, ["at"]);
+        var at = _a.at, rest = __rest$1(_a, ["at"]);
         return (__assign({ at: newAt + (at || '') }, rest));
     };
     /**
@@ -863,10 +875,11 @@
 
     const nonEmptyStringDecoder = string().where((s) => s.length > 0, "Expected a non-empty string");
     const nonNegativeNumberDecoder = number().where((num) => num >= 0, "Expected a non-negative number");
-    const libDomainDecoder = oneOf(constant("windows"), constant("appManager"), constant("layouts"), constant("intents"));
-    const windowOperationTypesDecoder = oneOf(constant("openWindow"), constant("windowHello"), constant("windowAdded"), constant("windowRemoved"), constant("getBounds"), constant("getUrl"), constant("moveResize"), constant("focus"), constant("close"), constant("getTitle"), constant("setTitle"));
-    const appManagerOperationTypesDecoder = oneOf(constant("appHello"), constant("applicationAdded"), constant("applicationRemoved"), constant("applicationChanged"), constant("instanceStarted"), constant("instanceStopped"), constant("applicationStart"), constant("instanceStop"));
+    const libDomainDecoder = oneOf(constant("system"), constant("windows"), constant("appManager"), constant("layouts"), constant("intents"), constant("notifications"), constant("channels"));
+    const windowOperationTypesDecoder = oneOf(constant("openWindow"), constant("windowHello"), constant("windowAdded"), constant("windowRemoved"), constant("getBounds"), constant("getFrameBounds"), constant("getUrl"), constant("moveResize"), constant("focus"), constant("close"), constant("getTitle"), constant("setTitle"));
+    const appManagerOperationTypesDecoder = oneOf(constant("appHello"), constant("applicationAdded"), constant("applicationRemoved"), constant("applicationChanged"), constant("instanceStarted"), constant("instanceStopped"), constant("applicationStart"), constant("instanceStop"), constant("clear"));
     const layoutsOperationTypesDecoder = oneOf(constant("layoutAdded"), constant("layoutChanged"), constant("layoutRemoved"), constant("get"), constant("getAll"), constant("export"), constant("import"), constant("remove"));
+    const notificationsOperationTypesDecoder = oneOf(constant("raiseNotification"), constant("requestPermission"), constant("notificationShow"), constant("notificationClick"), constant("getPermission"));
     const windowRelativeDirectionDecoder = oneOf(constant("top"), constant("left"), constant("right"), constant("bottom"));
     const windowOpenSettingsDecoder = optional(object({
         top: optional(number()),
@@ -918,6 +931,14 @@
             height: nonNegativeNumberDecoder
         })
     });
+    const frameWindowBoundsResultDecoder = object({
+        bounds: object({
+            top: number(),
+            left: number(),
+            width: nonNegativeNumberDecoder,
+            height: nonNegativeNumberDecoder
+        })
+    });
     const windowUrlResultDecoder = object({
         windowId: nonEmptyStringDecoder,
         url: nonEmptyStringDecoder
@@ -946,8 +967,26 @@
         contexts: optional(array(string())),
         customConfig: optional(object())
     });
+    const fdc3AppDefinitionDecoder = object({
+        name: nonEmptyStringDecoder,
+        title: optional(nonEmptyStringDecoder),
+        version: optional(nonEmptyStringDecoder),
+        appId: nonEmptyStringDecoder,
+        manifest: nonEmptyStringDecoder,
+        manifestType: nonEmptyStringDecoder,
+        tooltip: optional(nonEmptyStringDecoder),
+        description: optional(nonEmptyStringDecoder),
+        contactEmail: optional(nonEmptyStringDecoder),
+        supportEmail: optional(nonEmptyStringDecoder),
+        publisher: optional(nonEmptyStringDecoder),
+        images: optional(array(object({ url: optional(nonEmptyStringDecoder) }))),
+        icons: optional(array(object({ icon: optional(nonEmptyStringDecoder) }))),
+        customConfig: anyJson(),
+        intents: optional(array(intentDefinitionDecoder))
+    });
     const applicationDefinitionDecoder = object({
         name: nonEmptyStringDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
         title: optional(nonEmptyStringDecoder),
         version: optional(nonEmptyStringDecoder),
         customProperties: optional(anyJson()),
@@ -956,8 +995,9 @@
         details: applicationDetailsDecoder,
         intents: optional(array(intentDefinitionDecoder))
     });
-    const appDefinitionOperationDecoder = object({
-        definitions: array(applicationDefinitionDecoder),
+    const allApplicationDefinitionsDecoder = oneOf(applicationDefinitionDecoder, fdc3AppDefinitionDecoder);
+    const appsImportOperationDecoder = object({
+        definitions: array(allApplicationDefinitionsDecoder),
         mode: oneOf(constant("replace"), constant("merge"))
     });
     const appRemoveConfigDecoder = object({
@@ -968,6 +1008,7 @@
     });
     const applicationDataDecoder = object({
         name: nonEmptyStringDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
         instances: array(instanceDataDecoder),
         userProperties: optional(anyJson()),
         title: optional(nonEmptyStringDecoder),
@@ -977,6 +1018,7 @@
     });
     const baseApplicationDataDecoder = object({
         name: nonEmptyStringDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
         userProperties: anyJson(),
         title: optional(nonEmptyStringDecoder),
         version: optional(nonEmptyStringDecoder),
@@ -992,6 +1034,7 @@
     const applicationStartConfigDecoder = object({
         name: nonEmptyStringDecoder,
         waitForAGMReady: boolean(),
+        id: optional(nonEmptyStringDecoder),
         context: optional(anyJson()),
         top: optional(number()),
         left: optional(number()),
@@ -1003,8 +1046,8 @@
     const layoutTypeDecoder = oneOf(constant("Global"), constant("Activity"), constant("ApplicationDefault"), constant("Swimlane"), constant("Workspace"));
     const componentTypeDecoder = oneOf(constant("application"), constant("activity"));
     const windowLayoutComponentDecoder = object({
-        type: constant("window"),
-        componentType: componentTypeDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
+        componentType: optional(componentTypeDecoder),
         state: object({
             name: anyJson(),
             context: anyJson(),
@@ -1019,7 +1062,10 @@
         type: constant("window"),
         config: object({
             appName: nonEmptyStringDecoder,
-            url: optional(nonEmptyStringDecoder)
+            url: optional(nonEmptyStringDecoder),
+            title: optional(string()),
+            allowExtract: optional(boolean()),
+            showCloseButton: optional(boolean())
         })
     });
     const groupLayoutItemDecoder = object({
@@ -1049,6 +1095,7 @@
         name: nonEmptyStringDecoder,
         type: layoutTypeDecoder,
         components: array(oneOf(windowLayoutComponentDecoder, workspaceLayoutComponentDecoder)),
+        version: optional(nonEmptyStringDecoder),
         context: optional(anyJson()),
         metadata: optional(anyJson())
     });
@@ -1151,6 +1198,66 @@
     const channelNameDecoder = (channelNames) => {
         return nonEmptyStringDecoder.where(s => channelNames.includes(s), "Expected a valid channel name");
     };
+    const interopActionSettingsDecoder = object({
+        method: nonEmptyStringDecoder,
+        arguments: optional(anyJson()),
+        target: optional(oneOf(constant("all"), constant("best")))
+    });
+    const glue42NotificationActionDecoder = object({
+        action: string(),
+        title: nonEmptyStringDecoder,
+        icon: optional(string()),
+        interop: optional(interopActionSettingsDecoder)
+    });
+    const notificationDefinitionDecoder = object({
+        badge: optional(string()),
+        body: optional(string()),
+        data: optional(anyJson()),
+        dir: optional(oneOf(constant("auto"), constant("ltr"), constant("rtl"))),
+        icon: optional(string()),
+        image: optional(string()),
+        lang: optional(string()),
+        renotify: optional(boolean()),
+        requireInteraction: optional(boolean()),
+        silent: optional(boolean()),
+        tag: optional(string()),
+        timestamp: optional(nonNegativeNumberDecoder),
+        vibrate: optional(array(number()))
+    });
+    const glue42NotificationOptionsDecoder = object({
+        title: nonEmptyStringDecoder,
+        clickInterop: optional(interopActionSettingsDecoder),
+        actions: optional(array(glue42NotificationActionDecoder)),
+        focusPlatformOnDefaultClick: optional(boolean()),
+        badge: optional(string()),
+        body: optional(string()),
+        data: optional(anyJson()),
+        dir: optional(oneOf(constant("auto"), constant("ltr"), constant("rtl"))),
+        icon: optional(string()),
+        image: optional(string()),
+        lang: optional(string()),
+        renotify: optional(boolean()),
+        requireInteraction: optional(boolean()),
+        silent: optional(boolean()),
+        tag: optional(string()),
+        timestamp: optional(nonNegativeNumberDecoder),
+        vibrate: optional(array(number()))
+    });
+    const raiseNotificationDecoder = object({
+        settings: glue42NotificationOptionsDecoder,
+        id: nonEmptyStringDecoder
+    });
+    const permissionRequestResultDecoder = object({
+        permissionGranted: boolean()
+    });
+    const permissionQueryResultDecoder = object({
+        permission: oneOf(constant("default"), constant("granted"), constant("denied"))
+    });
+    const notificationEventPayloadDecoder = object({
+        definition: notificationDefinitionDecoder,
+        action: optional(string()),
+        id: optional(nonEmptyStringDecoder)
+    });
 
     const operations = {
         openWindow: { name: "openWindow", dataDecoder: openWindowConfigDecoder, resultDecoder: coreWindowDataDecoder },
@@ -1158,6 +1265,7 @@
         windowAdded: { name: "windowAdded", dataDecoder: coreWindowDataDecoder },
         windowRemoved: { name: "windowRemoved", dataDecoder: simpleWindowDecoder },
         getBounds: { name: "getBounds", dataDecoder: simpleWindowDecoder, resultDecoder: windowBoundsResultDecoder },
+        getFrameBounds: { name: "getFrameBounds", dataDecoder: simpleWindowDecoder, resultDecoder: frameWindowBoundsResultDecoder },
         getUrl: { name: "getUrl", dataDecoder: simpleWindowDecoder, resultDecoder: windowUrlResultDecoder },
         moveResize: { name: "moveResize", dataDecoder: windowMoveResizeConfigDecoder },
         focus: { name: "focus", dataDecoder: simpleWindowDecoder },
@@ -1498,6 +1606,7 @@
             operations.windowAdded.execute = this.handleWindowAdded.bind(this);
             operations.windowRemoved.execute = this.handleWindowRemoved.bind(this);
             operations.getBounds.execute = this.handleGetBounds.bind(this);
+            operations.getFrameBounds.execute = this.handleGetBounds.bind(this);
             operations.getTitle.execute = this.handleGetTitle.bind(this);
             operations.getUrl.execute = this.handleGetUrl.bind(this);
             operations.moveResize.execute = this.handleMoveResize.bind(this);
@@ -1563,9 +1672,10 @@
             });
         }
         handleGetBounds() {
+            var _a;
             return __awaiter(this, void 0, void 0, function* () {
                 return {
-                    windowId: this.me.id,
+                    windowId: (_a = this.me) === null || _a === void 0 ? void 0 : _a.id,
                     bounds: {
                         top: window.screenTop,
                         left: window.screenLeft,
@@ -1803,7 +1913,8 @@
         instanceStop: { name: "instanceStop", dataDecoder: basicInstanceDataDecoder },
         import: { name: "import" },
         remove: { name: "remove", dataDecoder: appRemoveConfigDecoder },
-        export: { name: "export", resultDecoder: appsExportOperationDecoder }
+        export: { name: "export", resultDecoder: appsExportOperationDecoder },
+        clear: { name: "clear" }
     };
 
     class AppManagerController {
@@ -1850,7 +1961,7 @@
             return this.registry.add("instance-stopped", callback);
         }
         startApplication(appName, context, options) {
-            var _a;
+            var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
                 const startOptions = {
                     name: appName,
@@ -1861,7 +1972,8 @@
                     width: options === null || options === void 0 ? void 0 : options.width,
                     height: options === null || options === void 0 ? void 0 : options.height,
                     relativeTo: options === null || options === void 0 ? void 0 : options.relativeTo,
-                    relativeDirection: options === null || options === void 0 ? void 0 : options.relativeDirection
+                    relativeDirection: options === null || options === void 0 ? void 0 : options.relativeDirection,
+                    id: (_b = options) === null || _b === void 0 ? void 0 : _b.reuseId
                 };
                 const openResult = yield this.bridge.send("appManager", operations$1.applicationStart, startOptions);
                 const app = this.applications.find((a) => a.name === openResult.applicationName);
@@ -1871,9 +1983,12 @@
         toApi() {
             const api = {
                 myInstance: this.me,
-                import: this.import.bind(this),
-                remove: this.remove.bind(this),
-                export: this.export.bind(this),
+                inMemory: {
+                    import: this.import.bind(this),
+                    remove: this.remove.bind(this),
+                    export: this.export.bind(this),
+                    clear: this.clear.bind(this)
+                },
                 application: this.getApplication.bind(this),
                 applications: this.getApplications.bind(this),
                 instances: this.getInstances.bind(this),
@@ -1883,7 +1998,7 @@
                 onInstanceStarted: this.onInstanceStarted.bind(this),
                 onInstanceStopped: this.onInstanceStopped.bind(this)
             };
-            return Object.freeze(api);
+            return api;
         }
         addOperationsExecutors() {
             operations$1.applicationAdded.execute = this.handleApplicationAddedMessage.bind(this);
@@ -1973,13 +2088,36 @@
         }
         import(definitions, mode = "replace") {
             return __awaiter(this, void 0, void 0, function* () {
-                yield this.bridge.send("appManager", operations$1.import, { definitions, mode });
+                importModeDecoder.runWithException(mode);
+                if (!Array.isArray(definitions)) {
+                    throw new Error("Import must be called with an array of definitions");
+                }
+                const parseResult = definitions.reduce((soFar, definition) => {
+                    const decodeResult = allApplicationDefinitionsDecoder.run(definition);
+                    if (!decodeResult.ok) {
+                        soFar.invalid.push({ app: definition === null || definition === void 0 ? void 0 : definition.name, error: JSON.stringify(decodeResult.error) });
+                    }
+                    else {
+                        soFar.valid.push(definition);
+                    }
+                    return soFar;
+                }, { valid: [], invalid: [] });
+                yield this.bridge.send("appManager", operations$1.import, { definitions: parseResult.valid, mode });
+                return {
+                    imported: parseResult.valid.map((valid) => valid.name),
+                    errors: parseResult.invalid
+                };
             });
         }
         remove(name) {
             return __awaiter(this, void 0, void 0, function* () {
                 nonEmptyStringDecoder.runWithException(name);
                 yield this.bridge.send("appManager", operations$1.remove, { name });
+            });
+        }
+        clear() {
+            return __awaiter(this, void 0, void 0, function* () {
+                yield this.bridge.send("appManager", operations$1.clear, undefined);
             });
         }
         export() {
@@ -2187,9 +2325,21 @@
         }
         import(layouts, mode = "replace") {
             return __awaiter(this, void 0, void 0, function* () {
-                layouts.forEach((layout) => glueLayoutDecoder.runWithException(layout));
                 importModeDecoder.runWithException(mode);
-                yield this.bridge.send("layouts", operations$2.import, { layouts, mode });
+                if (!Array.isArray(layouts)) {
+                    throw new Error("Import must be called with an array of layouts");
+                }
+                const parseResult = layouts.reduce((soFar, layout) => {
+                    const decodeResult = glueLayoutDecoder.run(layout);
+                    if (decodeResult.ok) {
+                        soFar.valid.push(layout);
+                    }
+                    else {
+                        this.logger.warn(`A layout with name: ${layout.name} was not imported, because of error: ${JSON.stringify(decodeResult.error)}`);
+                    }
+                    return soFar;
+                }, { valid: [] });
+                yield this.bridge.send("layouts", operations$2.import, { layouts: parseResult.valid, mode });
             });
         }
         save(layout) {
@@ -2212,6 +2362,7 @@
             });
         }
         onAdded(callback) {
+            this.export().then((layouts) => layouts.forEach((layout) => callback(layout))).catch(() => { });
             return this.registry.add(operations$2.layoutAdded.name, callback);
         }
         onChanged(callback) {
@@ -2237,60 +2388,454 @@
         }
     }
 
+    const operations$3 = {
+        raiseNotification: { name: "raiseNotification", dataDecoder: raiseNotificationDecoder },
+        requestPermission: { name: "requestPermission", resultDecoder: permissionRequestResultDecoder },
+        notificationShow: { name: "notificationShow", dataDecoder: notificationEventPayloadDecoder },
+        notificationClick: { name: "notificationClick", dataDecoder: notificationEventPayloadDecoder },
+        getPermission: { name: "getPermission", resultDecoder: permissionQueryResultDecoder }
+    };
+
+    function createCommonjsModule(fn, basedir, module) {
+    	return module = {
+    	  path: basedir,
+    	  exports: {},
+    	  require: function (path, base) {
+          return commonjsRequire(path, (base === undefined || base === null) ? module.path : base);
+        }
+    	}, fn(module, module.exports), module.exports;
+    }
+
+    function commonjsRequire () {
+    	throw new Error('Dynamic requires are not currently supported by @rollup/plugin-commonjs');
+    }
+
+    // Found this seed-based random generator somewhere
+    // Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
+
+    var seed = 1;
+
+    /**
+     * return a random number based on a seed
+     * @param seed
+     * @returns {number}
+     */
+    function getNextValue() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed/(233280.0);
+    }
+
+    function setSeed(_seed_) {
+        seed = _seed_;
+    }
+
+    var randomFromSeed = {
+        nextValue: getNextValue,
+        seed: setSeed
+    };
+
+    var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+    var alphabet;
+    var previousSeed;
+
+    var shuffled;
+
+    function reset() {
+        shuffled = false;
+    }
+
+    function setCharacters(_alphabet_) {
+        if (!_alphabet_) {
+            if (alphabet !== ORIGINAL) {
+                alphabet = ORIGINAL;
+                reset();
+            }
+            return;
+        }
+
+        if (_alphabet_ === alphabet) {
+            return;
+        }
+
+        if (_alphabet_.length !== ORIGINAL.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+        }
+
+        var unique = _alphabet_.split('').filter(function(item, ind, arr){
+           return ind !== arr.lastIndexOf(item);
+        });
+
+        if (unique.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+        }
+
+        alphabet = _alphabet_;
+        reset();
+    }
+
+    function characters(_alphabet_) {
+        setCharacters(_alphabet_);
+        return alphabet;
+    }
+
+    function setSeed$1(seed) {
+        randomFromSeed.seed(seed);
+        if (previousSeed !== seed) {
+            reset();
+            previousSeed = seed;
+        }
+    }
+
+    function shuffle() {
+        if (!alphabet) {
+            setCharacters(ORIGINAL);
+        }
+
+        var sourceArray = alphabet.split('');
+        var targetArray = [];
+        var r = randomFromSeed.nextValue();
+        var characterIndex;
+
+        while (sourceArray.length > 0) {
+            r = randomFromSeed.nextValue();
+            characterIndex = Math.floor(r * sourceArray.length);
+            targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
+        }
+        return targetArray.join('');
+    }
+
+    function getShuffled() {
+        if (shuffled) {
+            return shuffled;
+        }
+        shuffled = shuffle();
+        return shuffled;
+    }
+
+    /**
+     * lookup shuffled letter
+     * @param index
+     * @returns {string}
+     */
+    function lookup(index) {
+        var alphabetShuffled = getShuffled();
+        return alphabetShuffled[index];
+    }
+
+    function get () {
+      return alphabet || ORIGINAL;
+    }
+
+    var alphabet_1 = {
+        get: get,
+        characters: characters,
+        seed: setSeed$1,
+        lookup: lookup,
+        shuffled: getShuffled
+    };
+
+    var crypto = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
+
+    var randomByte;
+
+    if (!crypto || !crypto.getRandomValues) {
+        randomByte = function(size) {
+            var bytes = [];
+            for (var i = 0; i < size; i++) {
+                bytes.push(Math.floor(Math.random() * 256));
+            }
+            return bytes;
+        };
+    } else {
+        randomByte = function(size) {
+            return crypto.getRandomValues(new Uint8Array(size));
+        };
+    }
+
+    var randomByteBrowser = randomByte;
+
+    // This file replaces `format.js` in bundlers like webpack or Rollup,
+    // according to `browser` config in `package.json`.
+
+    var format_browser = function (random, alphabet, size) {
+      // We can’t use bytes bigger than the alphabet. To make bytes values closer
+      // to the alphabet, we apply bitmask on them. We look for the closest
+      // `2 ** x - 1` number, which will be bigger than alphabet size. If we have
+      // 30 symbols in the alphabet, we will take 31 (00011111).
+      // We do not use faster Math.clz32, because it is not available in browsers.
+      var mask = (2 << Math.log(alphabet.length - 1) / Math.LN2) - 1;
+      // Bitmask is not a perfect solution (in our example it will pass 31 bytes,
+      // which is bigger than the alphabet). As a result, we will need more bytes,
+      // than ID size, because we will refuse bytes bigger than the alphabet.
+
+      // Every hardware random generator call is costly,
+      // because we need to wait for entropy collection. This is why often it will
+      // be faster to ask for few extra bytes in advance, to avoid additional calls.
+
+      // Here we calculate how many random bytes should we call in advance.
+      // It depends on ID length, mask / alphabet size and magic number 1.6
+      // (which was selected according benchmarks).
+
+      // -~f => Math.ceil(f) if n is float number
+      // -~i => i + 1 if n is integer number
+      var step = -~(1.6 * mask * size / alphabet.length);
+      var id = '';
+
+      while (true) {
+        var bytes = random(step);
+        // Compact alternative for `for (var i = 0; i < step; i++)`
+        var i = step;
+        while (i--) {
+          // If random byte is bigger than alphabet even after bitmask,
+          // we refuse it by `|| ''`.
+          id += alphabet[bytes[i] & mask] || '';
+          // More compact than `id.length + 1 === size`
+          if (id.length === +size) return id
+        }
+      }
+    };
+
+    function generate(number) {
+        var loopCounter = 0;
+        var done;
+
+        var str = '';
+
+        while (!done) {
+            str = str + format_browser(randomByteBrowser, alphabet_1.get(), 1);
+            done = number < (Math.pow(16, loopCounter + 1 ) );
+            loopCounter++;
+        }
+        return str;
+    }
+
+    var generate_1 = generate;
+
+    // Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
+    // This number should be updated every year or so to keep the generated id short.
+    // To regenerate `new Date() - 0` and bump the version. Always bump the version!
+    var REDUCE_TIME = 1567752802062;
+
+    // don't change unless we change the algos or REDUCE_TIME
+    // must be an integer and less than 16
+    var version = 7;
+
+    // Counter is used when shortid is called multiple times in one second.
+    var counter;
+
+    // Remember the last time shortid was called in case counter is needed.
+    var previousSeconds;
+
+    /**
+     * Generate unique id
+     * Returns string id
+     */
+    function build(clusterWorkerId) {
+        var str = '';
+
+        var seconds = Math.floor((Date.now() - REDUCE_TIME) * 0.001);
+
+        if (seconds === previousSeconds) {
+            counter++;
+        } else {
+            counter = 0;
+            previousSeconds = seconds;
+        }
+
+        str = str + generate_1(version);
+        str = str + generate_1(clusterWorkerId);
+        if (counter > 0) {
+            str = str + generate_1(counter);
+        }
+        str = str + generate_1(seconds);
+        return str;
+    }
+
+    var build_1 = build;
+
+    function isShortId(id) {
+        if (!id || typeof id !== 'string' || id.length < 6 ) {
+            return false;
+        }
+
+        var nonAlphabetic = new RegExp('[^' +
+          alphabet_1.get().replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&') +
+        ']');
+        return !nonAlphabetic.test(id);
+    }
+
+    var isValid = isShortId;
+
+    var lib$1 = createCommonjsModule(function (module) {
+
+
+
+
+
+    // if you are using cluster or multiple servers use this to make each instance
+    // has a unique value for worker
+    // Note: I don't know if this is automatically set when using third
+    // party cluster solutions such as pm2.
+    var clusterWorkerId =  0;
+
+    /**
+     * Set the seed.
+     * Highly recommended if you don't want people to try to figure out your id schema.
+     * exposed as shortid.seed(int)
+     * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
+     */
+    function seed(seedValue) {
+        alphabet_1.seed(seedValue);
+        return module.exports;
+    }
+
+    /**
+     * Set the cluster worker or machine id
+     * exposed as shortid.worker(int)
+     * @param workerId worker must be positive integer.  Number less than 16 is recommended.
+     * returns shortid module so it can be chained.
+     */
+    function worker(workerId) {
+        clusterWorkerId = workerId;
+        return module.exports;
+    }
+
+    /**
+     *
+     * sets new characters to use in the alphabet
+     * returns the shuffled alphabet
+     */
+    function characters(newCharacters) {
+        if (newCharacters !== undefined) {
+            alphabet_1.characters(newCharacters);
+        }
+
+        return alphabet_1.shuffled();
+    }
+
+    /**
+     * Generate unique id
+     * Returns string id
+     */
+    function generate() {
+      return build_1(clusterWorkerId);
+    }
+
+    // Export all other functions as properties of the generate function
+    module.exports = generate;
+    module.exports.generate = generate;
+    module.exports.seed = seed;
+    module.exports.worker = worker;
+    module.exports.characters = characters;
+    module.exports.isValid = isValid;
+    });
+
+    var shortid = lib$1;
+
     class NotificationsController {
-        start(coreGlue) {
+        constructor() {
+            this.notifications = {};
+        }
+        start(coreGlue, ioc) {
             return __awaiter(this, void 0, void 0, function* () {
                 this.logger = coreGlue.logger.subLogger("notifications.controller.web");
                 this.logger.trace("starting the web notifications controller");
-                this.interop = coreGlue.interop;
+                this.bridge = ioc.bridge;
+                this.coreGlue = coreGlue;
+                this.notificationsSettings = ioc.config.notifications;
+                this.buildNotificationFunc = ioc.buildNotification;
                 const api = this.toApi();
+                this.addOperationExecutors();
                 coreGlue.notifications = api;
                 this.logger.trace("notifications are ready");
             });
         }
-        handleBridgeMessage() {
+        handleBridgeMessage(args) {
             return __awaiter(this, void 0, void 0, function* () {
+                const operationName = notificationsOperationTypesDecoder.runWithException(args.operation);
+                const operation = operations$3[operationName];
+                if (!operation.execute) {
+                    return;
+                }
+                let operationData = args.data;
+                if (operation.dataDecoder) {
+                    operationData = operation.dataDecoder.runWithException(args.data);
+                }
+                return yield operation.execute(operationData);
             });
         }
         toApi() {
             const api = {
-                raise: this.raise.bind(this)
+                raise: this.raise.bind(this),
+                requestPermission: this.requestPermission.bind(this),
+                getPermission: this.getPermission.bind(this)
             };
             return Object.freeze(api);
         }
+        getPermission() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const queryResult = yield this.bridge.send("notifications", operations$3.getPermission, undefined);
+                return queryResult.permission;
+            });
+        }
+        requestPermission() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const permissionResult = yield this.bridge.send("notifications", operations$3.requestPermission, undefined);
+                return permissionResult.permissionGranted;
+            });
+        }
         raise(options) {
             return __awaiter(this, void 0, void 0, function* () {
-                if (!("Notification" in window)) {
-                    throw new Error("this browser does not support desktop notification");
+                const settings = glue42NotificationOptionsDecoder.runWithException(options);
+                const permissionGranted = yield this.requestPermission();
+                if (!permissionGranted) {
+                    throw new Error("Cannot raise the notification, because the user has declined the permission request");
                 }
-                let permissionPromise;
-                if (Notification.permission === "granted") {
-                    permissionPromise = Promise.resolve("granted");
-                }
-                else if (Notification.permission === "denied") {
-                    permissionPromise = Promise.reject("no permissions from user");
-                }
-                else {
-                    permissionPromise = Notification.requestPermission();
-                }
-                yield permissionPromise;
-                const notification = this.raiseUsingWebApi(options);
-                if (options.clickInterop) {
-                    const interopOptions = options.clickInterop;
-                    notification.onclick = () => {
-                        var _a, _b;
-                        this.interop.invoke(interopOptions.method, (_a = interopOptions === null || interopOptions === void 0 ? void 0 : interopOptions.arguments) !== null && _a !== void 0 ? _a : {}, (_b = interopOptions === null || interopOptions === void 0 ? void 0 : interopOptions.target) !== null && _b !== void 0 ? _b : "best");
-                    };
-                }
+                const id = shortid.generate();
+                yield this.bridge.send("notifications", operations$3.raiseNotification, { settings, id });
+                const notification = this.buildNotificationFunc(options);
+                this.notifications[id] = notification;
                 return notification;
             });
         }
-        raiseUsingWebApi(options) {
-            return new Notification(options.title);
+        addOperationExecutors() {
+            operations$3.notificationShow.execute = this.handleNotificationShow.bind(this);
+            operations$3.notificationClick.execute = this.handleNotificationClick.bind(this);
+        }
+        handleNotificationShow(data) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!data.id) {
+                    return;
+                }
+                const notification = this.notifications[data.id];
+                if (notification && notification.onshow) {
+                    notification.onshow();
+                }
+            });
+        }
+        handleNotificationClick(data) {
+            var _a, _b, _c, _d, _e;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!data.action && ((_a = this.notificationsSettings) === null || _a === void 0 ? void 0 : _a.defaultClick)) {
+                    this.notificationsSettings.defaultClick(this.coreGlue, data.definition);
+                }
+                if (data.action && ((_c = (_b = this.notificationsSettings) === null || _b === void 0 ? void 0 : _b.actionClicks) === null || _c === void 0 ? void 0 : _c.some((actionDef) => actionDef.action === data.action))) {
+                    const foundHandler = (_e = (_d = this.notificationsSettings) === null || _d === void 0 ? void 0 : _d.actionClicks) === null || _e === void 0 ? void 0 : _e.find((actionDef) => actionDef.action === data.action);
+                    foundHandler.handler(this.coreGlue, data.definition);
+                }
+                if (!data.id) {
+                    return;
+                }
+                const notification = this.notifications[data.id];
+                if (notification && notification.onclick) {
+                    notification.onclick();
+                    delete this.notifications[data.id];
+                }
+            });
         }
     }
 
-    const operations$3 = {
+    const operations$4 = {
         getIntents: { name: "getIntents", resultDecoder: wrappedIntentsDecoder },
         findIntent: { name: "findIntent", dataDecoder: wrappedIntentFilterDecoder, resultDecoder: wrappedIntentsDecoder },
         raiseIntent: { name: "raiseIntent", dataDecoder: intentRequestDecoder, resultDecoder: intentResultDecoder }
@@ -2298,6 +2843,7 @@
 
     class IntentsController {
         constructor() {
+            this.myIntents = new Set();
             this.GlueWebIntentsPrefix = "Tick42.FDC3.Intents.";
         }
         start(coreGlue, ioc) {
@@ -2314,7 +2860,7 @@
         handleBridgeMessage(args) {
             return __awaiter(this, void 0, void 0, function* () {
                 const operationName = intentsOperationTypesDecoder.runWithException(args.operation);
-                const operation = operations$3[operationName];
+                const operation = operations$4[operationName];
                 if (!operation.execute) {
                     return;
                 }
@@ -2346,13 +2892,13 @@
                 else {
                     data = requestObj;
                 }
-                const result = yield this.bridge.send("intents", operations$3.raiseIntent, data);
+                const result = yield this.bridge.send("intents", operations$4.raiseIntent, data);
                 return result;
             });
         }
         all() {
             return __awaiter(this, void 0, void 0, function* () {
-                const result = yield this.bridge.send("intents", operations$3.getIntents, undefined);
+                const result = yield this.bridge.send("intents", operations$4.getIntents, undefined);
                 return result.intents;
             });
         }
@@ -2364,19 +2910,29 @@
             let subscribed = true;
             const intentName = typeof intent === "string" ? intent : intent.intent;
             const methodName = `${this.GlueWebIntentsPrefix}${intentName}`;
+            const alreadyRegistered = this.myIntents.has(intentName);
+            if (alreadyRegistered) {
+                throw new Error(`Intent listener for intent ${intentName} already registered!`);
+            }
+            this.myIntents.add(intentName);
             const result = {
                 unsubscribe: () => {
                     subscribed = false;
                     try {
                         this.interop.unregister(methodName);
+                        this.myIntents.delete(intentName);
                     }
                     catch (error) {
                         this.logger.trace(`Unsubscribed intent listener, but ${methodName} unregistration failed!`);
                     }
                 }
             };
-            const methodDescription = typeof intent === "string" ? undefined : JSON.stringify(intent);
-            this.interop.register({ name: methodName, description: methodDescription }, (args) => {
+            let intentFlag = {};
+            if (typeof intent === "object") {
+                const rest = __rest(intent, ["intent"]);
+                intentFlag = rest;
+            }
+            this.interop.register({ name: methodName, flags: { intent: intentFlag } }, (args) => {
                 if (subscribed) {
                     return handler(args);
                 }
@@ -2401,7 +2957,7 @@
                         };
                     }
                 }
-                const result = yield this.bridge.send("intents", operations$3.findIntent, data);
+                const result = yield this.bridge.send("intents", operations$4.findIntent, data);
                 return result.intents;
             });
         }
@@ -2575,6 +3131,52 @@
         }
     }
 
+    const operations$5 = {
+        getEnvironment: { name: "getEnvironment", resultDecoder: anyDecoder },
+        getBase: { name: "getBase", resultDecoder: anyDecoder }
+    };
+
+    class SystemController {
+        start(coreGlue, ioc) {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.bridge = ioc.bridge;
+                yield this.setEnvironment();
+            });
+        }
+        handleBridgeMessage() {
+            return __awaiter(this, void 0, void 0, function* () {
+            });
+        }
+        setEnvironment() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const environment = yield this.bridge.send("system", operations$5.getEnvironment, undefined);
+                const base = yield this.bridge.send("system", operations$5.getBase, undefined);
+                const glue42core = Object.assign({}, window.glue42core, base, { environment });
+                window.glue42core = Object.freeze(glue42core);
+            });
+        }
+    }
+
+    class Notification {
+        constructor(config) {
+            this.onclick = () => { };
+            this.onshow = () => { };
+            this.badge = config.badge;
+            this.body = config.body;
+            this.data = config.data;
+            this.dir = config.dir;
+            this.icon = config.icon;
+            this.image = config.image;
+            this.lang = config.lang;
+            this.renotify = config.renotify;
+            this.requireInteraction = config.requireInteraction;
+            this.silent = config.silent;
+            this.tag = config.tag;
+            this.timestamp = config.timestamp;
+            this.vibrate = config.vibrate;
+        }
+    }
+
     class IoC {
         constructor(coreGlue) {
             this.coreGlue = coreGlue;
@@ -2584,7 +3186,8 @@
                 layouts: this.layoutsController,
                 notifications: this.notificationsController,
                 intents: this.intentsController,
-                channels: this.channelsController
+                channels: this.channelsController,
+                system: this.systemController
             };
         }
         get windowsController() {
@@ -2617,6 +3220,12 @@
             }
             return this._intentsControllerInstance;
         }
+        get systemController() {
+            if (!this._systemControllerInstance) {
+                this._systemControllerInstance = new SystemController();
+            }
+            return this._systemControllerInstance;
+        }
         get channelsController() {
             if (!this._channelsControllerInstance) {
                 this._channelsControllerInstance = new ChannelsController();
@@ -2629,12 +3238,21 @@
             }
             return this._bridgeInstance;
         }
+        get config() {
+            return this._webConfig;
+        }
+        defineConfig(config) {
+            this._webConfig = config;
+        }
         buildWebWindow(id, name) {
             return __awaiter(this, void 0, void 0, function* () {
                 const model = new WebWindowModel(id, name, this.bridge);
                 const api = yield model.toApi();
                 return { id, model, api };
             });
+        }
+        buildNotification(config) {
+            return new Notification(config);
         }
         buildApplication(app, applicationInstances) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -2649,6 +3267,8 @@
         }
     }
 
+    var version$1 = "2.3.1";
+
     const createFactoryFunction = (coreFactoryFunction) => {
         return (userConfig) => __awaiter(void 0, void 0, void 0, function* () {
             const config = parseConfig(userConfig);
@@ -2656,10 +3276,11 @@
                 return enterprise(config);
             }
             checkSingleton();
-            const glue = yield PromiseWrap(() => coreFactoryFunction(config), 30000, "Glue Web initialization timed out");
+            const glue = yield PromiseWrap(() => coreFactoryFunction(config, { version: version$1 }), 30000, "Glue Web initialization timed out, because core didn't resolve");
             const logger = glue.logger.subLogger("web.main.controller");
             const ioc = new IoC(glue);
             yield ioc.bridge.start(ioc.controllers);
+            ioc.defineConfig(config);
             logger.trace("the bridge has been started, initializing all controllers");
             yield Promise.all(Object.values(ioc.controllers).map((controller) => controller.start(glue, ioc)));
             logger.trace("all controllers reported started, starting all additional libraries");
@@ -3501,7 +4122,8 @@
                 return;
             }
             this.lastCount = allEntries.length;
-            this.system.stringMetric("entries", JSON.stringify(allEntries));
+            var jsonfiedEntries = allEntries.map(function (i) { return i.toJSON(); });
+            this.system.stringMetric("entries", JSON.stringify(jsonfiedEntries));
         };
         return PerfTracker;
     }());
@@ -3683,12 +4305,12 @@
         };
     }
     createRegistry$1.default = createRegistry$1;
-    var lib$1 = createRegistry$1;
+    var lib$2 = createRegistry$1;
 
     var InProcTransport = (function () {
         function InProcTransport(settings, logger) {
             var _this = this;
-            this.registry = lib$1();
+            this.registry = lib$2();
             this.gw = settings.facade;
             this.gw.connect(function (_client, message) {
                 _this.messageHandler(message);
@@ -3743,7 +4365,7 @@
         function SharedWorkerTransport(workerFile, logger) {
             var _this = this;
             this.logger = logger;
-            this.registry = lib$1();
+            this.registry = lib$2();
             this.worker = new SharedWorker(workerFile);
             this.worker.port.onmessage = function (e) {
                 _this.messageHandler(e.data);
@@ -3905,7 +4527,7 @@
         function WS(settings, logger) {
             this.startupTimer = timer("connection");
             this._running = true;
-            this._registry = lib$1();
+            this._registry = lib$2();
             this.wsRequests = [];
             this.settings = settings;
             this.logger = logger;
@@ -4079,59 +4701,59 @@
         return WS;
     }());
 
-    function createCommonjsModule(fn, module) {
+    function createCommonjsModule$1(fn, module) {
     	return module = { exports: {} }, fn(module, module.exports), module.exports;
     }
 
     // Found this seed-based random generator somewhere
     // Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
 
-    var seed = 1;
+    var seed$1 = 1;
 
     /**
      * return a random number based on a seed
      * @param seed
      * @returns {number}
      */
-    function getNextValue() {
-        seed = (seed * 9301 + 49297) % 233280;
-        return seed/(233280.0);
+    function getNextValue$1() {
+        seed$1 = (seed$1 * 9301 + 49297) % 233280;
+        return seed$1/(233280.0);
     }
 
-    function setSeed(_seed_) {
-        seed = _seed_;
+    function setSeed$2(_seed_) {
+        seed$1 = _seed_;
     }
 
-    var randomFromSeed = {
-        nextValue: getNextValue,
-        seed: setSeed
+    var randomFromSeed$1 = {
+        nextValue: getNextValue$1,
+        seed: setSeed$2
     };
 
-    var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
-    var alphabet;
-    var previousSeed;
+    var ORIGINAL$1 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+    var alphabet$1;
+    var previousSeed$1;
 
-    var shuffled;
+    var shuffled$1;
 
-    function reset() {
-        shuffled = false;
+    function reset$1() {
+        shuffled$1 = false;
     }
 
-    function setCharacters(_alphabet_) {
+    function setCharacters$1(_alphabet_) {
         if (!_alphabet_) {
-            if (alphabet !== ORIGINAL) {
-                alphabet = ORIGINAL;
-                reset();
+            if (alphabet$1 !== ORIGINAL$1) {
+                alphabet$1 = ORIGINAL$1;
+                reset$1();
             }
             return;
         }
 
-        if (_alphabet_ === alphabet) {
+        if (_alphabet_ === alphabet$1) {
             return;
         }
 
-        if (_alphabet_.length !== ORIGINAL.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+        if (_alphabet_.length !== ORIGINAL$1.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$1.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
         }
 
         var unique = _alphabet_.split('').filter(function(item, ind, arr){
@@ -4139,50 +4761,50 @@
         });
 
         if (unique.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$1.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
         }
 
-        alphabet = _alphabet_;
-        reset();
+        alphabet$1 = _alphabet_;
+        reset$1();
     }
 
-    function characters(_alphabet_) {
-        setCharacters(_alphabet_);
-        return alphabet;
+    function characters$1(_alphabet_) {
+        setCharacters$1(_alphabet_);
+        return alphabet$1;
     }
 
-    function setSeed$1(seed) {
-        randomFromSeed.seed(seed);
-        if (previousSeed !== seed) {
-            reset();
-            previousSeed = seed;
+    function setSeed$1$1(seed) {
+        randomFromSeed$1.seed(seed);
+        if (previousSeed$1 !== seed) {
+            reset$1();
+            previousSeed$1 = seed;
         }
     }
 
-    function shuffle() {
-        if (!alphabet) {
-            setCharacters(ORIGINAL);
+    function shuffle$1() {
+        if (!alphabet$1) {
+            setCharacters$1(ORIGINAL$1);
         }
 
-        var sourceArray = alphabet.split('');
+        var sourceArray = alphabet$1.split('');
         var targetArray = [];
-        var r = randomFromSeed.nextValue();
+        var r = randomFromSeed$1.nextValue();
         var characterIndex;
 
         while (sourceArray.length > 0) {
-            r = randomFromSeed.nextValue();
+            r = randomFromSeed$1.nextValue();
             characterIndex = Math.floor(r * sourceArray.length);
             targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
         }
         return targetArray.join('');
     }
 
-    function getShuffled() {
-        if (shuffled) {
-            return shuffled;
+    function getShuffled$1() {
+        if (shuffled$1) {
+            return shuffled$1;
         }
-        shuffled = shuffle();
-        return shuffled;
+        shuffled$1 = shuffle$1();
+        return shuffled$1;
     }
 
     /**
@@ -4190,30 +4812,30 @@
      * @param index
      * @returns {string}
      */
-    function lookup(index) {
-        var alphabetShuffled = getShuffled();
+    function lookup$1(index) {
+        var alphabetShuffled = getShuffled$1();
         return alphabetShuffled[index];
     }
 
-    var alphabet_1 = {
-        characters: characters,
-        seed: setSeed$1,
-        lookup: lookup,
-        shuffled: getShuffled
+    var alphabet_1$1 = {
+        characters: characters$1,
+        seed: setSeed$1$1,
+        lookup: lookup$1,
+        shuffled: getShuffled$1
     };
 
-    var crypto = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
+    var crypto$1 = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
 
-    function randomByte() {
-        if (!crypto || !crypto.getRandomValues) {
+    function randomByte$1() {
+        if (!crypto$1 || !crypto$1.getRandomValues) {
             return Math.floor(Math.random() * 256) & 0x30;
         }
         var dest = new Uint8Array(1);
-        crypto.getRandomValues(dest);
+        crypto$1.getRandomValues(dest);
         return dest[0] & 0x30;
     }
 
-    var randomByteBrowser = randomByte;
+    var randomByteBrowser$1 = randomByte$1;
 
     function encode(lookup, number) {
         var loopCounter = 0;
@@ -4222,7 +4844,7 @@
         var str = '';
 
         while (!done) {
-            str = str + lookup( ( (number >> (4 * loopCounter)) & 0x0f ) | randomByteBrowser() );
+            str = str + lookup( ( (number >> (4 * loopCounter)) & 0x0f ) | randomByteBrowser$1() );
             done = number < (Math.pow(16, loopCounter + 1 ) );
             loopCounter++;
         }
@@ -4237,7 +4859,7 @@
      * @param id - the shortid-generated id.
      */
     function decode(id) {
-        var characters = alphabet_1.shuffled();
+        var characters = alphabet_1$1.shuffled();
         return {
             version: characters.indexOf(id.substr(0, 1)) & 0x0f,
             worker: characters.indexOf(id.substr(1, 1)) & 0x0f
@@ -4246,12 +4868,12 @@
 
     var decode_1 = decode;
 
-    function isShortId(id) {
+    function isShortId$1(id) {
         if (!id || typeof id !== 'string' || id.length < 6 ) {
             return false;
         }
 
-        var characters = alphabet_1.characters();
+        var characters = alphabet_1$1.characters();
         var len = id.length;
         for(var i = 0; i < len;i++) {
             if (characters.indexOf(id[i]) === -1) {
@@ -4261,9 +4883,9 @@
         return true;
     }
 
-    var isValid = isShortId;
+    var isValid$1 = isShortId$1;
 
-    var lib$1$1 = createCommonjsModule(function (module) {
+    var lib$1$1 = createCommonjsModule$1(function (module) {
 
 
 
@@ -4308,12 +4930,12 @@
             previousSeconds = seconds;
         }
 
-        str = str + encode_1(alphabet_1.lookup, version);
-        str = str + encode_1(alphabet_1.lookup, clusterWorkerId);
+        str = str + encode_1(alphabet_1$1.lookup, version);
+        str = str + encode_1(alphabet_1$1.lookup, clusterWorkerId);
         if (counter > 0) {
-            str = str + encode_1(alphabet_1.lookup, counter);
+            str = str + encode_1(alphabet_1$1.lookup, counter);
         }
-        str = str + encode_1(alphabet_1.lookup, seconds);
+        str = str + encode_1(alphabet_1$1.lookup, seconds);
 
         return str;
     }
@@ -4326,7 +4948,7 @@
      * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
      */
     function seed(seedValue) {
-        alphabet_1.seed(seedValue);
+        alphabet_1$1.seed(seedValue);
         return module.exports;
     }
 
@@ -4348,10 +4970,10 @@
      */
     function characters(newCharacters) {
         if (newCharacters !== undefined) {
-            alphabet_1.characters(newCharacters);
+            alphabet_1$1.characters(newCharacters);
         }
 
-        return alphabet_1.shuffled();
+        return alphabet_1$1.shuffled();
     }
 
 
@@ -4362,7 +4984,7 @@
     module.exports.worker = worker;
     module.exports.characters = characters;
     module.exports.decode = decode_1;
-    module.exports.isValid = isValid;
+    module.exports.isValid = isValid$1;
     });
     var lib_1 = lib$1$1.generate;
     var lib_2 = lib$1$1.seed;
@@ -4371,7 +4993,7 @@
     var lib_5 = lib$1$1.decode;
     var lib_6 = lib$1$1.isValid;
 
-    var shortid = lib$1$1;
+    var shortid$1 = lib$1$1;
 
     function domainSession (domain, connection, logger, successMessages, errorMessages) {
         if (domain == null) {
@@ -4383,7 +5005,7 @@
         var tryReconnecting = false;
         var _latestOptions;
         var _connectionOn = false;
-        var callbacks = lib$1();
+        var callbacks = lib$2();
         connection.disconnected(handleConnectionDisconnected);
         connection.loggedIn(handleConnectionLoggedIn);
         connection.on("success", function (msg) { return handleSuccessMessage(msg); });
@@ -4510,7 +5132,7 @@
             entry.success(msg);
         }
         function getNextRequestId() {
-            return shortid();
+            return shortid$1();
         }
         function send(msg, tag, options) {
             options = options || {};
@@ -4590,7 +5212,7 @@
             this.datePrefixLen = this.datePrefix.length;
             this.dateMinLen = this.datePrefixLen + 1;
             this.datePrefixFirstChar = this.datePrefix[0];
-            this.registry = lib$1();
+            this.registry = lib$2();
             this._isLoggedIn = false;
             this.shouldTryLogin = true;
             this.initialLogin = true;
@@ -5011,7 +5633,7 @@
             this.parentPingTimeout = 3000;
             this.connectionRequestTimeout = 5000;
             this.defaultTargetString = "*";
-            this.registry = lib$1();
+            this.registry = lib$2();
             this.messages = {
                 connectionAccepted: { name: "connectionAccepted", handle: this.handleConnectionAccepted.bind(this) },
                 connectionRejected: { name: "connectionRejected", handle: this.handleConnectionRejected.bind(this) },
@@ -5021,7 +5643,8 @@
                 platformPing: { name: "platformPing", handle: this.handlePlatformPing.bind(this) },
                 platformUnload: { name: "platformUnload", handle: this.handlePlatformUnload.bind(this) },
                 platformReady: { name: "platformReady", handle: this.handlePlatformReady.bind(this) },
-                clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) }
+                clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) },
+                manualUnload: { name: "manualUnload", handle: this.handleManualUnload.bind(this) }
             };
             this.setUpMessageListener();
             this.setUpUnload();
@@ -5131,7 +5754,7 @@
             return PromisePlus$1(function (resolve, reject) {
                 _this.connectionResolve = resolve;
                 _this.connectionReject = reject;
-                _this.myClientId = shortid();
+                _this.myClientId = shortid$1();
                 var bridgeInstanceId = _this.parentType === "workspace" ? window.name.substring(0, window.name.indexOf("#wsp")) : window.name;
                 var request = {
                     glue42core: {
@@ -5321,19 +5944,36 @@
             }
             this.notifyStatusChanged(false, "Gateway unloaded");
         };
+        WebPlatformTransport.prototype.handleManualUnload = function () {
+            var _a, _b;
+            var message = {
+                glue42core: {
+                    type: this.messages.clientUnload.name,
+                    data: {
+                        clientId: this.myClientId,
+                        ownWindowId: (_a = this.identity) === null || _a === void 0 ? void 0 : _a.windowId
+                    }
+                }
+            };
+            if (this.parent) {
+                this.parent.postMessage(message, this.defaultTargetString);
+            }
+            (_b = this.port) === null || _b === void 0 ? void 0 : _b.postMessage(message);
+        };
         WebPlatformTransport.prototype.handleClientUnload = function (event) {
             var data = event.data.glue42core;
-            if (!data.clientId) {
+            var clientId = data === null || data === void 0 ? void 0 : data.data.clientId;
+            if (!clientId) {
                 this.logger.warn("cannot process grand child unload, because the provided id was not valid");
                 return;
             }
-            var foundChild = this.children.find(function (child) { return child.grandChildId === data.clientId; });
+            var foundChild = this.children.find(function (child) { return child.grandChildId === clientId; });
             if (!foundChild) {
                 this.logger.warn("cannot process grand child unload, because this client is unaware of this grandchild");
                 return;
             }
-            this.logger.debug("handling grandchild unload for id: " + data.clientId);
-            this.children = this.children.filter(function (child) { return child.grandChildId !== data.clientId; });
+            this.logger.debug("handling grandchild unload for id: " + clientId);
+            this.children = this.children.filter(function (child) { return child.grandChildId !== clientId; });
         };
         WebPlatformTransport.prototype.handlePlatformPing = function () {
             this.logger.error("cannot handle platform ping, because this is not a platform calls handling component");
@@ -5364,7 +6004,7 @@
             this.logger = logger;
             this.messageHandlers = {};
             this.ids = 1;
-            this.registry = lib$1();
+            this.registry = lib$2();
             this._connected = false;
             this.isTrace = false;
             settings = settings || {};
@@ -5722,7 +6362,7 @@
         }
     };
 
-    var version = "5.2.8-beta.0";
+    var version$2 = "5.4.12";
 
     function prepareConfig (configuration, ext, glue42gd) {
         var _a, _b, _c, _d, _e;
@@ -5793,7 +6433,7 @@
                     process: pid,
                     region: region,
                     environment: environment,
-                    api: ext.version || version
+                    api: ext.version || version$2
                 },
                 reconnectInterval: reconnectInterval,
                 ws: ws,
@@ -5812,7 +6452,7 @@
             if (glue42gd) {
                 return glue42gd.applicationName;
             }
-            var uid = shortid();
+            var uid = shortid$1();
             if (Utils.isNode()) {
                 if (nodeStartingContext) {
                     return nodeStartingContext.applicationConfig.name;
@@ -5882,7 +6522,7 @@
             connection: connection,
             metrics: (_c = configuration.metrics) !== null && _c !== void 0 ? _c : true,
             contexts: (_d = configuration.contexts) !== null && _d !== void 0 ? _d : true,
-            version: ext.version || version,
+            version: ext.version || version$2,
             libs: (_e = ext.libs) !== null && _e !== void 0 ? _e : [],
             customLogger: configuration.customLogger
         };
@@ -6057,6 +6697,14 @@
             obj = obj[pathArr[i]];
         }
         obj[pathArr[i]] = value;
+    }
+    function isSubset(superObj, subObj) {
+        return Object.keys(subObj).every(function (ele) {
+            if (typeof subObj[ele] === "object") {
+                return isSubset((superObj === null || superObj === void 0 ? void 0 : superObj[ele]) || {}, subObj[ele] || {});
+            }
+            return subObj[ele] === (superObj === null || superObj === void 0 ? void 0 : superObj[ele]);
+        });
     }
     function deletePath(obj, path) {
         var pathArr = path.split(".");
@@ -6728,10 +7376,17 @@
     function rejectAfter(ms, promise, error) {
         if (ms === void 0) { ms = 0; }
         var timeout;
-        promise.finally(function () {
+        var clearTimeoutIfThere = function () {
             if (timeout) {
                 clearTimeout(timeout);
             }
+        };
+        promise
+            .then(function () {
+            clearTimeoutIfThere();
+        })
+            .catch(function () {
+            clearTimeoutIfThere();
         });
         return new Promise(function (resolve, reject) {
             timeout = setTimeout(function () { return reject(error); }, ms);
@@ -6884,9 +7539,9 @@
                     getInvokePromise = function () { return __awaiter$1(_this, void 0, void 0, function () {
                         var methodDefinition, serversMethodMap, err_1, method, errorObj, timeout, additionalOptionsCopy, invokePromises, invocationMessages, results, allRejected;
                         var _this = this;
-                        var _a;
-                        return __generator(this, function (_b) {
-                            switch (_b.label) {
+                        var _a, _b, _c;
+                        return __generator(this, function (_d) {
+                            switch (_d.label) {
                                 case 0:
                                     if (typeof methodFilter === "string") {
                                         methodDefinition = { name: methodFilter };
@@ -6929,16 +7584,16 @@
                                     }
                                     serversMethodMap = this.getServerMethodsByFilterAndTarget(methodDefinition, target);
                                     if (!(serversMethodMap.length === 0)) return [3, 4];
-                                    _b.label = 1;
+                                    _d.label = 1;
                                 case 1:
-                                    _b.trys.push([1, 3, , 4]);
+                                    _d.trys.push([1, 3, , 4]);
                                     return [4, this.tryToAwaitForMethods(methodDefinition, target, additionalOptions)];
                                 case 2:
-                                    serversMethodMap = _b.sent();
+                                    serversMethodMap = _d.sent();
                                     return [3, 4];
                                 case 3:
-                                    err_1 = _b.sent();
-                                    method = __assign$1(__assign$1({}, methodDefinition), { getServers: function () { return []; }, supportsStreaming: false, objectTypes: (_a = methodDefinition.objectTypes) !== null && _a !== void 0 ? _a : [] });
+                                    err_1 = _d.sent();
+                                    method = __assign$1(__assign$1({}, methodDefinition), { getServers: function () { return []; }, supportsStreaming: false, objectTypes: (_a = methodDefinition.objectTypes) !== null && _a !== void 0 ? _a : [], flags: (_c = (_b = methodDefinition.flags) === null || _b === void 0 ? void 0 : _b.metadata) !== null && _c !== void 0 ? _c : {} });
                                     errorObj = {
                                         method: method,
                                         called_with: argumentObj,
@@ -6952,7 +7607,7 @@
                                     timeout = additionalOptions.methodResponseTimeoutMs;
                                     additionalOptionsCopy = additionalOptions;
                                     invokePromises = serversMethodMap.map(function (serversMethodPair) {
-                                        var invId = shortid();
+                                        var invId = shortid$1();
                                         var method = serversMethodPair.methods[0];
                                         var server = serversMethodPair.server;
                                         var invokePromise = _this.protocol.client.invoke(invId, method, argumentObj, server, additionalOptionsCopy);
@@ -6967,7 +7622,7 @@
                                     });
                                     return [4, Promise.all(invokePromises)];
                                 case 5:
-                                    invocationMessages = _b.sent();
+                                    invocationMessages = _d.sent();
                                     results = this.getInvocationResultObj(invocationMessages, methodDefinition, argumentObj);
                                     allRejected = invocationMessages.every(function (result) { return result.status === InvokeStatus.Error; });
                                     if (allRejected) {
@@ -7107,38 +7762,24 @@
                     && prop !== "identifier"
                     && prop[0] !== "_";
             });
-            return filterProps.reduce(function (isMatch, prop) {
+            return filterProps.every(function (prop) {
+                var isMatch;
                 var filterValue = filter[prop];
                 var repoMethodValue = repoMethod[prop];
-                if (prop === "objectTypes") {
-                    var containsAllFromFilter = function (filterObjTypes, repoObjectTypes) {
-                        var objTypeToContains = filterObjTypes.reduce(function (object, objType) {
-                            object[objType] = false;
-                            return object;
-                        }, {});
-                        repoObjectTypes.forEach(function (repoObjType) {
-                            if (objTypeToContains[repoObjType] !== undefined) {
-                                objTypeToContains[repoObjType] = true;
-                            }
+                switch (prop) {
+                    case "objectTypes":
+                        isMatch = (filterValue || []).every(function (filterValueEl) {
+                            return (repoMethodValue || []).includes(filterValueEl);
                         });
-                        var filterIsFullfilled = function () { return Object.keys(objTypeToContains).reduce(function (isFullfiled, objType) {
-                            if (!objTypeToContains[objType]) {
-                                isFullfiled = false;
-                            }
-                            return isFullfiled;
-                        }, true); };
-                        return filterIsFullfilled();
-                    };
-                    if (filterValue.length > repoMethodValue.length
-                        || containsAllFromFilter(filterValue, repoMethodValue) === false) {
-                        isMatch = false;
-                    }
-                }
-                else if (String(filterValue).toLowerCase() !== String(repoMethodValue).toLowerCase()) {
-                    isMatch = false;
+                        break;
+                    case "flags":
+                        isMatch = isSubset(repoMethodValue || {}, filterValue || {});
+                        break;
+                    default:
+                        isMatch = String(filterValue).toLowerCase() === String(repoMethodValue).toLowerCase();
                 }
                 return isMatch;
-            }, true);
+            });
         };
         Client.prototype.getMethods = function (methodFilter) {
             var _this = this;
@@ -7185,7 +7826,7 @@
                 });
             }
             return servers.reduce(function (prev, current) {
-                var methodsForServer = _this.repo.getServerMethodsById(current.id);
+                var methodsForServer = Object.values(current.methods);
                 var matchingMethods = methodsForServer.filter(function (method) {
                     return _this.methodMatch(methodFilter, method);
                 });
@@ -7362,6 +8003,7 @@
         };
         Object.defineProperty(ServerStream.prototype, "definition", {
             get: function () {
+                var _a;
                 var def2 = this._repoMethod.definition;
                 return {
                     accepts: def2.accepts,
@@ -7371,6 +8013,7 @@
                     objectTypes: def2.objectTypes,
                     returns: def2.returns,
                     supportsStreaming: def2.supportsStreaming,
+                    flags: (_a = def2.flags) === null || _a === void 0 ? void 0 : _a.metadata,
                 };
             },
             enumerable: true,
@@ -7709,11 +8352,14 @@
     }());
 
     var InstanceWrapper = (function () {
-        function InstanceWrapper(instance, connection) {
+        function InstanceWrapper(API, instance, connection) {
             var _this = this;
-            this.wrapped = {
-                getMethods: getMethods,
-                getStreams: getStreams,
+            this.wrapped = {};
+            this.wrapped.getMethods = function () {
+                return API.methodsForInstance(this);
+            };
+            this.wrapped.getStreams = function () {
+                return API.methodsForInstance(this).filter(function (m) { return m.supportsStreaming; });
             };
             if (instance) {
                 this.refreshWrappedObject(instance);
@@ -7737,38 +8383,42 @@
             this.refreshWrappedObject(instance);
         };
         InstanceWrapper.prototype.refreshWrappedObject = function (resolvedIdentity) {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             this.wrapped.user = resolvedIdentity.user;
             this.wrapped.instance = resolvedIdentity.instance;
-            this.wrapped.application = (_a = resolvedIdentity.application) !== null && _a !== void 0 ? _a : shortid();
+            this.wrapped.application = (_a = resolvedIdentity.application) !== null && _a !== void 0 ? _a : shortid$1();
             this.wrapped.applicationName = resolvedIdentity.applicationName;
             this.wrapped.pid = (_c = (_b = resolvedIdentity.pid) !== null && _b !== void 0 ? _b : resolvedIdentity.process) !== null && _c !== void 0 ? _c : Math.floor(Math.random() * 10000000000);
             this.wrapped.machine = resolvedIdentity.machine;
             this.wrapped.environment = resolvedIdentity.environment;
             this.wrapped.region = resolvedIdentity.region;
             this.wrapped.windowId = resolvedIdentity.windowId;
-            this.wrapped.isLocal = true;
+            this.wrapped.isLocal = (_d = resolvedIdentity.isLocal) !== null && _d !== void 0 ? _d : true;
             this.wrapped.api = resolvedIdentity.api;
             this.wrapped.service = resolvedIdentity.service;
             this.wrapped.peerId = resolvedIdentity.peerId;
         };
         return InstanceWrapper;
     }());
-    function getMethods() {
-        var _a;
-        return (_a = InstanceWrapper.API) === null || _a === void 0 ? void 0 : _a.methodsForInstance(this);
-    }
-    function getStreams() {
-        var _a;
-        return (_a = InstanceWrapper.API) === null || _a === void 0 ? void 0 : _a.methodsForInstance(this).filter(function (m) { return m.supportsStreaming; });
-    }
 
+    var hideMethodSystemFlags = function (method) {
+        return __assign$1(__assign$1({}, method), { flags: method.flags.metadata || {} });
+    };
     var ClientRepository = (function () {
-        function ClientRepository(logger) {
+        function ClientRepository(logger, API) {
             this.logger = logger;
+            this.API = API;
             this.servers = {};
             this.methodsCount = {};
-            this.callbacks = lib$1();
+            this.callbacks = lib$2();
+            var peerId = this.API.instance.peerId;
+            this.myServer = {
+                id: peerId,
+                methods: {},
+                instance: this.API.instance,
+                wrapper: this.API.unwrappedInstance,
+            };
+            this.servers[peerId] = this.myServer;
         }
         ClientRepository.prototype.addServer = function (info, serverId) {
             this.logger.debug("adding server " + serverId);
@@ -7776,7 +8426,7 @@
             if (current) {
                 return current.id;
             }
-            var wrapper = new InstanceWrapper(info);
+            var wrapper = new InstanceWrapper(this.API, info);
             var serverEntry = {
                 id: serverId,
                 methods: {},
@@ -7804,6 +8454,7 @@
             this.callbacks.execute("onServerRemoved", server.instance, reason);
         };
         ClientRepository.prototype.addServerMethod = function (serverId, method) {
+            var _a;
             var server = this.servers[serverId];
             if (!server) {
                 throw new Error("server does not exists");
@@ -7824,6 +8475,7 @@
                 accepts: method.input_signature,
                 returns: method.result_signature,
                 supportsStreaming: typeof method.flags !== "undefined" ? method.flags.streaming : false,
+                flags: (_a = method.flags) !== null && _a !== void 0 ? _a : {},
                 getServers: function () {
                     return that.getServersByMethod(identifier);
                 }
@@ -7832,12 +8484,13 @@
             methodDefinition.display_name = methodDefinition.displayName;
             methodDefinition.version = methodDefinition.version;
             server.methods[method.id] = methodDefinition;
+            var clientMethodDefinition = hideMethodSystemFlags(methodDefinition);
             if (!this.methodsCount[identifier]) {
                 this.methodsCount[identifier] = 0;
-                this.callbacks.execute("onMethodAdded", methodDefinition);
+                this.callbacks.execute("onMethodAdded", clientMethodDefinition);
             }
             this.methodsCount[identifier] = this.methodsCount[identifier] + 1;
-            this.callbacks.execute("onServerMethodAdded", server.instance, methodDefinition);
+            this.callbacks.execute("onServerMethodAdded", server.instance, clientMethodDefinition);
             return methodDefinition;
         };
         ClientRepository.prototype.removeServerMethod = function (serverId, methodId) {
@@ -7847,41 +8500,18 @@
             }
             var method = server.methods[methodId];
             delete server.methods[methodId];
+            var clientMethodDefinition = hideMethodSystemFlags(method);
             this.methodsCount[method.identifier] = this.methodsCount[method.identifier] - 1;
             if (this.methodsCount[method.identifier] === 0) {
-                this.callbacks.execute("onMethodRemoved", method);
+                this.callbacks.execute("onMethodRemoved", clientMethodDefinition);
             }
-            this.callbacks.execute("onServerMethodRemoved", server.instance, method);
+            this.callbacks.execute("onServerMethodRemoved", server.instance, clientMethodDefinition);
         };
         ClientRepository.prototype.getMethods = function () {
-            var _this = this;
-            var allMethods = {};
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                Object.keys(server.methods).forEach(function (methodId) {
-                    var method = server.methods[methodId];
-                    allMethods[method.identifier] = method;
-                });
-            });
-            var methodsAsArray = Object.keys(allMethods).map(function (id) {
-                return allMethods[id];
-            });
-            return methodsAsArray;
+            return this.extractMethodsFromServers(Object.values(this.servers)).map(hideMethodSystemFlags);
         };
         ClientRepository.prototype.getServers = function () {
-            var _this = this;
-            var allServers = [];
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                allServers.push(server);
-            });
-            return allServers;
-        };
-        ClientRepository.prototype.getServerMethodsById = function (serverId) {
-            var server = this.servers[serverId];
-            return Object.keys(server.methods).map(function (id) {
-                return server.methods[id];
-            });
+            return Object.values(this.servers).map(this.hideServerMethodSystemFlags);
         };
         ClientRepository.prototype.onServerAdded = function (callback) {
             var unsubscribeFunc = this.callbacks.add("onServerAdded", callback);
@@ -7925,14 +8555,17 @@
             return unsubscribeFunc;
         };
         ClientRepository.prototype.getServerById = function (id) {
-            return this.servers[id];
+            return this.hideServerMethodSystemFlags(this.servers[id]);
         };
         ClientRepository.prototype.reset = function () {
+            var _a;
             var _this = this;
             Object.keys(this.servers).forEach(function (key) {
                 _this.removeServerById(key, "reset");
             });
-            this.servers = {};
+            this.servers = (_a = {},
+                _a[this.myServer.id] = this.myServer,
+                _a);
             this.methodsCount = {};
         };
         ClientRepository.prototype.createMethodIdentifier = function (methodInfo) {
@@ -7941,13 +8574,10 @@
             return (methodInfo.name + accepts + returns).toLowerCase();
         };
         ClientRepository.prototype.getServersByMethod = function (identifier) {
-            var _this = this;
             var allServers = [];
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                Object.keys(server.methods).forEach(function (methodId) {
-                    var methodInfo = server.methods[methodId];
-                    if (methodInfo.identifier === identifier) {
+            Object.values(this.servers).forEach(function (server) {
+                Object.values(server.methods).forEach(function (method) {
+                    if (method.identifier === identifier) {
                         allServers.push(server.instance);
                     }
                 });
@@ -7967,6 +8597,20 @@
                 unsubCalled = true;
                 unsubscribeFunc();
             };
+        };
+        ClientRepository.prototype.hideServerMethodSystemFlags = function (server) {
+            var clientMethods = {};
+            Object.entries(server.methods).forEach(function (_a) {
+                var name = _a[0], method = _a[1];
+                clientMethods[name] = hideMethodSystemFlags(method);
+            });
+            return __assign$1(__assign$1({}, server), { methods: clientMethods });
+        };
+        ClientRepository.prototype.extractMethodsFromServers = function (servers) {
+            var methods = Object.values(servers).reduce(function (clientMethods, server) {
+                return __spreadArrays(clientMethods, Object.values(server.methods));
+            }, []);
+            return methods;
         };
         return ClientRepository;
     }());
@@ -8020,7 +8664,7 @@
             this.repository = repository;
             this.serverRepository = serverRepository;
             this.ERR_URI_SUBSCRIPTION_FAILED = "com.tick42.agm.errors.subscription.failure";
-            this.callbacks = lib$1();
+            this.callbacks = lib$2();
             this.nextStreamId = 0;
             session.on("add-interest", function (msg) {
                 _this.handleAddInterest(msg);
@@ -8282,7 +8926,7 @@
             this.clientRepository = clientRepository;
             this.serverRepository = serverRepository;
             this.logger = logger;
-            this.callbacks = lib$1();
+            this.callbacks = lib$2();
             this.streaming = new ServerStreaming$1(session, clientRepository, serverRepository);
             this.session.on("invoke", function (msg) { return _this.handleInvokeMessage(msg); });
         }
@@ -8293,8 +8937,9 @@
         };
         ServerProtocol.prototype.register = function (repoMethod, isStreaming) {
             var _this = this;
+            var _a;
             var methodDef = repoMethod.definition;
-            var flags = { streaming: isStreaming || false };
+            var flags = Object.assign({}, { metadata: (_a = methodDef.flags) !== null && _a !== void 0 ? _a : {} }, { streaming: isStreaming || false });
             var registerMsg = {
                 type: "register",
                 methods: [{
@@ -9000,9 +9645,9 @@
             if (typeof configuration.waitTimeoutMs !== "number") {
                 configuration.waitTimeoutMs = 30 * 1000;
             }
-            InstanceWrapper.API = this;
-            this.instance = new InstanceWrapper(undefined, connection).unwrap();
-            this.clientRepository = new ClientRepository(configuration.logger.subLogger("cRep"));
+            this.unwrappedInstance = new InstanceWrapper(this, undefined, connection);
+            this.instance = this.unwrappedInstance.unwrap();
+            this.clientRepository = new ClientRepository(configuration.logger.subLogger("cRep"), this);
             this.serverRepository = new ServerRepository();
             var protocolPromise;
             if (connection.protocolVersion === 3) {
@@ -9065,6 +9710,16 @@
         };
         Interop.prototype.invoke = function (methodFilter, argumentObj, target, additionalOptions, success, error) {
             return this.client.invoke(methodFilter, argumentObj, target, additionalOptions, success, error);
+        };
+        Interop.prototype.waitForMethod = function (name) {
+            var pw = new PromiseWrapper();
+            var unsubscribe = this.client.methodAdded(function (m) {
+                if (m.name === name) {
+                    unsubscribe();
+                    pw.resolve(m);
+                }
+            });
+            return pw.promise;
         };
         return Interop;
     }());
@@ -9270,7 +9925,7 @@
             return Promise.resolve(undefined);
         }
         function setupMetrics() {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e;
             var initTimer = timer("metrics");
             var config = internalConfig.metrics;
             var metricsPublishingEnabledFunc = glue42gd === null || glue42gd === void 0 ? void 0 : glue42gd.getMetricsPublishingEnabled;
@@ -9282,8 +9937,8 @@
                 logger: _logger.subLogger("metrics"),
                 canUpdateMetric: canUpdateMetric,
                 system: "Glue42",
-                service: (_b = identity === null || identity === void 0 ? void 0 : identity.service) !== null && _b !== void 0 ? _b : "metrics-service",
-                instance: (_d = (_c = identity === null || identity === void 0 ? void 0 : identity.instance) !== null && _c !== void 0 ? _c : identity === null || identity === void 0 ? void 0 : identity.windowId) !== null && _d !== void 0 ? _d : shortid(),
+                service: (_c = (_b = identity === null || identity === void 0 ? void 0 : identity.service) !== null && _b !== void 0 ? _b : glue42gd === null || glue42gd === void 0 ? void 0 : glue42gd.applicationName) !== null && _c !== void 0 ? _c : internalConfig.application,
+                instance: (_e = (_d = identity === null || identity === void 0 ? void 0 : identity.instance) !== null && _d !== void 0 ? _d : identity === null || identity === void 0 ? void 0 : identity.windowId) !== null && _e !== void 0 ? _e : shortid$1(),
                 disableAutoAppSystem: disableAutoAppSystem,
                 pagePerformanceMetrics: typeof config !== "boolean" ? config === null || config === void 0 ? void 0 : config.pagePerformanceMetrics : undefined
             });
@@ -9368,7 +10023,7 @@
                 _interop.invoke("T42.ACS.Feedback", feedbackInfo, "best");
             };
             var info = {
-                coreVersion: version,
+                coreVersion: version$2,
                 version: internalConfig.version
             };
             glueInitTimer.stop();
@@ -9409,7 +10064,9 @@
                         return {
                             name: key,
                             duration: t.endTime - t.startTime,
-                            marks: t.marks
+                            marks: t.marks,
+                            startTime: t.startTime,
+                            endTime: t.endTime
                         };
                     });
                 }
@@ -9437,7 +10094,7 @@
                 var deprecatedDecorator = function (fn, wrong, proper) {
                     return function () {
                         glue.logger.warn("glue.js - 'glue.agm." + wrong + "' method is deprecated, use 'glue.interop." + proper + "' instead.");
-                        fn.apply(glue.agm, arguments);
+                        return fn.apply(glue.agm, arguments);
                     };
                 };
                 var agmAny = glue.agm;
@@ -9469,16 +10126,17 @@
     if (typeof window !== "undefined") {
         window.GlueCore = GlueCore;
     }
-    GlueCore.version = version;
+    GlueCore.version = version$2;
     GlueCore.default = GlueCore;
-
-    var version$1 = "2.0.0-beta.0";
 
     const glueWebFactory = createFactoryFunction(GlueCore);
     if (typeof window !== "undefined") {
         const windowAny = window;
         windowAny.GlueWeb = glueWebFactory;
         delete windowAny.GlueCore;
+    }
+    if (!window.glue42gd && !window.glue42core) {
+        window.glue42core = { webStarted: false };
     }
     glueWebFactory.version = version$1;
 

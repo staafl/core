@@ -286,6 +286,7 @@ export class WorkspaceWrapper {
             (this.workspace.layout.config.workspacesOptions as any).allowSplitters = value;
         }
         (this.workspaceContentItem.config.workspacesConfig as any).allowSplitters = value;
+        this.populateChildrenAllowSplitters(value);
     }
 
     public get showSaveButton(): boolean {
@@ -424,6 +425,18 @@ export class WorkspaceWrapper {
         }
     }
 
+    public get hasMaximizedItems(): boolean {
+        const layout = this.workspace.layout;
+
+        if (!layout) {
+            return false;
+        }
+
+        const items = layout.root.getItemsById("__glMaximised");
+
+        return items.length > 0;
+    }
+
     private transformComponentsToWindowSummary(glConfig: GoldenLayout.ItemConfig): void {
         if (glConfig.type === "component" && glConfig.componentName === EmptyVisibleWindowName) {
             return;
@@ -460,13 +473,38 @@ export class WorkspaceWrapper {
             return;
         }
 
-        const populateRecursive = (item: GoldenLayout.ContentItem) => {
+        const populateRecursive = (item: GoldenLayout.ContentItem): void => {
             if (item.type === "component") {
                 return;
             }
 
-            const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver,item, this.frameId, this.workspace.id);
+            const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, item, this.frameId, this.workspace.id);
             containerWrapper.allowDrop = value;
+
+            item.contentItems.forEach((ci) => {
+                populateRecursive(ci);
+            });
+        };
+
+        layout.root.contentItems.forEach((ci) => {
+            populateRecursive(ci);
+        });
+    }
+
+    private populateChildrenAllowSplitters(value?: boolean): void {
+        const { layout } = this.workspace;
+
+        if (!layout) {
+            return;
+        }
+
+        const populateRecursive = (item: GoldenLayout.ContentItem): void => {
+            if (item.type === "component" || item.type === "stack") {
+                return;
+            }
+
+            const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, item, this.frameId, this.workspace.id);
+            containerWrapper.allowSplitters = value;
 
             item.contentItems.forEach((ci) => {
                 populateRecursive(ci);
@@ -487,14 +525,14 @@ export class WorkspaceWrapper {
 
         const populateRecursive = (item: GoldenLayout.ContentItem): void => {
             if (item.type === "component") {
-                const windowWrapper = new WorkspaceWindowWrapper(this.stateResolver,item, this.frameId);
+                const windowWrapper = new WorkspaceWindowWrapper(this.stateResolver, item, this.frameId);
 
                 windowWrapper.allowExtract = value;
                 return;
             }
 
             if (item.type === "stack") {
-                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver,item, this.frameId, this.workspace.id);
+                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, item, this.frameId, this.workspace.id);
                 containerWrapper.allowExtract = value;
             }
 
@@ -521,7 +559,7 @@ export class WorkspaceWrapper {
             }
 
             if (item.type === "stack") {
-                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver,item, this.frameId, this.workspace.id);
+                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, item, this.frameId, this.workspace.id);
                 containerWrapper.showAddWindowButton = value;
             }
 
@@ -548,7 +586,7 @@ export class WorkspaceWrapper {
             }
 
             if (item.type === "stack") {
-                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver,item, this.frameId, this.workspace.id);
+                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, item, this.frameId, this.workspace.id);
                 containerWrapper.showEjectButton = value;
             }
 
@@ -571,7 +609,7 @@ export class WorkspaceWrapper {
 
         const populateRecursive = (item: GoldenLayout.ContentItem): void => {
             if (item.type === "component") {
-                const windowWrapper = new WorkspaceWindowWrapper(this.stateResolver,item, this.frameId);
+                const windowWrapper = new WorkspaceWindowWrapper(this.stateResolver, item, this.frameId);
 
                 windowWrapper.showCloseButton = value;
                 return;

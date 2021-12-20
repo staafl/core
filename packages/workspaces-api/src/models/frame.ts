@@ -4,7 +4,6 @@ import { PrivateDataManager } from "../shared/privateDataManager";
 import { FrameStreamData, WorkspaceStreamData, WindowStreamData } from "../types/protocol";
 import { Glue42Workspaces } from "../../workspaces.d";
 import { FramePrivateData } from "../types/privateData";
-import { Constraints } from "../types/temp";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -95,15 +94,16 @@ export class Frame implements Glue42Workspaces.Frame {
 
     public async workspaces(): Promise<Glue42Workspaces.Workspace[]> {
         const controller = getData(this).controller;
-        return controller.getWorkspaces((wsp) => wsp.frameId === this.id);
+        return controller.getWorkspacesByFrameId(this.id);
     }
 
-    public async constraints(): Promise<Constraints> {
+    public async getConstraints(): Promise<Glue42Workspaces.FrameConstraints> {
         const controller = getData(this).controller;
         const myId = getData(this).summary.id;
 
         return controller.getFrameConstraints(myId);
     }
+
     public async restoreWorkspace(name: string, options?: Glue42Workspaces.RestoreWorkspaceConfig): Promise<Glue42Workspaces.Workspace> {
         nonEmptyStringDecoder.runWithException(name);
         const validatedOptions = restoreWorkspaceConfigDecoder.runWithException(options);
@@ -195,7 +195,7 @@ export class Frame implements Glue42Workspaces.Frame {
         const myId = getData(this).summary.id;
 
         const wrappedCallback = async (payload: WorkspaceStreamData): Promise<void> => {
-            const workspace = await getData(this).controller.getWorkspace((wsp) => wsp.id === payload.workspaceSummary.id);
+            const workspace = await getData(this).controller.transformStreamPayloadToWorkspace(payload);
             callback(workspace);
         };
 
@@ -214,7 +214,7 @@ export class Frame implements Glue42Workspaces.Frame {
         const myId = getData(this).summary.id;
 
         const wrappedCallback = async (payload: WorkspaceStreamData): Promise<void> => {
-            const workspace = await getData(this).controller.getWorkspace((wsp) => wsp.id === payload.workspaceSummary.id);
+            const workspace = await getData(this).controller.getWorkspaceById(payload.workspaceSummary.id);
             callback(workspace);
         };
 

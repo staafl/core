@@ -48,7 +48,7 @@ export class InstanceWrapper {
         this.wrapped.environment = resolvedIdentity.environment;
         this.wrapped.region = resolvedIdentity.region;
         this.wrapped.windowId = resolvedIdentity.windowId;
-        this.wrapped.isLocal = true;
+        this.wrapped.isLocal = resolvedIdentity.isLocal ?? true;
         this.wrapped.api = resolvedIdentity.api;
         this.wrapped.service = resolvedIdentity.service;
         this.wrapped.peerId = resolvedIdentity.peerId;

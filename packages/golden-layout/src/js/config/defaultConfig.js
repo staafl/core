@@ -16,6 +16,7 @@ lm.config.defaultConfig = {
 		tabOverlapAllowance: 0, // maximum pixel overlap per tab
 		reorderOnTabMenuClick: true,
 		tabControlOffset: 10,
+		workspaceInnerDrag: true,
 		mode: "default"
 	},
 	dimensions: {

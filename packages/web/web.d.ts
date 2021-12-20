@@ -531,6 +531,9 @@ export namespace Glue42Web {
              * @param notification notification options
              */
             raise(notification: RaiseOptions): Promise<Notification>;
+
+            getPermission?(): Promise<"default" | "granted" | "denied">;
+
             requestPermission?(): Promise<boolean>;
         }
 
@@ -561,6 +564,8 @@ export namespace Glue42Web {
             /** set to make the notification click invoke an interop method with specific arguments */
             clickInterop?: InteropActionSettings;
             actions?: NotificationAction[];
+            /** Glue42 Core Only. If set to true, the platform app will be focused when the user clicks on the notification. Defaults to false. */
+            focusPlatformOnDefaultClick?: boolean;
         }
 
         export interface NotificationAction {

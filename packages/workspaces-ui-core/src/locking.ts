@@ -97,10 +97,16 @@ export class WorkspacesLocker {
 
     private doesContainerContainLockingProperties(container: ColumnItem | RowItem | GroupItem): boolean {
         return this.isLockingPropertySet(container.config?.allowDrop) ||
+            this.isLockingPropertySet(container.config?.allowDropHeader) ||
+            this.isLockingPropertySet(container.config?.allowDropLeft) ||
+            this.isLockingPropertySet(container.config?.allowDropRight) ||
+            this.isLockingPropertySet(container.config?.allowDropTop) ||
+            this.isLockingPropertySet(container.config?.allowDropBottom) ||
             this.isLockingPropertySet(container.config?.allowExtract) ||
             this.isLockingPropertySet(container.config?.showExtractButton) ||
             this.isLockingPropertySet(container.config?.showMaximizeButton) ||
-            this.isLockingPropertySet(container.config?.showAddWindowButton);
+            this.isLockingPropertySet(container.config?.showAddWindowButton) ||
+            this.isLockingPropertySet(container.config?.allowSplitters);
     }
 
     private doesWorkspaceContainLockingProperties(workspace: WorkspaceItem): boolean {

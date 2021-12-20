@@ -9,7 +9,7 @@ import { Glue42Workspaces } from "../../../workspaces";
 import { Group } from "../group";
 import { Row } from "../row";
 import { Column } from "../column";
-import { ColumnSnapshotConfig, RowSnapshotConfig } from "../../types/protocol";
+import { ColumnSnapshotConfig, GroupSnapshotConfig, RowSnapshotConfig } from "../../types/protocol";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -143,16 +143,28 @@ export class Base {
         await this.getMyWorkspace(model).refreshReference();
     }
 
-    public async maximize(model: AllParentTypes): Promise<void> {
+    public async maximize(model: SubParentTypes): Promise<void> {
         const controller = getData(this, model).controller;
 
         await controller.maximizeItem(getData(this, model).id);
+
+        if (model.parent instanceof Workspace) {
+            await model.parent.refreshReference();
+        } else {
+            await this.getMyWorkspace(model.parent).refreshReference();
+        }
     }
 
-    public async restore(model: AllParentTypes): Promise<void> {
+    public async restore(model: SubParentTypes): Promise<void> {
         const controller = getData(this, model).controller;
 
         await controller.restoreItem(getData(this, model).id);
+
+        if (model.parent instanceof Workspace) {
+            await model.parent.refreshReference();
+        } else {
+            await this.getMyWorkspace(model.parent).refreshReference();
+        }
     }
 
     public async close(model: SubParentTypes): Promise<void> {
@@ -185,6 +197,56 @@ export class Base {
 
     public getAllowDrop(model: SubParentTypes): boolean {
         return getData(this, model).config.allowDrop;
+    }
+
+    public getAllowDropLeft(model: Group): boolean {
+        const privateData = getData(this, model);
+        if (privateData.type !== "group") {
+            throw new Error(`Property allowDropLeft is available only for groups and not on ${model.type} ${model.id}`);
+        }
+        return privateData.config.allowDropLeft;
+    }
+
+    public getAllowDropRight(model: Group): boolean {
+        const privateData = getData(this, model);
+        if (privateData.type !== "group") {
+            throw new Error(`Property allowDropRight is available only for groups and not on ${model.type} ${model.id}`);
+        }
+        return privateData.config.allowDropRight;
+    }
+
+    public getAllowDropTop(model: Group): boolean {
+        const privateData = getData(this, model);
+        if (privateData.type !== "group") {
+            throw new Error(`Property allowDropTop is available only for groups and not on ${model.type} ${model.id}`);
+        }
+        return privateData.config.allowDropTop;
+    }
+
+    public getAllowDropBottom(model: Group): boolean {
+        const privateData = getData(this, model);
+        if (privateData.type !== "group") {
+            throw new Error(`Property allowDropBottom is available only for groups and not on ${model.type} ${model.id}`);
+        }
+        return privateData.config.allowDropBottom;
+    }
+
+    public getAllowDropHeader(model: Group): boolean {
+        const privateData = getData(this, model);
+        if (privateData.type !== "group") {
+            throw new Error(`Property allowDropHeader is available only for groups and not on ${model.type} ${model.id}`);
+        }
+        return privateData.config.allowDropHeader;
+    }
+
+    public getAllowSplitters(model: Row | Column): boolean {
+        const privateData = getData(this, model);
+
+        if (privateData.type === "group") {
+            throw new Error(`Cannot get allow splitters from private data ${privateData.type}`);
+        }
+
+        return privateData.config.allowSplitters;
     }
 
     public getAllowExtract(model: Group): boolean {
@@ -259,6 +321,12 @@ export class Base {
         const privateData = getData(this, model);
 
         return (privateData.config as RowSnapshotConfig | ColumnSnapshotConfig).isPinned;
+    }
+
+    public getIsMaximized(model: Column | Row | Group): boolean {
+        const privateData = getData(this, model);
+
+        return (privateData.config as RowSnapshotConfig | ColumnSnapshotConfig | GroupSnapshotConfig).isMaximized;
     }
 
     public async setHeight(model: Row, height: number): Promise<void> {

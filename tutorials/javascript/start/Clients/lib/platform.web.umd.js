@@ -56,6 +56,18 @@
     PERFORMANCE OF THIS SOFTWARE.
     ***************************************************************************** */
 
+    function __rest$1(s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    }
+
     function __awaiter$1(thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
         return new (P || (P = Promise))(function (resolve, reject) {
@@ -67,7 +79,7 @@
     }
 
     const defaultConfig = {
-        logger: "trace",
+        logger: "info",
         gateway: { webPlatform: {} },
         libraries: []
     };
@@ -75,19 +87,19 @@
         var _a;
         const combined = Object.assign({}, defaultConfig, config);
         if (combined.systemLogger) {
-            combined.logger = (_a = combined.systemLogger.level) !== null && _a !== void 0 ? _a : "trace";
+            combined.logger = (_a = combined.systemLogger.level) !== null && _a !== void 0 ? _a : "info";
         }
         return combined;
     };
 
     const checkSingleton = () => {
         const glue42CoreNamespace = window.glue42core;
+        if (glue42CoreNamespace && glue42CoreNamespace.webStarted) {
+            throw new Error("The Glue42 Core Web has already been started for this application.");
+        }
         if (!glue42CoreNamespace) {
             window.glue42core = { webStarted: true };
             return;
-        }
-        if (glue42CoreNamespace.webStarted) {
-            throw new Error("The Glue42 Core Web has already been started for this application.");
         }
         glue42CoreNamespace.webStarted = true;
     };
@@ -252,7 +264,7 @@
         return __assign.apply(this, arguments);
     };
 
-    function __rest$1(s, e) {
+    function __rest$1$1(s, e) {
         var t = {};
         for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
             t[p] = s[p];
@@ -344,7 +356,7 @@
         return paths.map(function (path) { return (typeof path === 'string' ? "." + path : "[" + path + "]"); }).join('');
     };
     var prependAt = function (newAt, _a) {
-        var at = _a.at, rest = __rest$1(_a, ["at"]);
+        var at = _a.at, rest = __rest$1$1(_a, ["at"]);
         return (__assign({ at: newAt + (at || '') }, rest));
     };
     /**
@@ -900,10 +912,11 @@
 
     const nonEmptyStringDecoder = string().where((s) => s.length > 0, "Expected a non-empty string");
     const nonNegativeNumberDecoder = number().where((num) => num >= 0, "Expected a non-negative number");
-    const libDomainDecoder = oneOf(constant("windows"), constant("appManager"), constant("layouts"), constant("intents"));
-    const windowOperationTypesDecoder = oneOf(constant("openWindow"), constant("windowHello"), constant("windowAdded"), constant("windowRemoved"), constant("getBounds"), constant("getUrl"), constant("moveResize"), constant("focus"), constant("close"), constant("getTitle"), constant("setTitle"));
-    const appManagerOperationTypesDecoder = oneOf(constant("appHello"), constant("applicationAdded"), constant("applicationRemoved"), constant("applicationChanged"), constant("instanceStarted"), constant("instanceStopped"), constant("applicationStart"), constant("instanceStop"));
+    const libDomainDecoder = oneOf(constant("system"), constant("windows"), constant("appManager"), constant("layouts"), constant("intents"), constant("notifications"), constant("channels"));
+    const windowOperationTypesDecoder = oneOf(constant("openWindow"), constant("windowHello"), constant("windowAdded"), constant("windowRemoved"), constant("getBounds"), constant("getFrameBounds"), constant("getUrl"), constant("moveResize"), constant("focus"), constant("close"), constant("getTitle"), constant("setTitle"));
+    const appManagerOperationTypesDecoder = oneOf(constant("appHello"), constant("applicationAdded"), constant("applicationRemoved"), constant("applicationChanged"), constant("instanceStarted"), constant("instanceStopped"), constant("applicationStart"), constant("instanceStop"), constant("clear"));
     const layoutsOperationTypesDecoder = oneOf(constant("layoutAdded"), constant("layoutChanged"), constant("layoutRemoved"), constant("get"), constant("getAll"), constant("export"), constant("import"), constant("remove"));
+    const notificationsOperationTypesDecoder = oneOf(constant("raiseNotification"), constant("requestPermission"), constant("notificationShow"), constant("notificationClick"), constant("getPermission"));
     const windowRelativeDirectionDecoder = oneOf(constant("top"), constant("left"), constant("right"), constant("bottom"));
     const windowOpenSettingsDecoder = optional(object({
         top: optional(number()),
@@ -955,6 +968,14 @@
             height: nonNegativeNumberDecoder
         })
     });
+    const frameWindowBoundsResultDecoder = object({
+        bounds: object({
+            top: number(),
+            left: number(),
+            width: nonNegativeNumberDecoder,
+            height: nonNegativeNumberDecoder
+        })
+    });
     const windowUrlResultDecoder = object({
         windowId: nonEmptyStringDecoder,
         url: nonEmptyStringDecoder
@@ -983,8 +1004,26 @@
         contexts: optional(array(string())),
         customConfig: optional(object())
     });
+    const fdc3AppDefinitionDecoder = object({
+        name: nonEmptyStringDecoder,
+        title: optional(nonEmptyStringDecoder),
+        version: optional(nonEmptyStringDecoder),
+        appId: nonEmptyStringDecoder,
+        manifest: nonEmptyStringDecoder,
+        manifestType: nonEmptyStringDecoder,
+        tooltip: optional(nonEmptyStringDecoder),
+        description: optional(nonEmptyStringDecoder),
+        contactEmail: optional(nonEmptyStringDecoder),
+        supportEmail: optional(nonEmptyStringDecoder),
+        publisher: optional(nonEmptyStringDecoder),
+        images: optional(array(object({ url: optional(nonEmptyStringDecoder) }))),
+        icons: optional(array(object({ icon: optional(nonEmptyStringDecoder) }))),
+        customConfig: anyJson(),
+        intents: optional(array(intentDefinitionDecoder))
+    });
     const applicationDefinitionDecoder = object({
         name: nonEmptyStringDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
         title: optional(nonEmptyStringDecoder),
         version: optional(nonEmptyStringDecoder),
         customProperties: optional(anyJson()),
@@ -993,8 +1032,9 @@
         details: applicationDetailsDecoder,
         intents: optional(array(intentDefinitionDecoder))
     });
-    const appDefinitionOperationDecoder = object({
-        definitions: array(applicationDefinitionDecoder),
+    const allApplicationDefinitionsDecoder = oneOf(applicationDefinitionDecoder, fdc3AppDefinitionDecoder);
+    const appsImportOperationDecoder = object({
+        definitions: array(allApplicationDefinitionsDecoder),
         mode: oneOf(constant("replace"), constant("merge"))
     });
     const appRemoveConfigDecoder = object({
@@ -1005,6 +1045,7 @@
     });
     const applicationDataDecoder = object({
         name: nonEmptyStringDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
         instances: array(instanceDataDecoder),
         userProperties: optional(anyJson()),
         title: optional(nonEmptyStringDecoder),
@@ -1014,6 +1055,7 @@
     });
     const baseApplicationDataDecoder = object({
         name: nonEmptyStringDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
         userProperties: anyJson(),
         title: optional(nonEmptyStringDecoder),
         version: optional(nonEmptyStringDecoder),
@@ -1029,6 +1071,7 @@
     const applicationStartConfigDecoder = object({
         name: nonEmptyStringDecoder,
         waitForAGMReady: boolean(),
+        id: optional(nonEmptyStringDecoder),
         context: optional(anyJson()),
         top: optional(number()),
         left: optional(number()),
@@ -1040,8 +1083,8 @@
     const layoutTypeDecoder = oneOf(constant("Global"), constant("Activity"), constant("ApplicationDefault"), constant("Swimlane"), constant("Workspace"));
     const componentTypeDecoder = oneOf(constant("application"), constant("activity"));
     const windowLayoutComponentDecoder = object({
-        type: constant("window"),
-        componentType: componentTypeDecoder,
+        type: nonEmptyStringDecoder.where((s) => s === "window", "Expected a value of window"),
+        componentType: optional(componentTypeDecoder),
         state: object({
             name: anyJson(),
             context: anyJson(),
@@ -1056,7 +1099,10 @@
         type: constant("window"),
         config: object({
             appName: nonEmptyStringDecoder,
-            url: optional(nonEmptyStringDecoder)
+            url: optional(nonEmptyStringDecoder),
+            title: optional(string()),
+            allowExtract: optional(boolean()),
+            showCloseButton: optional(boolean())
         })
     });
     const groupLayoutItemDecoder = object({
@@ -1086,6 +1132,7 @@
         name: nonEmptyStringDecoder,
         type: layoutTypeDecoder,
         components: array(oneOf(windowLayoutComponentDecoder, workspaceLayoutComponentDecoder)),
+        version: optional(nonEmptyStringDecoder),
         context: optional(anyJson()),
         metadata: optional(anyJson())
     });
@@ -1188,6 +1235,66 @@
     const channelNameDecoder = (channelNames) => {
         return nonEmptyStringDecoder.where(s => channelNames.includes(s), "Expected a valid channel name");
     };
+    const interopActionSettingsDecoder = object({
+        method: nonEmptyStringDecoder,
+        arguments: optional(anyJson()),
+        target: optional(oneOf(constant("all"), constant("best")))
+    });
+    const glue42NotificationActionDecoder = object({
+        action: string(),
+        title: nonEmptyStringDecoder,
+        icon: optional(string()),
+        interop: optional(interopActionSettingsDecoder)
+    });
+    const notificationDefinitionDecoder = object({
+        badge: optional(string()),
+        body: optional(string()),
+        data: optional(anyJson()),
+        dir: optional(oneOf(constant("auto"), constant("ltr"), constant("rtl"))),
+        icon: optional(string()),
+        image: optional(string()),
+        lang: optional(string()),
+        renotify: optional(boolean()),
+        requireInteraction: optional(boolean()),
+        silent: optional(boolean()),
+        tag: optional(string()),
+        timestamp: optional(nonNegativeNumberDecoder),
+        vibrate: optional(array(number()))
+    });
+    const glue42NotificationOptionsDecoder = object({
+        title: nonEmptyStringDecoder,
+        clickInterop: optional(interopActionSettingsDecoder),
+        actions: optional(array(glue42NotificationActionDecoder)),
+        focusPlatformOnDefaultClick: optional(boolean()),
+        badge: optional(string()),
+        body: optional(string()),
+        data: optional(anyJson()),
+        dir: optional(oneOf(constant("auto"), constant("ltr"), constant("rtl"))),
+        icon: optional(string()),
+        image: optional(string()),
+        lang: optional(string()),
+        renotify: optional(boolean()),
+        requireInteraction: optional(boolean()),
+        silent: optional(boolean()),
+        tag: optional(string()),
+        timestamp: optional(nonNegativeNumberDecoder),
+        vibrate: optional(array(number()))
+    });
+    const raiseNotificationDecoder = object({
+        settings: glue42NotificationOptionsDecoder,
+        id: nonEmptyStringDecoder
+    });
+    const permissionRequestResultDecoder = object({
+        permissionGranted: boolean()
+    });
+    const permissionQueryResultDecoder = object({
+        permission: oneOf(constant("default"), constant("granted"), constant("denied"))
+    });
+    const notificationEventPayloadDecoder = object({
+        definition: notificationDefinitionDecoder,
+        action: optional(string()),
+        id: optional(nonEmptyStringDecoder)
+    });
 
     const operations = {
         openWindow: { name: "openWindow", dataDecoder: openWindowConfigDecoder, resultDecoder: coreWindowDataDecoder },
@@ -1195,6 +1302,7 @@
         windowAdded: { name: "windowAdded", dataDecoder: coreWindowDataDecoder },
         windowRemoved: { name: "windowRemoved", dataDecoder: simpleWindowDecoder },
         getBounds: { name: "getBounds", dataDecoder: simpleWindowDecoder, resultDecoder: windowBoundsResultDecoder },
+        getFrameBounds: { name: "getFrameBounds", dataDecoder: simpleWindowDecoder, resultDecoder: frameWindowBoundsResultDecoder },
         getUrl: { name: "getUrl", dataDecoder: simpleWindowDecoder, resultDecoder: windowUrlResultDecoder },
         moveResize: { name: "moveResize", dataDecoder: windowMoveResizeConfigDecoder },
         focus: { name: "focus", dataDecoder: simpleWindowDecoder },
@@ -1535,6 +1643,7 @@
             operations.windowAdded.execute = this.handleWindowAdded.bind(this);
             operations.windowRemoved.execute = this.handleWindowRemoved.bind(this);
             operations.getBounds.execute = this.handleGetBounds.bind(this);
+            operations.getFrameBounds.execute = this.handleGetBounds.bind(this);
             operations.getTitle.execute = this.handleGetTitle.bind(this);
             operations.getUrl.execute = this.handleGetUrl.bind(this);
             operations.moveResize.execute = this.handleMoveResize.bind(this);
@@ -1600,9 +1709,10 @@
             });
         }
         handleGetBounds() {
+            var _a;
             return __awaiter$1(this, void 0, void 0, function* () {
                 return {
-                    windowId: this.me.id,
+                    windowId: (_a = this.me) === null || _a === void 0 ? void 0 : _a.id,
                     bounds: {
                         top: window.screenTop,
                         left: window.screenLeft,
@@ -1840,7 +1950,8 @@
         instanceStop: { name: "instanceStop", dataDecoder: basicInstanceDataDecoder },
         import: { name: "import" },
         remove: { name: "remove", dataDecoder: appRemoveConfigDecoder },
-        export: { name: "export", resultDecoder: appsExportOperationDecoder }
+        export: { name: "export", resultDecoder: appsExportOperationDecoder },
+        clear: { name: "clear" }
     };
 
     class AppManagerController {
@@ -1887,7 +1998,7 @@
             return this.registry.add("instance-stopped", callback);
         }
         startApplication(appName, context, options) {
-            var _a;
+            var _a, _b;
             return __awaiter$1(this, void 0, void 0, function* () {
                 const startOptions = {
                     name: appName,
@@ -1898,7 +2009,8 @@
                     width: options === null || options === void 0 ? void 0 : options.width,
                     height: options === null || options === void 0 ? void 0 : options.height,
                     relativeTo: options === null || options === void 0 ? void 0 : options.relativeTo,
-                    relativeDirection: options === null || options === void 0 ? void 0 : options.relativeDirection
+                    relativeDirection: options === null || options === void 0 ? void 0 : options.relativeDirection,
+                    id: (_b = options) === null || _b === void 0 ? void 0 : _b.reuseId
                 };
                 const openResult = yield this.bridge.send("appManager", operations$1.applicationStart, startOptions);
                 const app = this.applications.find((a) => a.name === openResult.applicationName);
@@ -1908,9 +2020,12 @@
         toApi() {
             const api = {
                 myInstance: this.me,
-                import: this.import.bind(this),
-                remove: this.remove.bind(this),
-                export: this.export.bind(this),
+                inMemory: {
+                    import: this.import.bind(this),
+                    remove: this.remove.bind(this),
+                    export: this.export.bind(this),
+                    clear: this.clear.bind(this)
+                },
                 application: this.getApplication.bind(this),
                 applications: this.getApplications.bind(this),
                 instances: this.getInstances.bind(this),
@@ -1920,7 +2035,7 @@
                 onInstanceStarted: this.onInstanceStarted.bind(this),
                 onInstanceStopped: this.onInstanceStopped.bind(this)
             };
-            return Object.freeze(api);
+            return api;
         }
         addOperationsExecutors() {
             operations$1.applicationAdded.execute = this.handleApplicationAddedMessage.bind(this);
@@ -2010,13 +2125,36 @@
         }
         import(definitions, mode = "replace") {
             return __awaiter$1(this, void 0, void 0, function* () {
-                yield this.bridge.send("appManager", operations$1.import, { definitions, mode });
+                importModeDecoder.runWithException(mode);
+                if (!Array.isArray(definitions)) {
+                    throw new Error("Import must be called with an array of definitions");
+                }
+                const parseResult = definitions.reduce((soFar, definition) => {
+                    const decodeResult = allApplicationDefinitionsDecoder.run(definition);
+                    if (!decodeResult.ok) {
+                        soFar.invalid.push({ app: definition === null || definition === void 0 ? void 0 : definition.name, error: JSON.stringify(decodeResult.error) });
+                    }
+                    else {
+                        soFar.valid.push(definition);
+                    }
+                    return soFar;
+                }, { valid: [], invalid: [] });
+                yield this.bridge.send("appManager", operations$1.import, { definitions: parseResult.valid, mode });
+                return {
+                    imported: parseResult.valid.map((valid) => valid.name),
+                    errors: parseResult.invalid
+                };
             });
         }
         remove(name) {
             return __awaiter$1(this, void 0, void 0, function* () {
                 nonEmptyStringDecoder.runWithException(name);
                 yield this.bridge.send("appManager", operations$1.remove, { name });
+            });
+        }
+        clear() {
+            return __awaiter$1(this, void 0, void 0, function* () {
+                yield this.bridge.send("appManager", operations$1.clear, undefined);
             });
         }
         export() {
@@ -2224,9 +2362,21 @@
         }
         import(layouts, mode = "replace") {
             return __awaiter$1(this, void 0, void 0, function* () {
-                layouts.forEach((layout) => glueLayoutDecoder.runWithException(layout));
                 importModeDecoder.runWithException(mode);
-                yield this.bridge.send("layouts", operations$2.import, { layouts, mode });
+                if (!Array.isArray(layouts)) {
+                    throw new Error("Import must be called with an array of layouts");
+                }
+                const parseResult = layouts.reduce((soFar, layout) => {
+                    const decodeResult = glueLayoutDecoder.run(layout);
+                    if (decodeResult.ok) {
+                        soFar.valid.push(layout);
+                    }
+                    else {
+                        this.logger.warn(`A layout with name: ${layout.name} was not imported, because of error: ${JSON.stringify(decodeResult.error)}`);
+                    }
+                    return soFar;
+                }, { valid: [] });
+                yield this.bridge.send("layouts", operations$2.import, { layouts: parseResult.valid, mode });
             });
         }
         save(layout) {
@@ -2249,6 +2399,7 @@
             });
         }
         onAdded(callback) {
+            this.export().then((layouts) => layouts.forEach((layout) => callback(layout))).catch(() => { });
             return this.registry.add(operations$2.layoutAdded.name, callback);
         }
         onChanged(callback) {
@@ -2274,60 +2425,454 @@
         }
     }
 
+    const operations$3 = {
+        raiseNotification: { name: "raiseNotification", dataDecoder: raiseNotificationDecoder },
+        requestPermission: { name: "requestPermission", resultDecoder: permissionRequestResultDecoder },
+        notificationShow: { name: "notificationShow", dataDecoder: notificationEventPayloadDecoder },
+        notificationClick: { name: "notificationClick", dataDecoder: notificationEventPayloadDecoder },
+        getPermission: { name: "getPermission", resultDecoder: permissionQueryResultDecoder }
+    };
+
+    function createCommonjsModule(fn, basedir, module) {
+    	return module = {
+    	  path: basedir,
+    	  exports: {},
+    	  require: function (path, base) {
+          return commonjsRequire(path, (base === undefined || base === null) ? module.path : base);
+        }
+    	}, fn(module, module.exports), module.exports;
+    }
+
+    function commonjsRequire () {
+    	throw new Error('Dynamic requires are not currently supported by @rollup/plugin-commonjs');
+    }
+
+    // Found this seed-based random generator somewhere
+    // Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
+
+    var seed = 1;
+
+    /**
+     * return a random number based on a seed
+     * @param seed
+     * @returns {number}
+     */
+    function getNextValue() {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed/(233280.0);
+    }
+
+    function setSeed(_seed_) {
+        seed = _seed_;
+    }
+
+    var randomFromSeed = {
+        nextValue: getNextValue,
+        seed: setSeed
+    };
+
+    var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+    var alphabet;
+    var previousSeed;
+
+    var shuffled;
+
+    function reset() {
+        shuffled = false;
+    }
+
+    function setCharacters(_alphabet_) {
+        if (!_alphabet_) {
+            if (alphabet !== ORIGINAL) {
+                alphabet = ORIGINAL;
+                reset();
+            }
+            return;
+        }
+
+        if (_alphabet_ === alphabet) {
+            return;
+        }
+
+        if (_alphabet_.length !== ORIGINAL.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+        }
+
+        var unique = _alphabet_.split('').filter(function(item, ind, arr){
+           return ind !== arr.lastIndexOf(item);
+        });
+
+        if (unique.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+        }
+
+        alphabet = _alphabet_;
+        reset();
+    }
+
+    function characters(_alphabet_) {
+        setCharacters(_alphabet_);
+        return alphabet;
+    }
+
+    function setSeed$1(seed) {
+        randomFromSeed.seed(seed);
+        if (previousSeed !== seed) {
+            reset();
+            previousSeed = seed;
+        }
+    }
+
+    function shuffle() {
+        if (!alphabet) {
+            setCharacters(ORIGINAL);
+        }
+
+        var sourceArray = alphabet.split('');
+        var targetArray = [];
+        var r = randomFromSeed.nextValue();
+        var characterIndex;
+
+        while (sourceArray.length > 0) {
+            r = randomFromSeed.nextValue();
+            characterIndex = Math.floor(r * sourceArray.length);
+            targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
+        }
+        return targetArray.join('');
+    }
+
+    function getShuffled() {
+        if (shuffled) {
+            return shuffled;
+        }
+        shuffled = shuffle();
+        return shuffled;
+    }
+
+    /**
+     * lookup shuffled letter
+     * @param index
+     * @returns {string}
+     */
+    function lookup(index) {
+        var alphabetShuffled = getShuffled();
+        return alphabetShuffled[index];
+    }
+
+    function get () {
+      return alphabet || ORIGINAL;
+    }
+
+    var alphabet_1 = {
+        get: get,
+        characters: characters,
+        seed: setSeed$1,
+        lookup: lookup,
+        shuffled: getShuffled
+    };
+
+    var crypto = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
+
+    var randomByte;
+
+    if (!crypto || !crypto.getRandomValues) {
+        randomByte = function(size) {
+            var bytes = [];
+            for (var i = 0; i < size; i++) {
+                bytes.push(Math.floor(Math.random() * 256));
+            }
+            return bytes;
+        };
+    } else {
+        randomByte = function(size) {
+            return crypto.getRandomValues(new Uint8Array(size));
+        };
+    }
+
+    var randomByteBrowser = randomByte;
+
+    // This file replaces `format.js` in bundlers like webpack or Rollup,
+    // according to `browser` config in `package.json`.
+
+    var format_browser = function (random, alphabet, size) {
+      // We can’t use bytes bigger than the alphabet. To make bytes values closer
+      // to the alphabet, we apply bitmask on them. We look for the closest
+      // `2 ** x - 1` number, which will be bigger than alphabet size. If we have
+      // 30 symbols in the alphabet, we will take 31 (00011111).
+      // We do not use faster Math.clz32, because it is not available in browsers.
+      var mask = (2 << Math.log(alphabet.length - 1) / Math.LN2) - 1;
+      // Bitmask is not a perfect solution (in our example it will pass 31 bytes,
+      // which is bigger than the alphabet). As a result, we will need more bytes,
+      // than ID size, because we will refuse bytes bigger than the alphabet.
+
+      // Every hardware random generator call is costly,
+      // because we need to wait for entropy collection. This is why often it will
+      // be faster to ask for few extra bytes in advance, to avoid additional calls.
+
+      // Here we calculate how many random bytes should we call in advance.
+      // It depends on ID length, mask / alphabet size and magic number 1.6
+      // (which was selected according benchmarks).
+
+      // -~f => Math.ceil(f) if n is float number
+      // -~i => i + 1 if n is integer number
+      var step = -~(1.6 * mask * size / alphabet.length);
+      var id = '';
+
+      while (true) {
+        var bytes = random(step);
+        // Compact alternative for `for (var i = 0; i < step; i++)`
+        var i = step;
+        while (i--) {
+          // If random byte is bigger than alphabet even after bitmask,
+          // we refuse it by `|| ''`.
+          id += alphabet[bytes[i] & mask] || '';
+          // More compact than `id.length + 1 === size`
+          if (id.length === +size) return id
+        }
+      }
+    };
+
+    function generate(number) {
+        var loopCounter = 0;
+        var done;
+
+        var str = '';
+
+        while (!done) {
+            str = str + format_browser(randomByteBrowser, alphabet_1.get(), 1);
+            done = number < (Math.pow(16, loopCounter + 1 ) );
+            loopCounter++;
+        }
+        return str;
+    }
+
+    var generate_1 = generate;
+
+    // Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
+    // This number should be updated every year or so to keep the generated id short.
+    // To regenerate `new Date() - 0` and bump the version. Always bump the version!
+    var REDUCE_TIME = 1567752802062;
+
+    // don't change unless we change the algos or REDUCE_TIME
+    // must be an integer and less than 16
+    var version = 7;
+
+    // Counter is used when shortid is called multiple times in one second.
+    var counter;
+
+    // Remember the last time shortid was called in case counter is needed.
+    var previousSeconds;
+
+    /**
+     * Generate unique id
+     * Returns string id
+     */
+    function build(clusterWorkerId) {
+        var str = '';
+
+        var seconds = Math.floor((Date.now() - REDUCE_TIME) * 0.001);
+
+        if (seconds === previousSeconds) {
+            counter++;
+        } else {
+            counter = 0;
+            previousSeconds = seconds;
+        }
+
+        str = str + generate_1(version);
+        str = str + generate_1(clusterWorkerId);
+        if (counter > 0) {
+            str = str + generate_1(counter);
+        }
+        str = str + generate_1(seconds);
+        return str;
+    }
+
+    var build_1 = build;
+
+    function isShortId(id) {
+        if (!id || typeof id !== 'string' || id.length < 6 ) {
+            return false;
+        }
+
+        var nonAlphabetic = new RegExp('[^' +
+          alphabet_1.get().replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&') +
+        ']');
+        return !nonAlphabetic.test(id);
+    }
+
+    var isValid = isShortId;
+
+    var lib$1 = createCommonjsModule(function (module) {
+
+
+
+
+
+    // if you are using cluster or multiple servers use this to make each instance
+    // has a unique value for worker
+    // Note: I don't know if this is automatically set when using third
+    // party cluster solutions such as pm2.
+    var clusterWorkerId =  0;
+
+    /**
+     * Set the seed.
+     * Highly recommended if you don't want people to try to figure out your id schema.
+     * exposed as shortid.seed(int)
+     * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
+     */
+    function seed(seedValue) {
+        alphabet_1.seed(seedValue);
+        return module.exports;
+    }
+
+    /**
+     * Set the cluster worker or machine id
+     * exposed as shortid.worker(int)
+     * @param workerId worker must be positive integer.  Number less than 16 is recommended.
+     * returns shortid module so it can be chained.
+     */
+    function worker(workerId) {
+        clusterWorkerId = workerId;
+        return module.exports;
+    }
+
+    /**
+     *
+     * sets new characters to use in the alphabet
+     * returns the shuffled alphabet
+     */
+    function characters(newCharacters) {
+        if (newCharacters !== undefined) {
+            alphabet_1.characters(newCharacters);
+        }
+
+        return alphabet_1.shuffled();
+    }
+
+    /**
+     * Generate unique id
+     * Returns string id
+     */
+    function generate() {
+      return build_1(clusterWorkerId);
+    }
+
+    // Export all other functions as properties of the generate function
+    module.exports = generate;
+    module.exports.generate = generate;
+    module.exports.seed = seed;
+    module.exports.worker = worker;
+    module.exports.characters = characters;
+    module.exports.isValid = isValid;
+    });
+
+    var shortid = lib$1;
+
     class NotificationsController {
-        start(coreGlue) {
+        constructor() {
+            this.notifications = {};
+        }
+        start(coreGlue, ioc) {
             return __awaiter$1(this, void 0, void 0, function* () {
                 this.logger = coreGlue.logger.subLogger("notifications.controller.web");
                 this.logger.trace("starting the web notifications controller");
-                this.interop = coreGlue.interop;
+                this.bridge = ioc.bridge;
+                this.coreGlue = coreGlue;
+                this.notificationsSettings = ioc.config.notifications;
+                this.buildNotificationFunc = ioc.buildNotification;
                 const api = this.toApi();
+                this.addOperationExecutors();
                 coreGlue.notifications = api;
                 this.logger.trace("notifications are ready");
             });
         }
-        handleBridgeMessage() {
+        handleBridgeMessage(args) {
             return __awaiter$1(this, void 0, void 0, function* () {
+                const operationName = notificationsOperationTypesDecoder.runWithException(args.operation);
+                const operation = operations$3[operationName];
+                if (!operation.execute) {
+                    return;
+                }
+                let operationData = args.data;
+                if (operation.dataDecoder) {
+                    operationData = operation.dataDecoder.runWithException(args.data);
+                }
+                return yield operation.execute(operationData);
             });
         }
         toApi() {
             const api = {
-                raise: this.raise.bind(this)
+                raise: this.raise.bind(this),
+                requestPermission: this.requestPermission.bind(this),
+                getPermission: this.getPermission.bind(this)
             };
             return Object.freeze(api);
         }
+        getPermission() {
+            return __awaiter$1(this, void 0, void 0, function* () {
+                const queryResult = yield this.bridge.send("notifications", operations$3.getPermission, undefined);
+                return queryResult.permission;
+            });
+        }
+        requestPermission() {
+            return __awaiter$1(this, void 0, void 0, function* () {
+                const permissionResult = yield this.bridge.send("notifications", operations$3.requestPermission, undefined);
+                return permissionResult.permissionGranted;
+            });
+        }
         raise(options) {
             return __awaiter$1(this, void 0, void 0, function* () {
-                if (!("Notification" in window)) {
-                    throw new Error("this browser does not support desktop notification");
+                const settings = glue42NotificationOptionsDecoder.runWithException(options);
+                const permissionGranted = yield this.requestPermission();
+                if (!permissionGranted) {
+                    throw new Error("Cannot raise the notification, because the user has declined the permission request");
                 }
-                let permissionPromise;
-                if (Notification.permission === "granted") {
-                    permissionPromise = Promise.resolve("granted");
-                }
-                else if (Notification.permission === "denied") {
-                    permissionPromise = Promise.reject("no permissions from user");
-                }
-                else {
-                    permissionPromise = Notification.requestPermission();
-                }
-                yield permissionPromise;
-                const notification = this.raiseUsingWebApi(options);
-                if (options.clickInterop) {
-                    const interopOptions = options.clickInterop;
-                    notification.onclick = () => {
-                        var _a, _b;
-                        this.interop.invoke(interopOptions.method, (_a = interopOptions === null || interopOptions === void 0 ? void 0 : interopOptions.arguments) !== null && _a !== void 0 ? _a : {}, (_b = interopOptions === null || interopOptions === void 0 ? void 0 : interopOptions.target) !== null && _b !== void 0 ? _b : "best");
-                    };
-                }
+                const id = shortid.generate();
+                yield this.bridge.send("notifications", operations$3.raiseNotification, { settings, id });
+                const notification = this.buildNotificationFunc(options);
+                this.notifications[id] = notification;
                 return notification;
             });
         }
-        raiseUsingWebApi(options) {
-            return new Notification(options.title);
+        addOperationExecutors() {
+            operations$3.notificationShow.execute = this.handleNotificationShow.bind(this);
+            operations$3.notificationClick.execute = this.handleNotificationClick.bind(this);
+        }
+        handleNotificationShow(data) {
+            return __awaiter$1(this, void 0, void 0, function* () {
+                if (!data.id) {
+                    return;
+                }
+                const notification = this.notifications[data.id];
+                if (notification && notification.onshow) {
+                    notification.onshow();
+                }
+            });
+        }
+        handleNotificationClick(data) {
+            var _a, _b, _c, _d, _e;
+            return __awaiter$1(this, void 0, void 0, function* () {
+                if (!data.action && ((_a = this.notificationsSettings) === null || _a === void 0 ? void 0 : _a.defaultClick)) {
+                    this.notificationsSettings.defaultClick(this.coreGlue, data.definition);
+                }
+                if (data.action && ((_c = (_b = this.notificationsSettings) === null || _b === void 0 ? void 0 : _b.actionClicks) === null || _c === void 0 ? void 0 : _c.some((actionDef) => actionDef.action === data.action))) {
+                    const foundHandler = (_e = (_d = this.notificationsSettings) === null || _d === void 0 ? void 0 : _d.actionClicks) === null || _e === void 0 ? void 0 : _e.find((actionDef) => actionDef.action === data.action);
+                    foundHandler.handler(this.coreGlue, data.definition);
+                }
+                if (!data.id) {
+                    return;
+                }
+                const notification = this.notifications[data.id];
+                if (notification && notification.onclick) {
+                    notification.onclick();
+                    delete this.notifications[data.id];
+                }
+            });
         }
     }
 
-    const operations$3 = {
+    const operations$4 = {
         getIntents: { name: "getIntents", resultDecoder: wrappedIntentsDecoder },
         findIntent: { name: "findIntent", dataDecoder: wrappedIntentFilterDecoder, resultDecoder: wrappedIntentsDecoder },
         raiseIntent: { name: "raiseIntent", dataDecoder: intentRequestDecoder, resultDecoder: intentResultDecoder }
@@ -2335,6 +2880,7 @@
 
     class IntentsController {
         constructor() {
+            this.myIntents = new Set();
             this.GlueWebIntentsPrefix = "Tick42.FDC3.Intents.";
         }
         start(coreGlue, ioc) {
@@ -2351,7 +2897,7 @@
         handleBridgeMessage(args) {
             return __awaiter$1(this, void 0, void 0, function* () {
                 const operationName = intentsOperationTypesDecoder.runWithException(args.operation);
-                const operation = operations$3[operationName];
+                const operation = operations$4[operationName];
                 if (!operation.execute) {
                     return;
                 }
@@ -2383,13 +2929,13 @@
                 else {
                     data = requestObj;
                 }
-                const result = yield this.bridge.send("intents", operations$3.raiseIntent, data);
+                const result = yield this.bridge.send("intents", operations$4.raiseIntent, data);
                 return result;
             });
         }
         all() {
             return __awaiter$1(this, void 0, void 0, function* () {
-                const result = yield this.bridge.send("intents", operations$3.getIntents, undefined);
+                const result = yield this.bridge.send("intents", operations$4.getIntents, undefined);
                 return result.intents;
             });
         }
@@ -2401,19 +2947,29 @@
             let subscribed = true;
             const intentName = typeof intent === "string" ? intent : intent.intent;
             const methodName = `${this.GlueWebIntentsPrefix}${intentName}`;
+            const alreadyRegistered = this.myIntents.has(intentName);
+            if (alreadyRegistered) {
+                throw new Error(`Intent listener for intent ${intentName} already registered!`);
+            }
+            this.myIntents.add(intentName);
             const result = {
                 unsubscribe: () => {
                     subscribed = false;
                     try {
                         this.interop.unregister(methodName);
+                        this.myIntents.delete(intentName);
                     }
                     catch (error) {
                         this.logger.trace(`Unsubscribed intent listener, but ${methodName} unregistration failed!`);
                     }
                 }
             };
-            const methodDescription = typeof intent === "string" ? undefined : JSON.stringify(intent);
-            this.interop.register({ name: methodName, description: methodDescription }, (args) => {
+            let intentFlag = {};
+            if (typeof intent === "object") {
+                const rest = __rest$1(intent, ["intent"]);
+                intentFlag = rest;
+            }
+            this.interop.register({ name: methodName, flags: { intent: intentFlag } }, (args) => {
                 if (subscribed) {
                     return handler(args);
                 }
@@ -2438,7 +2994,7 @@
                         };
                     }
                 }
-                const result = yield this.bridge.send("intents", operations$3.findIntent, data);
+                const result = yield this.bridge.send("intents", operations$4.findIntent, data);
                 return result.intents;
             });
         }
@@ -2612,6 +3168,52 @@
         }
     }
 
+    const operations$5 = {
+        getEnvironment: { name: "getEnvironment", resultDecoder: anyDecoder },
+        getBase: { name: "getBase", resultDecoder: anyDecoder }
+    };
+
+    class SystemController {
+        start(coreGlue, ioc) {
+            return __awaiter$1(this, void 0, void 0, function* () {
+                this.bridge = ioc.bridge;
+                yield this.setEnvironment();
+            });
+        }
+        handleBridgeMessage() {
+            return __awaiter$1(this, void 0, void 0, function* () {
+            });
+        }
+        setEnvironment() {
+            return __awaiter$1(this, void 0, void 0, function* () {
+                const environment = yield this.bridge.send("system", operations$5.getEnvironment, undefined);
+                const base = yield this.bridge.send("system", operations$5.getBase, undefined);
+                const glue42core = Object.assign({}, window.glue42core, base, { environment });
+                window.glue42core = Object.freeze(glue42core);
+            });
+        }
+    }
+
+    class Notification$1 {
+        constructor(config) {
+            this.onclick = () => { };
+            this.onshow = () => { };
+            this.badge = config.badge;
+            this.body = config.body;
+            this.data = config.data;
+            this.dir = config.dir;
+            this.icon = config.icon;
+            this.image = config.image;
+            this.lang = config.lang;
+            this.renotify = config.renotify;
+            this.requireInteraction = config.requireInteraction;
+            this.silent = config.silent;
+            this.tag = config.tag;
+            this.timestamp = config.timestamp;
+            this.vibrate = config.vibrate;
+        }
+    }
+
     class IoC {
         constructor(coreGlue) {
             this.coreGlue = coreGlue;
@@ -2621,7 +3223,8 @@
                 layouts: this.layoutsController,
                 notifications: this.notificationsController,
                 intents: this.intentsController,
-                channels: this.channelsController
+                channels: this.channelsController,
+                system: this.systemController
             };
         }
         get windowsController() {
@@ -2654,6 +3257,12 @@
             }
             return this._intentsControllerInstance;
         }
+        get systemController() {
+            if (!this._systemControllerInstance) {
+                this._systemControllerInstance = new SystemController();
+            }
+            return this._systemControllerInstance;
+        }
         get channelsController() {
             if (!this._channelsControllerInstance) {
                 this._channelsControllerInstance = new ChannelsController();
@@ -2666,12 +3275,21 @@
             }
             return this._bridgeInstance;
         }
+        get config() {
+            return this._webConfig;
+        }
+        defineConfig(config) {
+            this._webConfig = config;
+        }
         buildWebWindow(id, name) {
             return __awaiter$1(this, void 0, void 0, function* () {
                 const model = new WebWindowModel(id, name, this.bridge);
                 const api = yield model.toApi();
                 return { id, model, api };
             });
+        }
+        buildNotification(config) {
+            return new Notification$1(config);
         }
         buildApplication(app, applicationInstances) {
             return __awaiter$1(this, void 0, void 0, function* () {
@@ -2686,6 +3304,8 @@
         }
     }
 
+    var version$1 = "2.3.1";
+
     const createFactoryFunction = (coreFactoryFunction) => {
         return (userConfig) => __awaiter$1(void 0, void 0, void 0, function* () {
             const config = parseConfig(userConfig);
@@ -2693,10 +3313,11 @@
                 return enterprise(config);
             }
             checkSingleton();
-            const glue = yield PromiseWrap(() => coreFactoryFunction(config), 30000, "Glue Web initialization timed out");
+            const glue = yield PromiseWrap(() => coreFactoryFunction(config, { version: version$1 }), 30000, "Glue Web initialization timed out, because core didn't resolve");
             const logger = glue.logger.subLogger("web.main.controller");
             const ioc = new IoC(glue);
             yield ioc.bridge.start(ioc.controllers);
+            ioc.defineConfig(config);
             logger.trace("the bridge has been started, initializing all controllers");
             yield Promise.all(Object.values(ioc.controllers).map((controller) => controller.start(glue, ioc)));
             logger.trace("all controllers reported started, starting all additional libraries");
@@ -3538,7 +4159,8 @@
                 return;
             }
             this.lastCount = allEntries.length;
-            this.system.stringMetric("entries", JSON.stringify(allEntries));
+            var jsonfiedEntries = allEntries.map(function (i) { return i.toJSON(); });
+            this.system.stringMetric("entries", JSON.stringify(jsonfiedEntries));
         };
         return PerfTracker;
     }());
@@ -3720,12 +4342,12 @@
         };
     }
     createRegistry$1.default = createRegistry$1;
-    var lib$1 = createRegistry$1;
+    var lib$2 = createRegistry$1;
 
     var InProcTransport = (function () {
         function InProcTransport(settings, logger) {
             var _this = this;
-            this.registry = lib$1();
+            this.registry = lib$2();
             this.gw = settings.facade;
             this.gw.connect(function (_client, message) {
                 _this.messageHandler(message);
@@ -3780,7 +4402,7 @@
         function SharedWorkerTransport(workerFile, logger) {
             var _this = this;
             this.logger = logger;
-            this.registry = lib$1();
+            this.registry = lib$2();
             this.worker = new SharedWorker(workerFile);
             this.worker.port.onmessage = function (e) {
                 _this.messageHandler(e.data);
@@ -3942,7 +4564,7 @@
         function WS(settings, logger) {
             this.startupTimer = timer("connection");
             this._running = true;
-            this._registry = lib$1();
+            this._registry = lib$2();
             this.wsRequests = [];
             this.settings = settings;
             this.logger = logger;
@@ -4116,59 +4738,59 @@
         return WS;
     }());
 
-    function createCommonjsModule(fn, module) {
+    function createCommonjsModule$1(fn, module) {
     	return module = { exports: {} }, fn(module, module.exports), module.exports;
     }
 
     // Found this seed-based random generator somewhere
     // Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
 
-    var seed = 1;
+    var seed$1 = 1;
 
     /**
      * return a random number based on a seed
      * @param seed
      * @returns {number}
      */
-    function getNextValue() {
-        seed = (seed * 9301 + 49297) % 233280;
-        return seed/(233280.0);
+    function getNextValue$1() {
+        seed$1 = (seed$1 * 9301 + 49297) % 233280;
+        return seed$1/(233280.0);
     }
 
-    function setSeed(_seed_) {
-        seed = _seed_;
+    function setSeed$2(_seed_) {
+        seed$1 = _seed_;
     }
 
-    var randomFromSeed = {
-        nextValue: getNextValue,
-        seed: setSeed
+    var randomFromSeed$1 = {
+        nextValue: getNextValue$1,
+        seed: setSeed$2
     };
 
-    var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
-    var alphabet;
-    var previousSeed;
+    var ORIGINAL$1 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+    var alphabet$1;
+    var previousSeed$1;
 
-    var shuffled;
+    var shuffled$1;
 
-    function reset() {
-        shuffled = false;
+    function reset$1() {
+        shuffled$1 = false;
     }
 
-    function setCharacters(_alphabet_) {
+    function setCharacters$1(_alphabet_) {
         if (!_alphabet_) {
-            if (alphabet !== ORIGINAL) {
-                alphabet = ORIGINAL;
-                reset();
+            if (alphabet$1 !== ORIGINAL$1) {
+                alphabet$1 = ORIGINAL$1;
+                reset$1();
             }
             return;
         }
 
-        if (_alphabet_ === alphabet) {
+        if (_alphabet_ === alphabet$1) {
             return;
         }
 
-        if (_alphabet_.length !== ORIGINAL.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+        if (_alphabet_.length !== ORIGINAL$1.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$1.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
         }
 
         var unique = _alphabet_.split('').filter(function(item, ind, arr){
@@ -4176,50 +4798,50 @@
         });
 
         if (unique.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$1.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
         }
 
-        alphabet = _alphabet_;
-        reset();
+        alphabet$1 = _alphabet_;
+        reset$1();
     }
 
-    function characters(_alphabet_) {
-        setCharacters(_alphabet_);
-        return alphabet;
+    function characters$1(_alphabet_) {
+        setCharacters$1(_alphabet_);
+        return alphabet$1;
     }
 
-    function setSeed$1(seed) {
-        randomFromSeed.seed(seed);
-        if (previousSeed !== seed) {
-            reset();
-            previousSeed = seed;
+    function setSeed$1$1(seed) {
+        randomFromSeed$1.seed(seed);
+        if (previousSeed$1 !== seed) {
+            reset$1();
+            previousSeed$1 = seed;
         }
     }
 
-    function shuffle() {
-        if (!alphabet) {
-            setCharacters(ORIGINAL);
+    function shuffle$1() {
+        if (!alphabet$1) {
+            setCharacters$1(ORIGINAL$1);
         }
 
-        var sourceArray = alphabet.split('');
+        var sourceArray = alphabet$1.split('');
         var targetArray = [];
-        var r = randomFromSeed.nextValue();
+        var r = randomFromSeed$1.nextValue();
         var characterIndex;
 
         while (sourceArray.length > 0) {
-            r = randomFromSeed.nextValue();
+            r = randomFromSeed$1.nextValue();
             characterIndex = Math.floor(r * sourceArray.length);
             targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
         }
         return targetArray.join('');
     }
 
-    function getShuffled() {
-        if (shuffled) {
-            return shuffled;
+    function getShuffled$1() {
+        if (shuffled$1) {
+            return shuffled$1;
         }
-        shuffled = shuffle();
-        return shuffled;
+        shuffled$1 = shuffle$1();
+        return shuffled$1;
     }
 
     /**
@@ -4227,30 +4849,30 @@
      * @param index
      * @returns {string}
      */
-    function lookup(index) {
-        var alphabetShuffled = getShuffled();
+    function lookup$1(index) {
+        var alphabetShuffled = getShuffled$1();
         return alphabetShuffled[index];
     }
 
-    var alphabet_1 = {
-        characters: characters,
-        seed: setSeed$1,
-        lookup: lookup,
-        shuffled: getShuffled
+    var alphabet_1$1 = {
+        characters: characters$1,
+        seed: setSeed$1$1,
+        lookup: lookup$1,
+        shuffled: getShuffled$1
     };
 
-    var crypto = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
+    var crypto$1 = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
 
-    function randomByte() {
-        if (!crypto || !crypto.getRandomValues) {
+    function randomByte$1() {
+        if (!crypto$1 || !crypto$1.getRandomValues) {
             return Math.floor(Math.random() * 256) & 0x30;
         }
         var dest = new Uint8Array(1);
-        crypto.getRandomValues(dest);
+        crypto$1.getRandomValues(dest);
         return dest[0] & 0x30;
     }
 
-    var randomByteBrowser = randomByte;
+    var randomByteBrowser$1 = randomByte$1;
 
     function encode(lookup, number) {
         var loopCounter = 0;
@@ -4259,7 +4881,7 @@
         var str = '';
 
         while (!done) {
-            str = str + lookup( ( (number >> (4 * loopCounter)) & 0x0f ) | randomByteBrowser() );
+            str = str + lookup( ( (number >> (4 * loopCounter)) & 0x0f ) | randomByteBrowser$1() );
             done = number < (Math.pow(16, loopCounter + 1 ) );
             loopCounter++;
         }
@@ -4274,7 +4896,7 @@
      * @param id - the shortid-generated id.
      */
     function decode(id) {
-        var characters = alphabet_1.shuffled();
+        var characters = alphabet_1$1.shuffled();
         return {
             version: characters.indexOf(id.substr(0, 1)) & 0x0f,
             worker: characters.indexOf(id.substr(1, 1)) & 0x0f
@@ -4283,12 +4905,12 @@
 
     var decode_1 = decode;
 
-    function isShortId(id) {
+    function isShortId$1(id) {
         if (!id || typeof id !== 'string' || id.length < 6 ) {
             return false;
         }
 
-        var characters = alphabet_1.characters();
+        var characters = alphabet_1$1.characters();
         var len = id.length;
         for(var i = 0; i < len;i++) {
             if (characters.indexOf(id[i]) === -1) {
@@ -4298,9 +4920,9 @@
         return true;
     }
 
-    var isValid = isShortId;
+    var isValid$1 = isShortId$1;
 
-    var lib$1$1 = createCommonjsModule(function (module) {
+    var lib$1$1 = createCommonjsModule$1(function (module) {
 
 
 
@@ -4345,12 +4967,12 @@
             previousSeconds = seconds;
         }
 
-        str = str + encode_1(alphabet_1.lookup, version);
-        str = str + encode_1(alphabet_1.lookup, clusterWorkerId);
+        str = str + encode_1(alphabet_1$1.lookup, version);
+        str = str + encode_1(alphabet_1$1.lookup, clusterWorkerId);
         if (counter > 0) {
-            str = str + encode_1(alphabet_1.lookup, counter);
+            str = str + encode_1(alphabet_1$1.lookup, counter);
         }
-        str = str + encode_1(alphabet_1.lookup, seconds);
+        str = str + encode_1(alphabet_1$1.lookup, seconds);
 
         return str;
     }
@@ -4363,7 +4985,7 @@
      * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
      */
     function seed(seedValue) {
-        alphabet_1.seed(seedValue);
+        alphabet_1$1.seed(seedValue);
         return module.exports;
     }
 
@@ -4385,10 +5007,10 @@
      */
     function characters(newCharacters) {
         if (newCharacters !== undefined) {
-            alphabet_1.characters(newCharacters);
+            alphabet_1$1.characters(newCharacters);
         }
 
-        return alphabet_1.shuffled();
+        return alphabet_1$1.shuffled();
     }
 
 
@@ -4399,7 +5021,7 @@
     module.exports.worker = worker;
     module.exports.characters = characters;
     module.exports.decode = decode_1;
-    module.exports.isValid = isValid;
+    module.exports.isValid = isValid$1;
     });
     var lib_1 = lib$1$1.generate;
     var lib_2 = lib$1$1.seed;
@@ -4408,7 +5030,7 @@
     var lib_5 = lib$1$1.decode;
     var lib_6 = lib$1$1.isValid;
 
-    var shortid = lib$1$1;
+    var shortid$1 = lib$1$1;
 
     function domainSession (domain, connection, logger, successMessages, errorMessages) {
         if (domain == null) {
@@ -4420,7 +5042,7 @@
         var tryReconnecting = false;
         var _latestOptions;
         var _connectionOn = false;
-        var callbacks = lib$1();
+        var callbacks = lib$2();
         connection.disconnected(handleConnectionDisconnected);
         connection.loggedIn(handleConnectionLoggedIn);
         connection.on("success", function (msg) { return handleSuccessMessage(msg); });
@@ -4547,7 +5169,7 @@
             entry.success(msg);
         }
         function getNextRequestId() {
-            return shortid();
+            return shortid$1();
         }
         function send(msg, tag, options) {
             options = options || {};
@@ -4627,7 +5249,7 @@
             this.datePrefixLen = this.datePrefix.length;
             this.dateMinLen = this.datePrefixLen + 1;
             this.datePrefixFirstChar = this.datePrefix[0];
-            this.registry = lib$1();
+            this.registry = lib$2();
             this._isLoggedIn = false;
             this.shouldTryLogin = true;
             this.initialLogin = true;
@@ -5048,7 +5670,7 @@
             this.parentPingTimeout = 3000;
             this.connectionRequestTimeout = 5000;
             this.defaultTargetString = "*";
-            this.registry = lib$1();
+            this.registry = lib$2();
             this.messages = {
                 connectionAccepted: { name: "connectionAccepted", handle: this.handleConnectionAccepted.bind(this) },
                 connectionRejected: { name: "connectionRejected", handle: this.handleConnectionRejected.bind(this) },
@@ -5058,7 +5680,8 @@
                 platformPing: { name: "platformPing", handle: this.handlePlatformPing.bind(this) },
                 platformUnload: { name: "platformUnload", handle: this.handlePlatformUnload.bind(this) },
                 platformReady: { name: "platformReady", handle: this.handlePlatformReady.bind(this) },
-                clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) }
+                clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) },
+                manualUnload: { name: "manualUnload", handle: this.handleManualUnload.bind(this) }
             };
             this.setUpMessageListener();
             this.setUpUnload();
@@ -5168,7 +5791,7 @@
             return PromisePlus$1(function (resolve, reject) {
                 _this.connectionResolve = resolve;
                 _this.connectionReject = reject;
-                _this.myClientId = shortid();
+                _this.myClientId = shortid$1();
                 var bridgeInstanceId = _this.parentType === "workspace" ? window.name.substring(0, window.name.indexOf("#wsp")) : window.name;
                 var request = {
                     glue42core: {
@@ -5358,19 +5981,36 @@
             }
             this.notifyStatusChanged(false, "Gateway unloaded");
         };
+        WebPlatformTransport.prototype.handleManualUnload = function () {
+            var _a, _b;
+            var message = {
+                glue42core: {
+                    type: this.messages.clientUnload.name,
+                    data: {
+                        clientId: this.myClientId,
+                        ownWindowId: (_a = this.identity) === null || _a === void 0 ? void 0 : _a.windowId
+                    }
+                }
+            };
+            if (this.parent) {
+                this.parent.postMessage(message, this.defaultTargetString);
+            }
+            (_b = this.port) === null || _b === void 0 ? void 0 : _b.postMessage(message);
+        };
         WebPlatformTransport.prototype.handleClientUnload = function (event) {
             var data = event.data.glue42core;
-            if (!data.clientId) {
+            var clientId = data === null || data === void 0 ? void 0 : data.data.clientId;
+            if (!clientId) {
                 this.logger.warn("cannot process grand child unload, because the provided id was not valid");
                 return;
             }
-            var foundChild = this.children.find(function (child) { return child.grandChildId === data.clientId; });
+            var foundChild = this.children.find(function (child) { return child.grandChildId === clientId; });
             if (!foundChild) {
                 this.logger.warn("cannot process grand child unload, because this client is unaware of this grandchild");
                 return;
             }
-            this.logger.debug("handling grandchild unload for id: " + data.clientId);
-            this.children = this.children.filter(function (child) { return child.grandChildId !== data.clientId; });
+            this.logger.debug("handling grandchild unload for id: " + clientId);
+            this.children = this.children.filter(function (child) { return child.grandChildId !== clientId; });
         };
         WebPlatformTransport.prototype.handlePlatformPing = function () {
             this.logger.error("cannot handle platform ping, because this is not a platform calls handling component");
@@ -5401,7 +6041,7 @@
             this.logger = logger;
             this.messageHandlers = {};
             this.ids = 1;
-            this.registry = lib$1();
+            this.registry = lib$2();
             this._connected = false;
             this.isTrace = false;
             settings = settings || {};
@@ -5759,7 +6399,7 @@
         }
     };
 
-    var version = "5.2.8-beta.0";
+    var version$2 = "5.4.12";
 
     function prepareConfig (configuration, ext, glue42gd) {
         var _a, _b, _c, _d, _e;
@@ -5830,7 +6470,7 @@
                     process: pid,
                     region: region,
                     environment: environment,
-                    api: ext.version || version
+                    api: ext.version || version$2
                 },
                 reconnectInterval: reconnectInterval,
                 ws: ws,
@@ -5849,7 +6489,7 @@
             if (glue42gd) {
                 return glue42gd.applicationName;
             }
-            var uid = shortid();
+            var uid = shortid$1();
             if (Utils.isNode()) {
                 if (nodeStartingContext) {
                     return nodeStartingContext.applicationConfig.name;
@@ -5919,7 +6559,7 @@
             connection: connection,
             metrics: (_c = configuration.metrics) !== null && _c !== void 0 ? _c : true,
             contexts: (_d = configuration.contexts) !== null && _d !== void 0 ? _d : true,
-            version: ext.version || version,
+            version: ext.version || version$2,
             libs: (_e = ext.libs) !== null && _e !== void 0 ? _e : [],
             customLogger: configuration.customLogger
         };
@@ -6094,6 +6734,14 @@
             obj = obj[pathArr[i]];
         }
         obj[pathArr[i]] = value;
+    }
+    function isSubset(superObj, subObj) {
+        return Object.keys(subObj).every(function (ele) {
+            if (typeof subObj[ele] === "object") {
+                return isSubset((superObj === null || superObj === void 0 ? void 0 : superObj[ele]) || {}, subObj[ele] || {});
+            }
+            return subObj[ele] === (superObj === null || superObj === void 0 ? void 0 : superObj[ele]);
+        });
     }
     function deletePath(obj, path) {
         var pathArr = path.split(".");
@@ -6765,10 +7413,17 @@
     function rejectAfter(ms, promise, error) {
         if (ms === void 0) { ms = 0; }
         var timeout;
-        promise.finally(function () {
+        var clearTimeoutIfThere = function () {
             if (timeout) {
                 clearTimeout(timeout);
             }
+        };
+        promise
+            .then(function () {
+            clearTimeoutIfThere();
+        })
+            .catch(function () {
+            clearTimeoutIfThere();
         });
         return new Promise(function (resolve, reject) {
             timeout = setTimeout(function () { return reject(error); }, ms);
@@ -6921,9 +7576,9 @@
                     getInvokePromise = function () { return __awaiter$1$1(_this, void 0, void 0, function () {
                         var methodDefinition, serversMethodMap, err_1, method, errorObj, timeout, additionalOptionsCopy, invokePromises, invocationMessages, results, allRejected;
                         var _this = this;
-                        var _a;
-                        return __generator(this, function (_b) {
-                            switch (_b.label) {
+                        var _a, _b, _c;
+                        return __generator(this, function (_d) {
+                            switch (_d.label) {
                                 case 0:
                                     if (typeof methodFilter === "string") {
                                         methodDefinition = { name: methodFilter };
@@ -6966,16 +7621,16 @@
                                     }
                                     serversMethodMap = this.getServerMethodsByFilterAndTarget(methodDefinition, target);
                                     if (!(serversMethodMap.length === 0)) return [3, 4];
-                                    _b.label = 1;
+                                    _d.label = 1;
                                 case 1:
-                                    _b.trys.push([1, 3, , 4]);
+                                    _d.trys.push([1, 3, , 4]);
                                     return [4, this.tryToAwaitForMethods(methodDefinition, target, additionalOptions)];
                                 case 2:
-                                    serversMethodMap = _b.sent();
+                                    serversMethodMap = _d.sent();
                                     return [3, 4];
                                 case 3:
-                                    err_1 = _b.sent();
-                                    method = __assign$1(__assign$1({}, methodDefinition), { getServers: function () { return []; }, supportsStreaming: false, objectTypes: (_a = methodDefinition.objectTypes) !== null && _a !== void 0 ? _a : [] });
+                                    err_1 = _d.sent();
+                                    method = __assign$1(__assign$1({}, methodDefinition), { getServers: function () { return []; }, supportsStreaming: false, objectTypes: (_a = methodDefinition.objectTypes) !== null && _a !== void 0 ? _a : [], flags: (_c = (_b = methodDefinition.flags) === null || _b === void 0 ? void 0 : _b.metadata) !== null && _c !== void 0 ? _c : {} });
                                     errorObj = {
                                         method: method,
                                         called_with: argumentObj,
@@ -6989,7 +7644,7 @@
                                     timeout = additionalOptions.methodResponseTimeoutMs;
                                     additionalOptionsCopy = additionalOptions;
                                     invokePromises = serversMethodMap.map(function (serversMethodPair) {
-                                        var invId = shortid();
+                                        var invId = shortid$1();
                                         var method = serversMethodPair.methods[0];
                                         var server = serversMethodPair.server;
                                         var invokePromise = _this.protocol.client.invoke(invId, method, argumentObj, server, additionalOptionsCopy);
@@ -7004,7 +7659,7 @@
                                     });
                                     return [4, Promise.all(invokePromises)];
                                 case 5:
-                                    invocationMessages = _b.sent();
+                                    invocationMessages = _d.sent();
                                     results = this.getInvocationResultObj(invocationMessages, methodDefinition, argumentObj);
                                     allRejected = invocationMessages.every(function (result) { return result.status === InvokeStatus.Error; });
                                     if (allRejected) {
@@ -7144,38 +7799,24 @@
                     && prop !== "identifier"
                     && prop[0] !== "_";
             });
-            return filterProps.reduce(function (isMatch, prop) {
+            return filterProps.every(function (prop) {
+                var isMatch;
                 var filterValue = filter[prop];
                 var repoMethodValue = repoMethod[prop];
-                if (prop === "objectTypes") {
-                    var containsAllFromFilter = function (filterObjTypes, repoObjectTypes) {
-                        var objTypeToContains = filterObjTypes.reduce(function (object, objType) {
-                            object[objType] = false;
-                            return object;
-                        }, {});
-                        repoObjectTypes.forEach(function (repoObjType) {
-                            if (objTypeToContains[repoObjType] !== undefined) {
-                                objTypeToContains[repoObjType] = true;
-                            }
+                switch (prop) {
+                    case "objectTypes":
+                        isMatch = (filterValue || []).every(function (filterValueEl) {
+                            return (repoMethodValue || []).includes(filterValueEl);
                         });
-                        var filterIsFullfilled = function () { return Object.keys(objTypeToContains).reduce(function (isFullfiled, objType) {
-                            if (!objTypeToContains[objType]) {
-                                isFullfiled = false;
-                            }
-                            return isFullfiled;
-                        }, true); };
-                        return filterIsFullfilled();
-                    };
-                    if (filterValue.length > repoMethodValue.length
-                        || containsAllFromFilter(filterValue, repoMethodValue) === false) {
-                        isMatch = false;
-                    }
-                }
-                else if (String(filterValue).toLowerCase() !== String(repoMethodValue).toLowerCase()) {
-                    isMatch = false;
+                        break;
+                    case "flags":
+                        isMatch = isSubset(repoMethodValue || {}, filterValue || {});
+                        break;
+                    default:
+                        isMatch = String(filterValue).toLowerCase() === String(repoMethodValue).toLowerCase();
                 }
                 return isMatch;
-            }, true);
+            });
         };
         Client.prototype.getMethods = function (methodFilter) {
             var _this = this;
@@ -7222,7 +7863,7 @@
                 });
             }
             return servers.reduce(function (prev, current) {
-                var methodsForServer = _this.repo.getServerMethodsById(current.id);
+                var methodsForServer = Object.values(current.methods);
                 var matchingMethods = methodsForServer.filter(function (method) {
                     return _this.methodMatch(methodFilter, method);
                 });
@@ -7284,7 +7925,7 @@
         return ServerSubscription;
     }());
 
-    var Request = (function () {
+    var Request$1 = (function () {
         function Request(protocol, repoMethod, requestContext) {
             this.protocol = protocol;
             this.repoMethod = repoMethod;
@@ -7319,7 +7960,7 @@
                 typeof repoMethod.streamCallbacks.subscriptionRequestHandler === "function")) {
                 return;
             }
-            var request = new Request(this.protocol, repoMethod, requestContext);
+            var request = new Request$1(this.protocol, repoMethod, requestContext);
             repoMethod.streamCallbacks.subscriptionRequestHandler(request);
         };
         ServerStreaming.prototype.handleSubAdded = function (subscription, repoMethod) {
@@ -7399,6 +8040,7 @@
         };
         Object.defineProperty(ServerStream.prototype, "definition", {
             get: function () {
+                var _a;
                 var def2 = this._repoMethod.definition;
                 return {
                     accepts: def2.accepts,
@@ -7408,6 +8050,7 @@
                     objectTypes: def2.objectTypes,
                     returns: def2.returns,
                     supportsStreaming: def2.supportsStreaming,
+                    flags: (_a = def2.flags) === null || _a === void 0 ? void 0 : _a.metadata,
                 };
             },
             enumerable: true,
@@ -7746,11 +8389,14 @@
     }());
 
     var InstanceWrapper = (function () {
-        function InstanceWrapper(instance, connection) {
+        function InstanceWrapper(API, instance, connection) {
             var _this = this;
-            this.wrapped = {
-                getMethods: getMethods,
-                getStreams: getStreams,
+            this.wrapped = {};
+            this.wrapped.getMethods = function () {
+                return API.methodsForInstance(this);
+            };
+            this.wrapped.getStreams = function () {
+                return API.methodsForInstance(this).filter(function (m) { return m.supportsStreaming; });
             };
             if (instance) {
                 this.refreshWrappedObject(instance);
@@ -7774,38 +8420,42 @@
             this.refreshWrappedObject(instance);
         };
         InstanceWrapper.prototype.refreshWrappedObject = function (resolvedIdentity) {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             this.wrapped.user = resolvedIdentity.user;
             this.wrapped.instance = resolvedIdentity.instance;
-            this.wrapped.application = (_a = resolvedIdentity.application) !== null && _a !== void 0 ? _a : shortid();
+            this.wrapped.application = (_a = resolvedIdentity.application) !== null && _a !== void 0 ? _a : shortid$1();
             this.wrapped.applicationName = resolvedIdentity.applicationName;
             this.wrapped.pid = (_c = (_b = resolvedIdentity.pid) !== null && _b !== void 0 ? _b : resolvedIdentity.process) !== null && _c !== void 0 ? _c : Math.floor(Math.random() * 10000000000);
             this.wrapped.machine = resolvedIdentity.machine;
             this.wrapped.environment = resolvedIdentity.environment;
             this.wrapped.region = resolvedIdentity.region;
             this.wrapped.windowId = resolvedIdentity.windowId;
-            this.wrapped.isLocal = true;
+            this.wrapped.isLocal = (_d = resolvedIdentity.isLocal) !== null && _d !== void 0 ? _d : true;
             this.wrapped.api = resolvedIdentity.api;
             this.wrapped.service = resolvedIdentity.service;
             this.wrapped.peerId = resolvedIdentity.peerId;
         };
         return InstanceWrapper;
     }());
-    function getMethods() {
-        var _a;
-        return (_a = InstanceWrapper.API) === null || _a === void 0 ? void 0 : _a.methodsForInstance(this);
-    }
-    function getStreams() {
-        var _a;
-        return (_a = InstanceWrapper.API) === null || _a === void 0 ? void 0 : _a.methodsForInstance(this).filter(function (m) { return m.supportsStreaming; });
-    }
 
+    var hideMethodSystemFlags = function (method) {
+        return __assign$1(__assign$1({}, method), { flags: method.flags.metadata || {} });
+    };
     var ClientRepository = (function () {
-        function ClientRepository(logger) {
+        function ClientRepository(logger, API) {
             this.logger = logger;
+            this.API = API;
             this.servers = {};
             this.methodsCount = {};
-            this.callbacks = lib$1();
+            this.callbacks = lib$2();
+            var peerId = this.API.instance.peerId;
+            this.myServer = {
+                id: peerId,
+                methods: {},
+                instance: this.API.instance,
+                wrapper: this.API.unwrappedInstance,
+            };
+            this.servers[peerId] = this.myServer;
         }
         ClientRepository.prototype.addServer = function (info, serverId) {
             this.logger.debug("adding server " + serverId);
@@ -7813,7 +8463,7 @@
             if (current) {
                 return current.id;
             }
-            var wrapper = new InstanceWrapper(info);
+            var wrapper = new InstanceWrapper(this.API, info);
             var serverEntry = {
                 id: serverId,
                 methods: {},
@@ -7841,6 +8491,7 @@
             this.callbacks.execute("onServerRemoved", server.instance, reason);
         };
         ClientRepository.prototype.addServerMethod = function (serverId, method) {
+            var _a;
             var server = this.servers[serverId];
             if (!server) {
                 throw new Error("server does not exists");
@@ -7861,6 +8512,7 @@
                 accepts: method.input_signature,
                 returns: method.result_signature,
                 supportsStreaming: typeof method.flags !== "undefined" ? method.flags.streaming : false,
+                flags: (_a = method.flags) !== null && _a !== void 0 ? _a : {},
                 getServers: function () {
                     return that.getServersByMethod(identifier);
                 }
@@ -7869,12 +8521,13 @@
             methodDefinition.display_name = methodDefinition.displayName;
             methodDefinition.version = methodDefinition.version;
             server.methods[method.id] = methodDefinition;
+            var clientMethodDefinition = hideMethodSystemFlags(methodDefinition);
             if (!this.methodsCount[identifier]) {
                 this.methodsCount[identifier] = 0;
-                this.callbacks.execute("onMethodAdded", methodDefinition);
+                this.callbacks.execute("onMethodAdded", clientMethodDefinition);
             }
             this.methodsCount[identifier] = this.methodsCount[identifier] + 1;
-            this.callbacks.execute("onServerMethodAdded", server.instance, methodDefinition);
+            this.callbacks.execute("onServerMethodAdded", server.instance, clientMethodDefinition);
             return methodDefinition;
         };
         ClientRepository.prototype.removeServerMethod = function (serverId, methodId) {
@@ -7884,41 +8537,18 @@
             }
             var method = server.methods[methodId];
             delete server.methods[methodId];
+            var clientMethodDefinition = hideMethodSystemFlags(method);
             this.methodsCount[method.identifier] = this.methodsCount[method.identifier] - 1;
             if (this.methodsCount[method.identifier] === 0) {
-                this.callbacks.execute("onMethodRemoved", method);
+                this.callbacks.execute("onMethodRemoved", clientMethodDefinition);
             }
-            this.callbacks.execute("onServerMethodRemoved", server.instance, method);
+            this.callbacks.execute("onServerMethodRemoved", server.instance, clientMethodDefinition);
         };
         ClientRepository.prototype.getMethods = function () {
-            var _this = this;
-            var allMethods = {};
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                Object.keys(server.methods).forEach(function (methodId) {
-                    var method = server.methods[methodId];
-                    allMethods[method.identifier] = method;
-                });
-            });
-            var methodsAsArray = Object.keys(allMethods).map(function (id) {
-                return allMethods[id];
-            });
-            return methodsAsArray;
+            return this.extractMethodsFromServers(Object.values(this.servers)).map(hideMethodSystemFlags);
         };
         ClientRepository.prototype.getServers = function () {
-            var _this = this;
-            var allServers = [];
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                allServers.push(server);
-            });
-            return allServers;
-        };
-        ClientRepository.prototype.getServerMethodsById = function (serverId) {
-            var server = this.servers[serverId];
-            return Object.keys(server.methods).map(function (id) {
-                return server.methods[id];
-            });
+            return Object.values(this.servers).map(this.hideServerMethodSystemFlags);
         };
         ClientRepository.prototype.onServerAdded = function (callback) {
             var unsubscribeFunc = this.callbacks.add("onServerAdded", callback);
@@ -7962,14 +8592,17 @@
             return unsubscribeFunc;
         };
         ClientRepository.prototype.getServerById = function (id) {
-            return this.servers[id];
+            return this.hideServerMethodSystemFlags(this.servers[id]);
         };
         ClientRepository.prototype.reset = function () {
+            var _a;
             var _this = this;
             Object.keys(this.servers).forEach(function (key) {
                 _this.removeServerById(key, "reset");
             });
-            this.servers = {};
+            this.servers = (_a = {},
+                _a[this.myServer.id] = this.myServer,
+                _a);
             this.methodsCount = {};
         };
         ClientRepository.prototype.createMethodIdentifier = function (methodInfo) {
@@ -7978,13 +8611,10 @@
             return (methodInfo.name + accepts + returns).toLowerCase();
         };
         ClientRepository.prototype.getServersByMethod = function (identifier) {
-            var _this = this;
             var allServers = [];
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                Object.keys(server.methods).forEach(function (methodId) {
-                    var methodInfo = server.methods[methodId];
-                    if (methodInfo.identifier === identifier) {
+            Object.values(this.servers).forEach(function (server) {
+                Object.values(server.methods).forEach(function (method) {
+                    if (method.identifier === identifier) {
                         allServers.push(server.instance);
                     }
                 });
@@ -8004,6 +8634,20 @@
                 unsubCalled = true;
                 unsubscribeFunc();
             };
+        };
+        ClientRepository.prototype.hideServerMethodSystemFlags = function (server) {
+            var clientMethods = {};
+            Object.entries(server.methods).forEach(function (_a) {
+                var name = _a[0], method = _a[1];
+                clientMethods[name] = hideMethodSystemFlags(method);
+            });
+            return __assign$1(__assign$1({}, server), { methods: clientMethods });
+        };
+        ClientRepository.prototype.extractMethodsFromServers = function (servers) {
+            var methods = Object.values(servers).reduce(function (clientMethods, server) {
+                return __spreadArrays(clientMethods, Object.values(server.methods));
+            }, []);
+            return methods;
         };
         return ClientRepository;
     }());
@@ -8057,7 +8701,7 @@
             this.repository = repository;
             this.serverRepository = serverRepository;
             this.ERR_URI_SUBSCRIPTION_FAILED = "com.tick42.agm.errors.subscription.failure";
-            this.callbacks = lib$1();
+            this.callbacks = lib$2();
             this.nextStreamId = 0;
             session.on("add-interest", function (msg) {
                 _this.handleAddInterest(msg);
@@ -8319,7 +8963,7 @@
             this.clientRepository = clientRepository;
             this.serverRepository = serverRepository;
             this.logger = logger;
-            this.callbacks = lib$1();
+            this.callbacks = lib$2();
             this.streaming = new ServerStreaming$1(session, clientRepository, serverRepository);
             this.session.on("invoke", function (msg) { return _this.handleInvokeMessage(msg); });
         }
@@ -8330,8 +8974,9 @@
         };
         ServerProtocol.prototype.register = function (repoMethod, isStreaming) {
             var _this = this;
+            var _a;
             var methodDef = repoMethod.definition;
-            var flags = { streaming: isStreaming || false };
+            var flags = Object.assign({}, { metadata: (_a = methodDef.flags) !== null && _a !== void 0 ? _a : {} }, { streaming: isStreaming || false });
             var registerMsg = {
                 type: "register",
                 methods: [{
@@ -9037,9 +9682,9 @@
             if (typeof configuration.waitTimeoutMs !== "number") {
                 configuration.waitTimeoutMs = 30 * 1000;
             }
-            InstanceWrapper.API = this;
-            this.instance = new InstanceWrapper(undefined, connection).unwrap();
-            this.clientRepository = new ClientRepository(configuration.logger.subLogger("cRep"));
+            this.unwrappedInstance = new InstanceWrapper(this, undefined, connection);
+            this.instance = this.unwrappedInstance.unwrap();
+            this.clientRepository = new ClientRepository(configuration.logger.subLogger("cRep"), this);
             this.serverRepository = new ServerRepository();
             var protocolPromise;
             if (connection.protocolVersion === 3) {
@@ -9102,6 +9747,16 @@
         };
         Interop.prototype.invoke = function (methodFilter, argumentObj, target, additionalOptions, success, error) {
             return this.client.invoke(methodFilter, argumentObj, target, additionalOptions, success, error);
+        };
+        Interop.prototype.waitForMethod = function (name) {
+            var pw = new PromiseWrapper();
+            var unsubscribe = this.client.methodAdded(function (m) {
+                if (m.name === name) {
+                    unsubscribe();
+                    pw.resolve(m);
+                }
+            });
+            return pw.promise;
         };
         return Interop;
     }());
@@ -9307,7 +9962,7 @@
             return Promise.resolve(undefined);
         }
         function setupMetrics() {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e;
             var initTimer = timer("metrics");
             var config = internalConfig.metrics;
             var metricsPublishingEnabledFunc = glue42gd === null || glue42gd === void 0 ? void 0 : glue42gd.getMetricsPublishingEnabled;
@@ -9319,8 +9974,8 @@
                 logger: _logger.subLogger("metrics"),
                 canUpdateMetric: canUpdateMetric,
                 system: "Glue42",
-                service: (_b = identity === null || identity === void 0 ? void 0 : identity.service) !== null && _b !== void 0 ? _b : "metrics-service",
-                instance: (_d = (_c = identity === null || identity === void 0 ? void 0 : identity.instance) !== null && _c !== void 0 ? _c : identity === null || identity === void 0 ? void 0 : identity.windowId) !== null && _d !== void 0 ? _d : shortid(),
+                service: (_c = (_b = identity === null || identity === void 0 ? void 0 : identity.service) !== null && _b !== void 0 ? _b : glue42gd === null || glue42gd === void 0 ? void 0 : glue42gd.applicationName) !== null && _c !== void 0 ? _c : internalConfig.application,
+                instance: (_e = (_d = identity === null || identity === void 0 ? void 0 : identity.instance) !== null && _d !== void 0 ? _d : identity === null || identity === void 0 ? void 0 : identity.windowId) !== null && _e !== void 0 ? _e : shortid$1(),
                 disableAutoAppSystem: disableAutoAppSystem,
                 pagePerformanceMetrics: typeof config !== "boolean" ? config === null || config === void 0 ? void 0 : config.pagePerformanceMetrics : undefined
             });
@@ -9405,7 +10060,7 @@
                 _interop.invoke("T42.ACS.Feedback", feedbackInfo, "best");
             };
             var info = {
-                coreVersion: version,
+                coreVersion: version$2,
                 version: internalConfig.version
             };
             glueInitTimer.stop();
@@ -9446,7 +10101,9 @@
                         return {
                             name: key,
                             duration: t.endTime - t.startTime,
-                            marks: t.marks
+                            marks: t.marks,
+                            startTime: t.startTime,
+                            endTime: t.endTime
                         };
                     });
                 }
@@ -9474,7 +10131,7 @@
                 var deprecatedDecorator = function (fn, wrong, proper) {
                     return function () {
                         glue.logger.warn("glue.js - 'glue.agm." + wrong + "' method is deprecated, use 'glue.interop." + proper + "' instead.");
-                        fn.apply(glue.agm, arguments);
+                        return fn.apply(glue.agm, arguments);
                     };
                 };
                 var agmAny = glue.agm;
@@ -9506,10 +10163,8 @@
     if (typeof window !== "undefined") {
         window.GlueCore = GlueCore;
     }
-    GlueCore.version = version;
+    GlueCore.version = version$2;
     GlueCore.default = GlueCore;
-
-    var version$1 = "2.0.0-beta.0";
 
     const glueWebFactory = createFactoryFunction(GlueCore);
     if (typeof window !== "undefined") {
@@ -9517,21 +10172,134 @@
         windowAny.GlueWeb = glueWebFactory;
         delete windowAny.GlueCore;
     }
+    if (!window.glue42gd && !window.glue42core) {
+        window.glue42core = { webStarted: false };
+    }
     glueWebFactory.version = version$1;
+
+    const Glue42CoreMessageTypes = {
+        connectionRequest: { name: "connectionRequest" },
+        connectionAccepted: { name: "connectionAccepted" },
+        platformPing: { name: "platformPing" },
+        platformReady: { name: "platformReady" },
+        platformUnload: { name: "platformUnload" },
+        clientUnload: { name: "clientUnload" },
+        parentPing: { name: "parentPing" },
+        parentReady: { name: "parentReady" }
+    };
+    const GlueWebPlatformControlName$1 = "T42.Web.Platform.Control";
+    const GlueWebPlatformStreamName$1 = "T42.Web.Platform.Stream";
+    const GlueClientControlName$1 = "T42.Web.Client.Control";
+    const GlueWebPlatformWorkspacesStreamName = "T42.Web.Platform.WSP.Stream";
+    const GlueWorkspaceFrameClientControlName = "T42.Workspaces.Control";
+    const GlueWebIntentsPrefix = "Tick42.FDC3.Intents.";
+    const ChannelContextPrefix = "___channel___";
+    const dbName = "glue42core";
+    const serviceWorkerBroadcastChannelName = "glue42-core-worker";
+    const dbVersion = 1;
+
+    const defaultPlatformConfig = {
+        windows: {
+            windowResponseTimeoutMs: 10000,
+            defaultWindowOpenBounds: {
+                top: 0,
+                left: 0,
+                width: 600,
+                height: 600
+            }
+        },
+        applications: {
+            local: []
+        },
+        layouts: {
+            mode: "idb",
+            local: []
+        },
+        channels: {
+            definitions: []
+        },
+        plugins: {
+            definitions: []
+        },
+        gateway: {
+            logging: {
+                level: "info"
+            }
+        },
+        glue: {},
+        environment: {}
+    };
+    const defaultTargetString = "*";
+    const defaultFetchTimeoutMs = 3000;
+    const defaultOpenerTimeoutMs = 1000;
+
+    const checkIsOpenerGlue = () => {
+        if (!window.opener) {
+            return Promise.resolve(false);
+        }
+        return new Promise((resolve) => {
+            const pingListener = (event) => {
+                var _a;
+                const data = (_a = event.data) === null || _a === void 0 ? void 0 : _a.glue42core;
+                if (!data || data.type !== Glue42CoreMessageTypes.platformReady.name) {
+                    return;
+                }
+                window.removeEventListener("message", pingListener);
+                resolve(true);
+            };
+            window.addEventListener("message", pingListener);
+            const message = {
+                glue42core: {
+                    type: Glue42CoreMessageTypes.platformPing.name
+                }
+            };
+            window.opener.postMessage(message, "*");
+            setTimeout(() => resolve(false), defaultOpenerTimeoutMs);
+        });
+    };
+
+    const fallbackToEnterprise = (config) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b, _c, _d;
+        const glue = (config === null || config === void 0 ? void 0 : config.glueFactory) ?
+            yield (config === null || config === void 0 ? void 0 : config.glueFactory(config === null || config === void 0 ? void 0 : config.glue)) :
+            yield glueWebFactory(config === null || config === void 0 ? void 0 : config.glue);
+        if ((_b = (_a = config === null || config === void 0 ? void 0 : config.applications) === null || _a === void 0 ? void 0 : _a.local) === null || _b === void 0 ? void 0 : _b.length) {
+            yield glue.appManager.inMemory.import(config.applications.local, "merge");
+        }
+        if ((_d = (_c = config === null || config === void 0 ? void 0 : config.layouts) === null || _c === void 0 ? void 0 : _c.local) === null || _d === void 0 ? void 0 : _d.length) {
+            yield glue.layouts.import(config.layouts.local, "merge");
+        }
+        return { glue };
+    });
 
     var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
-    function createCommonjsModule$1(fn, basedir, module) {
+    function createCommonjsModule$2(fn, basedir, module) {
     	return module = {
     		path: basedir,
     		exports: {},
     		require: function (path, base) {
-    			return commonjsRequire(path, (base === undefined || base === null) ? module.path : base);
+    			return commonjsRequire$1(path, (base === undefined || base === null) ? module.path : base);
     		}
     	}, fn(module, module.exports), module.exports;
     }
 
-    function commonjsRequire () {
+    function getAugmentedNamespace(n) {
+    	if (n.__esModule) return n;
+    	var a = Object.defineProperty({}, '__esModule', {value: true});
+    	Object.keys(n).forEach(function (k) {
+    		var d = Object.getOwnPropertyDescriptor(n, k);
+    		Object.defineProperty(a, k, d.get ? d : {
+    			enumerable: true,
+    			get: function () {
+    				return n[k];
+    			}
+    		});
+    	});
+    	return a;
+    }
+
+    function commonjsRequire$1 () {
     	throw new Error('Dynamic requires are not currently supported by @rollup/plugin-commonjs');
     }
 
@@ -11299,24 +12067,6 @@
     d=this;return new Promise(function(e){W4(c.qd);return e.a?e.a(d):e.call(null,d)})},z5.prototype.connect=function(c){return WY(this.qd,c)},z5.Pa=function(){return new Q(null,3,5,R,[op,hu,HK],null)},z5.Ia=!0,z5.Da="gateway-web.core/t_gateway_web$core15330",z5.Ja=function(c){return ce(c,"gateway-web.core/t_gateway_web$core15330")};return new z5(a,b,S)});
     }).call(commonjsGlobal);
 
-    const Glue42CoreMessageTypes = {
-        connectionRequest: { name: "connectionRequest" },
-        connectionAccepted: { name: "connectionAccepted" },
-        platformPing: { name: "platformPing" },
-        platformReady: { name: "platformReady" },
-        platformUnload: { name: "platformUnload" },
-        clientUnload: { name: "clientUnload" }
-    };
-    const GlueWebPlatformControlName$1 = "T42.Web.Platform.Control";
-    const GlueWebPlatformStreamName$1 = "T42.Web.Platform.Stream";
-    const GlueClientControlName$1 = "T42.Web.Client.Control";
-    const GlueWebPlatformWorkspacesStreamName = "T42.Web.Platform.WSP.Stream";
-    const GlueWorkspaceFrameClientControlName = "T42.Workspaces.Control";
-    const GlueWebIntentsPrefix = "Tick42.FDC3.Intents.";
-    const ChannelContextPrefix = "___channel___";
-    const dbName = "glue42core";
-    const dbVersion = 1;
-
     class Gateway {
         constructor() {
             this.configureLogging = window.gateway_web.core.configure_logging;
@@ -11330,7 +12080,7 @@
                         appender: config.logging.appender
                     });
                 }
-                this._gatewayWebInstance = this.create({});
+                this._gatewayWebInstance = this.create({ clients: { inactive_seconds: 0 } });
                 yield this._gatewayWebInstance.start();
             });
         }
@@ -11340,7 +12090,11 @@
                 clientPort.onmessage = (event) => {
                     var _a;
                     const data = (_a = event.data) === null || _a === void 0 ? void 0 : _a.glue42core;
+                    if (clientPort.closed) {
+                        return;
+                    }
                     if (data && data.type === Glue42CoreMessageTypes.clientUnload.name) {
+                        clientPort.closed = true;
                         if (removeFromPlatform) {
                             removeFromPlatform(data.data.clientId);
                         }
@@ -12152,6 +12906,7 @@
 
     const nonNegativeNumberDecoder$1 = number$1().where((num) => num >= 0, "Expected a non-negative number");
     const nonEmptyStringDecoder$1 = string$1().where((s) => s.length > 0, "Expected a non-empty string");
+    const anyDecoder$1 = anyJson$1();
     const windowRelativeDirectionDecoder$1 = oneOf$1(constant$1("top"), constant$1("left"), constant$1("right"), constant$1("bottom"));
     const logLevelDecoder = oneOf$1(constant$1("trace"), constant$1("debug"), constant$1("info"), constant$1("warn"), constant$1("error"));
     const channelMetaDecoder = anyJson$1().where((meta) => typeof meta["color"] === "string" && meta["color"].length > 0, "Expected color to be a non-empty string");
@@ -12182,12 +12937,16 @@
             main: boolean$1()
         })
     });
-    const libDomainDecoder$1 = oneOf$1(constant$1("windows"), constant$1("appManager"), constant$1("layouts"), constant$1("workspaces"), constant$1("intents"));
+    const libDomainDecoder$1 = oneOf$1(constant$1("system"), constant$1("windows"), constant$1("appManager"), constant$1("layouts"), constant$1("workspaces"), constant$1("intents"), constant$1("notifications"));
+    const systemOperationTypesDecoder = oneOf$1(constant$1("getEnvironment"), constant$1("getBase"));
     const windowLayoutItemDecoder$1 = object$1({
         type: constant$1("window"),
         config: object$1({
             appName: nonEmptyStringDecoder$1,
-            url: optional$1(nonEmptyStringDecoder$1)
+            url: optional$1(nonEmptyStringDecoder$1),
+            title: optional$1(string$1()),
+            showCloseButton: optional$1(boolean$1()),
+            allowExtract: optional$1(boolean$1())
         })
     });
     const groupLayoutItemDecoder$1 = object$1({
@@ -12235,6 +12994,7 @@
     });
     const glueCoreAppDefinitionDecoder = object$1({
         name: nonEmptyStringDecoder$1,
+        type: nonEmptyStringDecoder$1.where((s) => s === "window", "Expected a value of window"),
         title: optional$1(nonEmptyStringDecoder$1),
         version: optional$1(nonEmptyStringDecoder$1),
         customProperties: optional$1(anyJson$1()),
@@ -12243,11 +13003,11 @@
         details: applicationDetailsDecoder$1,
         intents: optional$1(array$1(intentDefinitionDecoder$1))
     });
-    const fdc3AppDefinitionDecoder = object$1({
+    const fdc3AppDefinitionDecoder$1 = object$1({
         name: nonEmptyStringDecoder$1,
         title: optional$1(nonEmptyStringDecoder$1),
         version: optional$1(nonEmptyStringDecoder$1),
-        appId: nonEmptyStringDecoder$1,
+        appId: optional$1(nonEmptyStringDecoder$1),
         manifest: nonEmptyStringDecoder$1,
         manifestType: nonEmptyStringDecoder$1,
         tooltip: optional$1(nonEmptyStringDecoder$1),
@@ -12263,7 +13023,8 @@
     const remoteStoreDecoder = object$1({
         url: nonEmptyStringDecoder$1,
         pollingInterval: optional$1(nonNegativeNumberDecoder$1),
-        requestTimeout: optional$1(nonNegativeNumberDecoder$1)
+        requestTimeout: optional$1(nonNegativeNumberDecoder$1),
+        customHeaders: optional$1(anyJson$1())
     });
     const supplierDecoder = object$1({
         fetch: anyJson$1().andThen((result) => functionCheck(result, "supplier fetch")),
@@ -12280,15 +13041,17 @@
     const pluginDefinitionDecoder = object$1({
         name: nonEmptyStringDecoder$1,
         start: anyJson$1(),
-        config: anyJson$1()
+        config: optional$1(anyJson$1()),
+        critical: optional$1(boolean$1())
     });
-    const allApplicationDefinitionsDecoder = oneOf$1(glueCoreAppDefinitionDecoder, fdc3AppDefinitionDecoder);
-    const appsCollectionDecoder = array$1(allApplicationDefinitionsDecoder);
+    const allApplicationDefinitionsDecoder$1 = oneOf$1(glueCoreAppDefinitionDecoder, fdc3AppDefinitionDecoder$1);
+    const appsCollectionDecoder = array$1(allApplicationDefinitionsDecoder$1);
     const applicationsConfigDecoder = object$1({
-        local: optional$1(array$1(allApplicationDefinitionsDecoder))
+        local: optional$1(array$1(allApplicationDefinitionsDecoder$1)),
+        remote: optional$1(remoteStoreDecoder)
     });
     const layoutsConfigDecoder = object$1({
-        mode: oneOf$1(constant$1("idb"), constant$1("session")),
+        mode: optional$1(oneOf$1(constant$1("idb"), constant$1("session"))),
         local: optional$1(array$1(glueLayoutDecoder$1))
     });
     const channelsConfigDecoder = object$1({
@@ -12304,8 +13067,31 @@
         }))
     });
     const glueConfigDecoder = anyJson$1();
+    const maximumActiveWorkspacesDecoder = object$1({
+        threshold: number$1().where((num) => num > 1, "Expected a number larger than 1")
+    });
+    const idleWorkspacesDecoder = object$1({
+        idleMSThreshold: number$1().where((num) => num > 100, "Expected a number larger than 100")
+    });
+    const hibernationConfigDecoder = object$1({
+        maximumActiveWorkspaces: optional$1(maximumActiveWorkspacesDecoder),
+        idleWorkspaces: optional$1(idleWorkspacesDecoder)
+    });
+    const loadingConfigDecoder = object$1({
+        delayed: optional$1(object$1({
+            batch: optional$1(number$1()),
+            initialOffsetInterval: optional$1(number$1()),
+            interval: optional$1(number$1())
+        })),
+        defaultStrategy: optional$1(oneOf$1(constant$1("direct"), constant$1("delayed"), constant$1("lazy"))),
+        showDelayedIndicator: optional$1(boolean$1())
+    });
     const workspacesConfigDecoder = object$1({
-        src: nonEmptyStringDecoder$1
+        src: nonEmptyStringDecoder$1,
+        hibernation: optional$1(hibernationConfigDecoder),
+        loadingStrategy: optional$1(loadingConfigDecoder),
+        isFrame: optional$1(boolean$1()),
+        frameCache: optional$1(boolean$1())
     });
     const windowsConfigDecoder = object$1({
         windowResponseTimeoutMs: optional$1(nonNegativeNumberDecoder$1),
@@ -12316,15 +13102,21 @@
             height: nonNegativeNumberDecoder$1
         }))
     });
+    const serviceWorkerConfigDecoder = object$1({
+        url: optional$1(nonEmptyStringDecoder$1),
+        registrationPromise: optional$1(anyJson$1())
+    });
     const platformConfigDecoder = object$1({
         windows: optional$1(windowsConfigDecoder),
         applications: optional$1(applicationsConfigDecoder),
         layouts: optional$1(layoutsConfigDecoder),
         channels: optional$1(channelsConfigDecoder),
         plugins: optional$1(pluginsConfigDecoder),
+        serviceWorker: optional$1(serviceWorkerConfigDecoder),
         gateway: optional$1(gatewayConfigDecoder),
         glue: optional$1(glueConfigDecoder),
         workspaces: optional$1(workspacesConfigDecoder),
+        environment: optional$1(anyJson$1()),
         glueFactory: optional$1(anyJson$1().andThen((result) => functionCheck(result, "glueFactory")))
     });
     const windowOpenSettingsDecoder$1 = object$1({
@@ -12353,52 +13145,52 @@
     // Found this seed-based random generator somewhere
     // Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
 
-    var seed$1 = 1;
+    var seed$2 = 1;
 
     /**
      * return a random number based on a seed
      * @param seed
      * @returns {number}
      */
-    function getNextValue$1() {
-        seed$1 = (seed$1 * 9301 + 49297) % 233280;
-        return seed$1/(233280.0);
+    function getNextValue$2() {
+        seed$2 = (seed$2 * 9301 + 49297) % 233280;
+        return seed$2/(233280.0);
     }
 
-    function setSeed$2(_seed_) {
-        seed$1 = _seed_;
+    function setSeed$3(_seed_) {
+        seed$2 = _seed_;
     }
 
-    var randomFromSeed$1 = {
-        nextValue: getNextValue$1,
-        seed: setSeed$2
+    var randomFromSeed$2 = {
+        nextValue: getNextValue$2,
+        seed: setSeed$3
     };
 
-    var ORIGINAL$1 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
-    var alphabet$1;
-    var previousSeed$1;
+    var ORIGINAL$2 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+    var alphabet$2;
+    var previousSeed$2;
 
-    var shuffled$1;
+    var shuffled$2;
 
-    function reset$1() {
-        shuffled$1 = false;
+    function reset$2() {
+        shuffled$2 = false;
     }
 
-    function setCharacters$1(_alphabet_) {
+    function setCharacters$2(_alphabet_) {
         if (!_alphabet_) {
-            if (alphabet$1 !== ORIGINAL$1) {
-                alphabet$1 = ORIGINAL$1;
-                reset$1();
+            if (alphabet$2 !== ORIGINAL$2) {
+                alphabet$2 = ORIGINAL$2;
+                reset$2();
             }
             return;
         }
 
-        if (_alphabet_ === alphabet$1) {
+        if (_alphabet_ === alphabet$2) {
             return;
         }
 
-        if (_alphabet_.length !== ORIGINAL$1.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$1.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+        if (_alphabet_.length !== ORIGINAL$2.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$2.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
         }
 
         var unique = _alphabet_.split('').filter(function(item, ind, arr){
@@ -12406,50 +13198,50 @@
         });
 
         if (unique.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$1.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$2.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
         }
 
-        alphabet$1 = _alphabet_;
-        reset$1();
+        alphabet$2 = _alphabet_;
+        reset$2();
     }
 
-    function characters$1(_alphabet_) {
-        setCharacters$1(_alphabet_);
-        return alphabet$1;
+    function characters$2(_alphabet_) {
+        setCharacters$2(_alphabet_);
+        return alphabet$2;
     }
 
-    function setSeed$3(seed) {
-        randomFromSeed$1.seed(seed);
-        if (previousSeed$1 !== seed) {
-            reset$1();
-            previousSeed$1 = seed;
+    function setSeed$4(seed) {
+        randomFromSeed$2.seed(seed);
+        if (previousSeed$2 !== seed) {
+            reset$2();
+            previousSeed$2 = seed;
         }
     }
 
-    function shuffle$1() {
-        if (!alphabet$1) {
-            setCharacters$1(ORIGINAL$1);
+    function shuffle$2() {
+        if (!alphabet$2) {
+            setCharacters$2(ORIGINAL$2);
         }
 
-        var sourceArray = alphabet$1.split('');
+        var sourceArray = alphabet$2.split('');
         var targetArray = [];
-        var r = randomFromSeed$1.nextValue();
+        var r = randomFromSeed$2.nextValue();
         var characterIndex;
 
         while (sourceArray.length > 0) {
-            r = randomFromSeed$1.nextValue();
+            r = randomFromSeed$2.nextValue();
             characterIndex = Math.floor(r * sourceArray.length);
             targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
         }
         return targetArray.join('');
     }
 
-    function getShuffled$1() {
-        if (shuffled$1) {
-            return shuffled$1;
+    function getShuffled$2() {
+        if (shuffled$2) {
+            return shuffled$2;
         }
-        shuffled$1 = shuffle$1();
-        return shuffled$1;
+        shuffled$2 = shuffle$2();
+        return shuffled$2;
     }
 
     /**
@@ -12457,29 +13249,29 @@
      * @param index
      * @returns {string}
      */
-    function lookup$1(index) {
-        var alphabetShuffled = getShuffled$1();
+    function lookup$2(index) {
+        var alphabetShuffled = getShuffled$2();
         return alphabetShuffled[index];
     }
 
-    function get () {
-      return alphabet$1 || ORIGINAL$1;
+    function get$1 () {
+      return alphabet$2 || ORIGINAL$2;
     }
 
-    var alphabet_1$1 = {
-        get: get,
-        characters: characters$1,
-        seed: setSeed$3,
-        lookup: lookup$1,
-        shuffled: getShuffled$1
+    var alphabet_1$2 = {
+        get: get$1,
+        characters: characters$2,
+        seed: setSeed$4,
+        lookup: lookup$2,
+        shuffled: getShuffled$2
     };
 
-    var crypto$1 = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
+    var crypto$2 = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
 
-    var randomByte$1;
+    var randomByte$2;
 
-    if (!crypto$1 || !crypto$1.getRandomValues) {
-        randomByte$1 = function(size) {
+    if (!crypto$2 || !crypto$2.getRandomValues) {
+        randomByte$2 = function(size) {
             var bytes = [];
             for (var i = 0; i < size; i++) {
                 bytes.push(Math.floor(Math.random() * 256));
@@ -12487,17 +13279,17 @@
             return bytes;
         };
     } else {
-        randomByte$1 = function(size) {
-            return crypto$1.getRandomValues(new Uint8Array(size));
+        randomByte$2 = function(size) {
+            return crypto$2.getRandomValues(new Uint8Array(size));
         };
     }
 
-    var randomByteBrowser$1 = randomByte$1;
+    var randomByteBrowser$2 = randomByte$2;
 
     // This file replaces `format.js` in bundlers like webpack or Rollup,
     // according to `browser` config in `package.json`.
 
-    var format_browser = function (random, alphabet, size) {
+    var format_browser$1 = function (random, alphabet, size) {
       // We can’t use bytes bigger than the alphabet. To make bytes values closer
       // to the alphabet, we apply bitmask on them. We look for the closest
       // `2 ** x - 1` number, which will be bigger than alphabet size. If we have
@@ -12535,78 +13327,78 @@
       }
     };
 
-    function generate(number) {
+    function generate$1(number) {
         var loopCounter = 0;
         var done;
 
         var str = '';
 
         while (!done) {
-            str = str + format_browser(randomByteBrowser$1, alphabet_1$1.get(), 1);
+            str = str + format_browser$1(randomByteBrowser$2, alphabet_1$2.get(), 1);
             done = number < (Math.pow(16, loopCounter + 1 ) );
             loopCounter++;
         }
         return str;
     }
 
-    var generate_1 = generate;
+    var generate_1$1 = generate$1;
 
     // Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
     // This number should be updated every year or so to keep the generated id short.
     // To regenerate `new Date() - 0` and bump the version. Always bump the version!
-    var REDUCE_TIME = 1567752802062;
+    var REDUCE_TIME$1 = 1567752802062;
 
     // don't change unless we change the algos or REDUCE_TIME
     // must be an integer and less than 16
-    var version$2 = 7;
+    var version$3 = 7;
 
     // Counter is used when shortid is called multiple times in one second.
-    var counter;
+    var counter$1;
 
     // Remember the last time shortid was called in case counter is needed.
-    var previousSeconds;
+    var previousSeconds$1;
 
     /**
      * Generate unique id
      * Returns string id
      */
-    function build(clusterWorkerId) {
+    function build$1(clusterWorkerId) {
         var str = '';
 
-        var seconds = Math.floor((Date.now() - REDUCE_TIME) * 0.001);
+        var seconds = Math.floor((Date.now() - REDUCE_TIME$1) * 0.001);
 
-        if (seconds === previousSeconds) {
-            counter++;
+        if (seconds === previousSeconds$1) {
+            counter$1++;
         } else {
-            counter = 0;
-            previousSeconds = seconds;
+            counter$1 = 0;
+            previousSeconds$1 = seconds;
         }
 
-        str = str + generate_1(version$2);
-        str = str + generate_1(clusterWorkerId);
-        if (counter > 0) {
-            str = str + generate_1(counter);
+        str = str + generate_1$1(version$3);
+        str = str + generate_1$1(clusterWorkerId);
+        if (counter$1 > 0) {
+            str = str + generate_1$1(counter$1);
         }
-        str = str + generate_1(seconds);
+        str = str + generate_1$1(seconds);
         return str;
     }
 
-    var build_1 = build;
+    var build_1$1 = build$1;
 
-    function isShortId$1(id) {
+    function isShortId$2(id) {
         if (!id || typeof id !== 'string' || id.length < 6 ) {
             return false;
         }
 
         var nonAlphabetic = new RegExp('[^' +
-          alphabet_1$1.get().replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&') +
+          alphabet_1$2.get().replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&') +
         ']');
         return !nonAlphabetic.test(id);
     }
 
-    var isValid$1 = isShortId$1;
+    var isValid$2 = isShortId$2;
 
-    var lib$2 = createCommonjsModule$1(function (module) {
+    var lib$3 = createCommonjsModule$2(function (module) {
 
 
 
@@ -12625,7 +13417,7 @@
      * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
      */
     function seed(seedValue) {
-        alphabet_1$1.seed(seedValue);
+        alphabet_1$2.seed(seedValue);
         return module.exports;
     }
 
@@ -12647,10 +13439,10 @@
      */
     function characters(newCharacters) {
         if (newCharacters !== undefined) {
-            alphabet_1$1.characters(newCharacters);
+            alphabet_1$2.characters(newCharacters);
         }
 
-        return alphabet_1$1.shuffled();
+        return alphabet_1$2.shuffled();
     }
 
     /**
@@ -12658,7 +13450,7 @@
      * Returns string id
      */
     function generate() {
-      return build_1(clusterWorkerId);
+      return build_1$1(clusterWorkerId);
     }
 
     // Export all other functions as properties of the generate function
@@ -12667,13 +13459,14 @@
     module.exports.seed = seed;
     module.exports.worker = worker;
     module.exports.characters = characters;
-    module.exports.isValid = isValid$1;
+    module.exports.isValid = isValid$2;
     });
 
-    var shortid$1 = lib$2;
+    var shortid$2 = lib$3;
 
     class PlatformController {
-        constructor(glueController, windowsController, applicationsController, layoutsController, workspacesController, intentsController, channelsController, portsBridge, stateController) {
+        constructor(systemController, glueController, windowsController, applicationsController, layoutsController, workspacesController, intentsController, channelsController, notificationsController, portsBridge, stateController, serviceWorkerController) {
+            this.systemController = systemController;
             this.glueController = glueController;
             this.windowsController = windowsController;
             this.applicationsController = applicationsController;
@@ -12681,15 +13474,19 @@
             this.workspacesController = workspacesController;
             this.intentsController = intentsController;
             this.channelsController = channelsController;
+            this.notificationsController = notificationsController;
             this.portsBridge = portsBridge;
             this.stateController = stateController;
+            this.serviceWorkerController = serviceWorkerController;
             this.controllers = {
+                system: this.systemController,
                 windows: this.windowsController,
                 appManager: this.applicationsController,
                 layouts: this.layoutsController,
                 workspaces: this.workspacesController,
                 intents: this.intentsController,
-                channels: this.channelsController
+                channels: this.channelsController,
+                notifications: this.notificationsController
             };
         }
         get logger() {
@@ -12707,8 +13504,13 @@
                 ]);
                 this.stateController.start();
                 yield Promise.all(Object.values(this.controllers).map((controller) => controller.start(config)));
-                yield this.glueController.initClientGlue(config === null || config === void 0 ? void 0 : config.glue, config === null || config === void 0 ? void 0 : config.glueFactory);
-                (_a = config.plugins) === null || _a === void 0 ? void 0 : _a.definitions.forEach(this.startPlugin.bind(this));
+                yield this.glueController.initClientGlue(config === null || config === void 0 ? void 0 : config.glue, config === null || config === void 0 ? void 0 : config.glueFactory, (_a = config === null || config === void 0 ? void 0 : config.workspaces) === null || _a === void 0 ? void 0 : _a.isFrame);
+                yield this.serviceWorkerController.connect(config);
+                if (config.plugins) {
+                    yield Promise.all(config.plugins.definitions.filter((def) => def.critical).map(this.startPlugin.bind(this)));
+                    config.plugins.definitions.filter((def) => !def.critical).map(this.startPlugin.bind(this));
+                }
+                this.serviceWorkerController.notifyReady();
             });
         }
         getClientGlue() {
@@ -12716,12 +13518,25 @@
         }
         startPlugin(definition) {
             var _a;
-            try {
-                definition.start(this.glueController.clientGlue, definition.config);
-            }
-            catch (error) {
-                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.warn(`Plugin: ${definition.name} threw while initiating: ${JSON.stringify(error.message)}`);
-            }
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const platformControls = {
+                        control: (args) => this.handlePluginMessage(args, definition.name),
+                        logger: logger.get(definition.name)
+                    };
+                    yield definition.start(this.glueController.clientGlue, definition.config, platformControls);
+                }
+                catch (error) {
+                    const stringError = typeof error === "string" ? error : JSON.stringify(error.message);
+                    const message = `Plugin: ${definition.name} threw while initiating: ${stringError}`;
+                    if (definition.critical) {
+                        throw new Error(message);
+                    }
+                    else {
+                        (_a = this.logger) === null || _a === void 0 ? void 0 : _a.warn(message);
+                    }
+                }
+            });
         }
         handleControlMessage(args, caller, success, error) {
             var _a, _b;
@@ -12732,7 +13547,7 @@
                 return error(`Cannot execute this platform control, because of domain validation error: ${errString}`);
             }
             const domain = decodeResult.result;
-            args.commandId = shortid$1.generate();
+            args.commandId = shortid$2.generate();
             (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${args.commandId}] received a command for a valid domain: ${domain} from window ${caller.windowId} and interop id ${caller.instance}, forwarding to the appropriate controller`);
             this.controllers[domain]
                 .handleControl(args)
@@ -12743,9 +13558,26 @@
             })
                 .catch((err) => {
                 var _a;
-                const stringError = JSON.stringify(err.message);
+                const stringError = typeof err === "string" ? err : JSON.stringify(err.message);
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${args.commandId}] this command's execution was rejected, reason: ${stringError}`);
                 error(`The platform rejected operation ${args.operation} for domain: ${domain} with reason: ${stringError}`);
+            });
+        }
+        handlePluginMessage(args, pluginName) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                const decodeResult = libDomainDecoder$1.run(args.domain);
+                if (!decodeResult.ok) {
+                    const errString = JSON.stringify(decodeResult.error);
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`rejecting execution of a command issued by plugin: ${pluginName}, because of a domain validation error: ${errString}`);
+                    throw new Error(`Cannot execute this platform control, because of domain validation error: ${errString}`);
+                }
+                const domain = decodeResult.result;
+                args.commandId = shortid$2.generate();
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${args.commandId}] received a command issued by plugin: ${pluginName} for a valid domain: ${domain}, forwarding to the appropriate controller`);
+                const result = yield this.controllers[domain].handleControl(args);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${args.commandId}] this command was executed successfully, sending the result to the caller.`);
+                return result;
             });
         }
         handleClientUnloaded(client) {
@@ -12757,44 +13589,13 @@
                     (_a = controller.handleClientUnloaded) === null || _a === void 0 ? void 0 : _a.call(controller, client.windowId, client.win);
                 }
                 catch (error) {
+                    const stringError = typeof error === "string" ? error : JSON.stringify(error.message);
                     const controllerName = Object.keys(this.controllers)[idx];
-                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.error(`${controllerName} controller threw when handling unloaded client ${client.windowId} with error message: ${JSON.stringify(error.message)}`);
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.error(`${controllerName} controller threw when handling unloaded client ${client.windowId} with error message: ${stringError}`);
                 }
             });
         }
     }
-
-    const defaultPlatformConfig = {
-        windows: {
-            windowResponseTimeoutMs: 10000,
-            defaultWindowOpenBounds: {
-                top: 0,
-                left: 0,
-                width: 600,
-                height: 600
-            }
-        },
-        applications: {
-            local: []
-        },
-        layouts: {
-            mode: "idb",
-            local: []
-        },
-        channels: {
-            definitions: []
-        },
-        plugins: {
-            definitions: []
-        },
-        gateway: {
-            logging: {
-                level: "info"
-            }
-        },
-        glue: {}
-    };
-    const defaultTargetString = "*";
 
     var isMergeableObject = function isMergeableObject(value) {
     	return isNonNullObject(value)
@@ -12928,7 +13729,7 @@
 
     var cjs = deepmerge_1;
 
-    var version$3 = "0.0.1-beta.1";
+    var version$4 = "1.7.1";
 
     class Platform {
         constructor(controller, config) {
@@ -12950,23 +13751,43 @@
             };
         }
         get version() {
-            return version$3;
+            return version$4;
         }
         checkSingleton() {
             const glue42CoreNamespace = window.glue42core;
-            if (!glue42CoreNamespace) {
-                window.glue42core = { platformStarted: true };
-                return;
-            }
-            if (glue42CoreNamespace.platformStarted) {
+            if (glue42CoreNamespace && glue42CoreNamespace.platformStarted) {
                 throw new Error("The Glue42 Core Platform has already been started for this application.");
             }
-            glue42CoreNamespace.platformStarted = true;
         }
         processConfig(config = {}) {
+            var _a, _b, _c;
             const verifiedConfig = platformConfigDecoder.runWithException(config);
             this.validatePlugins(verifiedConfig);
             this.platformConfig = cjs(defaultPlatformConfig, verifiedConfig);
+            this.transferPromiseObjects(verifiedConfig);
+            const glue42core = {
+                platformStarted: true,
+                isPlatformFrame: !!((_a = config === null || config === void 0 ? void 0 : config.workspaces) === null || _a === void 0 ? void 0 : _a.isFrame),
+                environment: this.platformConfig.environment,
+                workspacesFrameCache: typeof ((_b = config.workspaces) === null || _b === void 0 ? void 0 : _b.frameCache) === "boolean" ? (_c = config.workspaces) === null || _c === void 0 ? void 0 : _c.frameCache : true
+            };
+            window.glue42core = glue42core;
+        }
+        transferPromiseObjects(verifiedConfig) {
+            var _a;
+            if ((_a = verifiedConfig.serviceWorker) === null || _a === void 0 ? void 0 : _a.registrationPromise) {
+                this.platformConfig.serviceWorker.registrationPromise = verifiedConfig.serviceWorker.registrationPromise;
+            }
+            if (verifiedConfig.plugins && verifiedConfig.plugins.definitions.length) {
+                const definitions = verifiedConfig.plugins.definitions;
+                definitions.forEach((def) => {
+                    var _a;
+                    const found = (_a = this.platformConfig.plugins) === null || _a === void 0 ? void 0 : _a.definitions.find((savedDef) => savedDef.name === def.name);
+                    if (found) {
+                        found.config = def.config;
+                    }
+                });
+            }
         }
         validatePlugins(verifiedConfig) {
             var _a;
@@ -13821,7 +14642,8 @@
                 return;
             }
             this.lastCount = allEntries.length;
-            this.system.stringMetric("entries", JSON.stringify(allEntries));
+            var jsonfiedEntries = allEntries.map(function (i) { return i.toJSON(); });
+            this.system.stringMetric("entries", JSON.stringify(jsonfiedEntries));
         };
         return PerfTracker;
     }());
@@ -14003,12 +14825,12 @@
         };
     }
     createRegistry$2.default = createRegistry$2;
-    var lib$3 = createRegistry$2;
+    var lib$4 = createRegistry$2;
 
     var InProcTransport$1 = (function () {
         function InProcTransport(settings, logger) {
             var _this = this;
-            this.registry = lib$3();
+            this.registry = lib$4();
             this.gw = settings.facade;
             this.gw.connect(function (_client, message) {
                 _this.messageHandler(message);
@@ -14063,7 +14885,7 @@
         function SharedWorkerTransport(workerFile, logger) {
             var _this = this;
             this.logger = logger;
-            this.registry = lib$3();
+            this.registry = lib$4();
             this.worker = new SharedWorker(workerFile);
             this.worker.port.onmessage = function (e) {
                 _this.messageHandler(e.data);
@@ -14225,7 +15047,7 @@
         function WS(settings, logger) {
             this.startupTimer = timer$1("connection");
             this._running = true;
-            this._registry = lib$3();
+            this._registry = lib$4();
             this.wsRequests = [];
             this.settings = settings;
             this.logger = logger;
@@ -14399,59 +15221,59 @@
         return WS;
     }());
 
-    function createCommonjsModule$2(fn, module) {
+    function createCommonjsModule$3(fn, module) {
     	return module = { exports: {} }, fn(module, module.exports), module.exports;
     }
 
     // Found this seed-based random generator somewhere
     // Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
 
-    var seed$2 = 1;
+    var seed$3 = 1;
 
     /**
      * return a random number based on a seed
      * @param seed
      * @returns {number}
      */
-    function getNextValue$2() {
-        seed$2 = (seed$2 * 9301 + 49297) % 233280;
-        return seed$2/(233280.0);
+    function getNextValue$3() {
+        seed$3 = (seed$3 * 9301 + 49297) % 233280;
+        return seed$3/(233280.0);
     }
 
-    function setSeed$4(_seed_) {
-        seed$2 = _seed_;
+    function setSeed$5(_seed_) {
+        seed$3 = _seed_;
     }
 
-    var randomFromSeed$2 = {
-        nextValue: getNextValue$2,
-        seed: setSeed$4
+    var randomFromSeed$3 = {
+        nextValue: getNextValue$3,
+        seed: setSeed$5
     };
 
-    var ORIGINAL$2 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
-    var alphabet$2;
-    var previousSeed$2;
+    var ORIGINAL$3 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+    var alphabet$3;
+    var previousSeed$3;
 
-    var shuffled$2;
+    var shuffled$3;
 
-    function reset$2() {
-        shuffled$2 = false;
+    function reset$3() {
+        shuffled$3 = false;
     }
 
-    function setCharacters$2(_alphabet_) {
+    function setCharacters$3(_alphabet_) {
         if (!_alphabet_) {
-            if (alphabet$2 !== ORIGINAL$2) {
-                alphabet$2 = ORIGINAL$2;
-                reset$2();
+            if (alphabet$3 !== ORIGINAL$3) {
+                alphabet$3 = ORIGINAL$3;
+                reset$3();
             }
             return;
         }
 
-        if (_alphabet_ === alphabet$2) {
+        if (_alphabet_ === alphabet$3) {
             return;
         }
 
-        if (_alphabet_.length !== ORIGINAL$2.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$2.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+        if (_alphabet_.length !== ORIGINAL$3.length) {
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$3.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
         }
 
         var unique = _alphabet_.split('').filter(function(item, ind, arr){
@@ -14459,50 +15281,50 @@
         });
 
         if (unique.length) {
-            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$2.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+            throw new Error('Custom alphabet for shortid must be ' + ORIGINAL$3.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
         }
 
-        alphabet$2 = _alphabet_;
-        reset$2();
+        alphabet$3 = _alphabet_;
+        reset$3();
     }
 
-    function characters$2(_alphabet_) {
-        setCharacters$2(_alphabet_);
-        return alphabet$2;
+    function characters$3(_alphabet_) {
+        setCharacters$3(_alphabet_);
+        return alphabet$3;
     }
 
-    function setSeed$1$1(seed) {
-        randomFromSeed$2.seed(seed);
-        if (previousSeed$2 !== seed) {
-            reset$2();
-            previousSeed$2 = seed;
+    function setSeed$1$2(seed) {
+        randomFromSeed$3.seed(seed);
+        if (previousSeed$3 !== seed) {
+            reset$3();
+            previousSeed$3 = seed;
         }
     }
 
-    function shuffle$2() {
-        if (!alphabet$2) {
-            setCharacters$2(ORIGINAL$2);
+    function shuffle$3() {
+        if (!alphabet$3) {
+            setCharacters$3(ORIGINAL$3);
         }
 
-        var sourceArray = alphabet$2.split('');
+        var sourceArray = alphabet$3.split('');
         var targetArray = [];
-        var r = randomFromSeed$2.nextValue();
+        var r = randomFromSeed$3.nextValue();
         var characterIndex;
 
         while (sourceArray.length > 0) {
-            r = randomFromSeed$2.nextValue();
+            r = randomFromSeed$3.nextValue();
             characterIndex = Math.floor(r * sourceArray.length);
             targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
         }
         return targetArray.join('');
     }
 
-    function getShuffled$2() {
-        if (shuffled$2) {
-            return shuffled$2;
+    function getShuffled$3() {
+        if (shuffled$3) {
+            return shuffled$3;
         }
-        shuffled$2 = shuffle$2();
-        return shuffled$2;
+        shuffled$3 = shuffle$3();
+        return shuffled$3;
     }
 
     /**
@@ -14510,30 +15332,30 @@
      * @param index
      * @returns {string}
      */
-    function lookup$2(index) {
-        var alphabetShuffled = getShuffled$2();
+    function lookup$3(index) {
+        var alphabetShuffled = getShuffled$3();
         return alphabetShuffled[index];
     }
 
-    var alphabet_1$2 = {
-        characters: characters$2,
-        seed: setSeed$1$1,
-        lookup: lookup$2,
-        shuffled: getShuffled$2
+    var alphabet_1$3 = {
+        characters: characters$3,
+        seed: setSeed$1$2,
+        lookup: lookup$3,
+        shuffled: getShuffled$3
     };
 
-    var crypto$2 = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
+    var crypto$3 = typeof window === 'object' && (window.crypto || window.msCrypto); // IE 11 uses window.msCrypto
 
-    function randomByte$2() {
-        if (!crypto$2 || !crypto$2.getRandomValues) {
+    function randomByte$3() {
+        if (!crypto$3 || !crypto$3.getRandomValues) {
             return Math.floor(Math.random() * 256) & 0x30;
         }
         var dest = new Uint8Array(1);
-        crypto$2.getRandomValues(dest);
+        crypto$3.getRandomValues(dest);
         return dest[0] & 0x30;
     }
 
-    var randomByteBrowser$2 = randomByte$2;
+    var randomByteBrowser$3 = randomByte$3;
 
     function encode$1(lookup, number) {
         var loopCounter = 0;
@@ -14542,7 +15364,7 @@
         var str = '';
 
         while (!done) {
-            str = str + lookup( ( (number >> (4 * loopCounter)) & 0x0f ) | randomByteBrowser$2() );
+            str = str + lookup( ( (number >> (4 * loopCounter)) & 0x0f ) | randomByteBrowser$3() );
             done = number < (Math.pow(16, loopCounter + 1 ) );
             loopCounter++;
         }
@@ -14557,7 +15379,7 @@
      * @param id - the shortid-generated id.
      */
     function decode$1(id) {
-        var characters = alphabet_1$2.shuffled();
+        var characters = alphabet_1$3.shuffled();
         return {
             version: characters.indexOf(id.substr(0, 1)) & 0x0f,
             worker: characters.indexOf(id.substr(1, 1)) & 0x0f
@@ -14566,12 +15388,12 @@
 
     var decode_1$1 = decode$1;
 
-    function isShortId$2(id) {
+    function isShortId$3(id) {
         if (!id || typeof id !== 'string' || id.length < 6 ) {
             return false;
         }
 
-        var characters = alphabet_1$2.characters();
+        var characters = alphabet_1$3.characters();
         var len = id.length;
         for(var i = 0; i < len;i++) {
             if (characters.indexOf(id[i]) === -1) {
@@ -14581,9 +15403,9 @@
         return true;
     }
 
-    var isValid$2 = isShortId$2;
+    var isValid$3 = isShortId$3;
 
-    var lib$1$2 = createCommonjsModule$2(function (module) {
+    var lib$1$2 = createCommonjsModule$3(function (module) {
 
 
 
@@ -14628,12 +15450,12 @@
             previousSeconds = seconds;
         }
 
-        str = str + encode_1$1(alphabet_1$2.lookup, version);
-        str = str + encode_1$1(alphabet_1$2.lookup, clusterWorkerId);
+        str = str + encode_1$1(alphabet_1$3.lookup, version);
+        str = str + encode_1$1(alphabet_1$3.lookup, clusterWorkerId);
         if (counter > 0) {
-            str = str + encode_1$1(alphabet_1$2.lookup, counter);
+            str = str + encode_1$1(alphabet_1$3.lookup, counter);
         }
-        str = str + encode_1$1(alphabet_1$2.lookup, seconds);
+        str = str + encode_1$1(alphabet_1$3.lookup, seconds);
 
         return str;
     }
@@ -14646,7 +15468,7 @@
      * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
      */
     function seed(seedValue) {
-        alphabet_1$2.seed(seedValue);
+        alphabet_1$3.seed(seedValue);
         return module.exports;
     }
 
@@ -14668,10 +15490,10 @@
      */
     function characters(newCharacters) {
         if (newCharacters !== undefined) {
-            alphabet_1$2.characters(newCharacters);
+            alphabet_1$3.characters(newCharacters);
         }
 
-        return alphabet_1$2.shuffled();
+        return alphabet_1$3.shuffled();
     }
 
 
@@ -14682,7 +15504,7 @@
     module.exports.worker = worker;
     module.exports.characters = characters;
     module.exports.decode = decode_1$1;
-    module.exports.isValid = isValid$2;
+    module.exports.isValid = isValid$3;
     });
     var lib_1$1 = lib$1$2.generate;
     var lib_2$1 = lib$1$2.seed;
@@ -14691,7 +15513,7 @@
     var lib_5$1 = lib$1$2.decode;
     var lib_6$1 = lib$1$2.isValid;
 
-    var shortid$2 = lib$1$2;
+    var shortid$3 = lib$1$2;
 
     function domainSession$1 (domain, connection, logger, successMessages, errorMessages) {
         if (domain == null) {
@@ -14703,7 +15525,7 @@
         var tryReconnecting = false;
         var _latestOptions;
         var _connectionOn = false;
-        var callbacks = lib$3();
+        var callbacks = lib$4();
         connection.disconnected(handleConnectionDisconnected);
         connection.loggedIn(handleConnectionLoggedIn);
         connection.on("success", function (msg) { return handleSuccessMessage(msg); });
@@ -14830,7 +15652,7 @@
             entry.success(msg);
         }
         function getNextRequestId() {
-            return shortid$2();
+            return shortid$3();
         }
         function send(msg, tag, options) {
             options = options || {};
@@ -14910,7 +15732,7 @@
             this.datePrefixLen = this.datePrefix.length;
             this.dateMinLen = this.datePrefixLen + 1;
             this.datePrefixFirstChar = this.datePrefix[0];
-            this.registry = lib$3();
+            this.registry = lib$4();
             this._isLoggedIn = false;
             this.shouldTryLogin = true;
             this.initialLogin = true;
@@ -15331,7 +16153,7 @@
             this.parentPingTimeout = 3000;
             this.connectionRequestTimeout = 5000;
             this.defaultTargetString = "*";
-            this.registry = lib$3();
+            this.registry = lib$4();
             this.messages = {
                 connectionAccepted: { name: "connectionAccepted", handle: this.handleConnectionAccepted.bind(this) },
                 connectionRejected: { name: "connectionRejected", handle: this.handleConnectionRejected.bind(this) },
@@ -15341,7 +16163,8 @@
                 platformPing: { name: "platformPing", handle: this.handlePlatformPing.bind(this) },
                 platformUnload: { name: "platformUnload", handle: this.handlePlatformUnload.bind(this) },
                 platformReady: { name: "platformReady", handle: this.handlePlatformReady.bind(this) },
-                clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) }
+                clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) },
+                manualUnload: { name: "manualUnload", handle: this.handleManualUnload.bind(this) }
             };
             this.setUpMessageListener();
             this.setUpUnload();
@@ -15451,7 +16274,7 @@
             return PromisePlus$2(function (resolve, reject) {
                 _this.connectionResolve = resolve;
                 _this.connectionReject = reject;
-                _this.myClientId = shortid$2();
+                _this.myClientId = shortid$3();
                 var bridgeInstanceId = _this.parentType === "workspace" ? window.name.substring(0, window.name.indexOf("#wsp")) : window.name;
                 var request = {
                     glue42core: {
@@ -15641,19 +16464,36 @@
             }
             this.notifyStatusChanged(false, "Gateway unloaded");
         };
+        WebPlatformTransport.prototype.handleManualUnload = function () {
+            var _a, _b;
+            var message = {
+                glue42core: {
+                    type: this.messages.clientUnload.name,
+                    data: {
+                        clientId: this.myClientId,
+                        ownWindowId: (_a = this.identity) === null || _a === void 0 ? void 0 : _a.windowId
+                    }
+                }
+            };
+            if (this.parent) {
+                this.parent.postMessage(message, this.defaultTargetString);
+            }
+            (_b = this.port) === null || _b === void 0 ? void 0 : _b.postMessage(message);
+        };
         WebPlatformTransport.prototype.handleClientUnload = function (event) {
             var data = event.data.glue42core;
-            if (!data.clientId) {
+            var clientId = data === null || data === void 0 ? void 0 : data.data.clientId;
+            if (!clientId) {
                 this.logger.warn("cannot process grand child unload, because the provided id was not valid");
                 return;
             }
-            var foundChild = this.children.find(function (child) { return child.grandChildId === data.clientId; });
+            var foundChild = this.children.find(function (child) { return child.grandChildId === clientId; });
             if (!foundChild) {
                 this.logger.warn("cannot process grand child unload, because this client is unaware of this grandchild");
                 return;
             }
-            this.logger.debug("handling grandchild unload for id: " + data.clientId);
-            this.children = this.children.filter(function (child) { return child.grandChildId !== data.clientId; });
+            this.logger.debug("handling grandchild unload for id: " + clientId);
+            this.children = this.children.filter(function (child) { return child.grandChildId !== clientId; });
         };
         WebPlatformTransport.prototype.handlePlatformPing = function () {
             this.logger.error("cannot handle platform ping, because this is not a platform calls handling component");
@@ -15684,7 +16524,7 @@
             this.logger = logger;
             this.messageHandlers = {};
             this.ids = 1;
-            this.registry = lib$3();
+            this.registry = lib$4();
             this._connected = false;
             this.isTrace = false;
             settings = settings || {};
@@ -16042,7 +16882,7 @@
         }
     };
 
-    var version$4 = "5.2.8-beta.0";
+    var version$5 = "5.4.12";
 
     function prepareConfig$1 (configuration, ext, glue42gd) {
         var _a, _b, _c, _d, _e;
@@ -16114,7 +16954,7 @@
                     process: pid,
                     region: region,
                     environment: environment,
-                    api: ext.version || version$4
+                    api: ext.version || version$5
                 },
                 reconnectInterval: reconnectInterval,
                 ws: ws,
@@ -16133,7 +16973,7 @@
             if (glue42gd) {
                 return glue42gd.applicationName;
             }
-            var uid = shortid$2();
+            var uid = shortid$3();
             if (Utils$1.isNode()) {
                 if (nodeStartingContext) {
                     return nodeStartingContext.applicationConfig.name;
@@ -16203,7 +17043,7 @@
             connection: connection,
             metrics: (_c = configuration.metrics) !== null && _c !== void 0 ? _c : true,
             contexts: (_d = configuration.contexts) !== null && _d !== void 0 ? _d : true,
-            version: ext.version || version$4,
+            version: ext.version || version$5,
             libs: (_e = ext.libs) !== null && _e !== void 0 ? _e : [],
             customLogger: configuration.customLogger
         };
@@ -16384,6 +17224,14 @@
             obj = obj[pathArr[i]];
         }
         obj[pathArr[i]] = value;
+    }
+    function isSubset$1(superObj, subObj) {
+        return Object.keys(subObj).every(function (ele) {
+            if (typeof subObj[ele] === "object") {
+                return isSubset$1((superObj === null || superObj === void 0 ? void 0 : superObj[ele]) || {}, subObj[ele] || {});
+            }
+            return subObj[ele] === (superObj === null || superObj === void 0 ? void 0 : superObj[ele]);
+        });
     }
     function deletePath$1(obj, path) {
         var pathArr = path.split(".");
@@ -17056,10 +17904,17 @@
     function rejectAfter$1(ms, promise, error) {
         if (ms === void 0) { ms = 0; }
         var timeout;
-        promise.finally(function () {
+        var clearTimeoutIfThere = function () {
             if (timeout) {
                 clearTimeout(timeout);
             }
+        };
+        promise
+            .then(function () {
+            clearTimeoutIfThere();
+        })
+            .catch(function () {
+            clearTimeoutIfThere();
         });
         return new Promise(function (resolve, reject) {
             timeout = setTimeout(function () { return reject(error); }, ms);
@@ -17212,9 +18067,9 @@
                     getInvokePromise = function () { return __awaiter$2(_this, void 0, void 0, function () {
                         var methodDefinition, serversMethodMap, err_1, method, errorObj, timeout, additionalOptionsCopy, invokePromises, invocationMessages, results, allRejected;
                         var _this = this;
-                        var _a;
-                        return __generator$1(this, function (_b) {
-                            switch (_b.label) {
+                        var _a, _b, _c;
+                        return __generator$1(this, function (_d) {
+                            switch (_d.label) {
                                 case 0:
                                     if (typeof methodFilter === "string") {
                                         methodDefinition = { name: methodFilter };
@@ -17257,16 +18112,16 @@
                                     }
                                     serversMethodMap = this.getServerMethodsByFilterAndTarget(methodDefinition, target);
                                     if (!(serversMethodMap.length === 0)) return [3, 4];
-                                    _b.label = 1;
+                                    _d.label = 1;
                                 case 1:
-                                    _b.trys.push([1, 3, , 4]);
+                                    _d.trys.push([1, 3, , 4]);
                                     return [4, this.tryToAwaitForMethods(methodDefinition, target, additionalOptions)];
                                 case 2:
-                                    serversMethodMap = _b.sent();
+                                    serversMethodMap = _d.sent();
                                     return [3, 4];
                                 case 3:
-                                    err_1 = _b.sent();
-                                    method = __assign$3(__assign$3({}, methodDefinition), { getServers: function () { return []; }, supportsStreaming: false, objectTypes: (_a = methodDefinition.objectTypes) !== null && _a !== void 0 ? _a : [] });
+                                    err_1 = _d.sent();
+                                    method = __assign$3(__assign$3({}, methodDefinition), { getServers: function () { return []; }, supportsStreaming: false, objectTypes: (_a = methodDefinition.objectTypes) !== null && _a !== void 0 ? _a : [], flags: (_c = (_b = methodDefinition.flags) === null || _b === void 0 ? void 0 : _b.metadata) !== null && _c !== void 0 ? _c : {} });
                                     errorObj = {
                                         method: method,
                                         called_with: argumentObj,
@@ -17280,7 +18135,7 @@
                                     timeout = additionalOptions.methodResponseTimeoutMs;
                                     additionalOptionsCopy = additionalOptions;
                                     invokePromises = serversMethodMap.map(function (serversMethodPair) {
-                                        var invId = shortid$2();
+                                        var invId = shortid$3();
                                         var method = serversMethodPair.methods[0];
                                         var server = serversMethodPair.server;
                                         var invokePromise = _this.protocol.client.invoke(invId, method, argumentObj, server, additionalOptionsCopy);
@@ -17295,7 +18150,7 @@
                                     });
                                     return [4, Promise.all(invokePromises)];
                                 case 5:
-                                    invocationMessages = _b.sent();
+                                    invocationMessages = _d.sent();
                                     results = this.getInvocationResultObj(invocationMessages, methodDefinition, argumentObj);
                                     allRejected = invocationMessages.every(function (result) { return result.status === InvokeStatus$1.Error; });
                                     if (allRejected) {
@@ -17435,38 +18290,24 @@
                     && prop !== "identifier"
                     && prop[0] !== "_";
             });
-            return filterProps.reduce(function (isMatch, prop) {
+            return filterProps.every(function (prop) {
+                var isMatch;
                 var filterValue = filter[prop];
                 var repoMethodValue = repoMethod[prop];
-                if (prop === "objectTypes") {
-                    var containsAllFromFilter = function (filterObjTypes, repoObjectTypes) {
-                        var objTypeToContains = filterObjTypes.reduce(function (object, objType) {
-                            object[objType] = false;
-                            return object;
-                        }, {});
-                        repoObjectTypes.forEach(function (repoObjType) {
-                            if (objTypeToContains[repoObjType] !== undefined) {
-                                objTypeToContains[repoObjType] = true;
-                            }
+                switch (prop) {
+                    case "objectTypes":
+                        isMatch = (filterValue || []).every(function (filterValueEl) {
+                            return (repoMethodValue || []).includes(filterValueEl);
                         });
-                        var filterIsFullfilled = function () { return Object.keys(objTypeToContains).reduce(function (isFullfiled, objType) {
-                            if (!objTypeToContains[objType]) {
-                                isFullfiled = false;
-                            }
-                            return isFullfiled;
-                        }, true); };
-                        return filterIsFullfilled();
-                    };
-                    if (filterValue.length > repoMethodValue.length
-                        || containsAllFromFilter(filterValue, repoMethodValue) === false) {
-                        isMatch = false;
-                    }
-                }
-                else if (String(filterValue).toLowerCase() !== String(repoMethodValue).toLowerCase()) {
-                    isMatch = false;
+                        break;
+                    case "flags":
+                        isMatch = isSubset$1(repoMethodValue || {}, filterValue || {});
+                        break;
+                    default:
+                        isMatch = String(filterValue).toLowerCase() === String(repoMethodValue).toLowerCase();
                 }
                 return isMatch;
-            }, true);
+            });
         };
         Client.prototype.getMethods = function (methodFilter) {
             var _this = this;
@@ -17513,7 +18354,7 @@
                 });
             }
             return servers.reduce(function (prev, current) {
-                var methodsForServer = _this.repo.getServerMethodsById(current.id);
+                var methodsForServer = Object.values(current.methods);
                 var matchingMethods = methodsForServer.filter(function (method) {
                     return _this.methodMatch(methodFilter, method);
                 });
@@ -17575,7 +18416,7 @@
         return ServerSubscription;
     }());
 
-    var Request$1 = (function () {
+    var Request$2 = (function () {
         function Request(protocol, repoMethod, requestContext) {
             this.protocol = protocol;
             this.repoMethod = repoMethod;
@@ -17610,7 +18451,7 @@
                 typeof repoMethod.streamCallbacks.subscriptionRequestHandler === "function")) {
                 return;
             }
-            var request = new Request$1(this.protocol, repoMethod, requestContext);
+            var request = new Request$2(this.protocol, repoMethod, requestContext);
             repoMethod.streamCallbacks.subscriptionRequestHandler(request);
         };
         ServerStreaming.prototype.handleSubAdded = function (subscription, repoMethod) {
@@ -17690,6 +18531,7 @@
         };
         Object.defineProperty(ServerStream.prototype, "definition", {
             get: function () {
+                var _a;
                 var def2 = this._repoMethod.definition;
                 return {
                     accepts: def2.accepts,
@@ -17699,6 +18541,7 @@
                     objectTypes: def2.objectTypes,
                     returns: def2.returns,
                     supportsStreaming: def2.supportsStreaming,
+                    flags: (_a = def2.flags) === null || _a === void 0 ? void 0 : _a.metadata,
                 };
             },
             enumerable: true,
@@ -18037,11 +18880,14 @@
     }());
 
     var InstanceWrapper$1 = (function () {
-        function InstanceWrapper(instance, connection) {
+        function InstanceWrapper(API, instance, connection) {
             var _this = this;
-            this.wrapped = {
-                getMethods: getMethods$1,
-                getStreams: getStreams$1,
+            this.wrapped = {};
+            this.wrapped.getMethods = function () {
+                return API.methodsForInstance(this);
+            };
+            this.wrapped.getStreams = function () {
+                return API.methodsForInstance(this).filter(function (m) { return m.supportsStreaming; });
             };
             if (instance) {
                 this.refreshWrappedObject(instance);
@@ -18065,38 +18911,42 @@
             this.refreshWrappedObject(instance);
         };
         InstanceWrapper.prototype.refreshWrappedObject = function (resolvedIdentity) {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             this.wrapped.user = resolvedIdentity.user;
             this.wrapped.instance = resolvedIdentity.instance;
-            this.wrapped.application = (_a = resolvedIdentity.application) !== null && _a !== void 0 ? _a : shortid$2();
+            this.wrapped.application = (_a = resolvedIdentity.application) !== null && _a !== void 0 ? _a : shortid$3();
             this.wrapped.applicationName = resolvedIdentity.applicationName;
             this.wrapped.pid = (_c = (_b = resolvedIdentity.pid) !== null && _b !== void 0 ? _b : resolvedIdentity.process) !== null && _c !== void 0 ? _c : Math.floor(Math.random() * 10000000000);
             this.wrapped.machine = resolvedIdentity.machine;
             this.wrapped.environment = resolvedIdentity.environment;
             this.wrapped.region = resolvedIdentity.region;
             this.wrapped.windowId = resolvedIdentity.windowId;
-            this.wrapped.isLocal = true;
+            this.wrapped.isLocal = (_d = resolvedIdentity.isLocal) !== null && _d !== void 0 ? _d : true;
             this.wrapped.api = resolvedIdentity.api;
             this.wrapped.service = resolvedIdentity.service;
             this.wrapped.peerId = resolvedIdentity.peerId;
         };
         return InstanceWrapper;
     }());
-    function getMethods$1() {
-        var _a;
-        return (_a = InstanceWrapper$1.API) === null || _a === void 0 ? void 0 : _a.methodsForInstance(this);
-    }
-    function getStreams$1() {
-        var _a;
-        return (_a = InstanceWrapper$1.API) === null || _a === void 0 ? void 0 : _a.methodsForInstance(this).filter(function (m) { return m.supportsStreaming; });
-    }
 
+    var hideMethodSystemFlags$1 = function (method) {
+        return __assign$3(__assign$3({}, method), { flags: method.flags.metadata || {} });
+    };
     var ClientRepository$1 = (function () {
-        function ClientRepository(logger) {
+        function ClientRepository(logger, API) {
             this.logger = logger;
+            this.API = API;
             this.servers = {};
             this.methodsCount = {};
-            this.callbacks = lib$3();
+            this.callbacks = lib$4();
+            var peerId = this.API.instance.peerId;
+            this.myServer = {
+                id: peerId,
+                methods: {},
+                instance: this.API.instance,
+                wrapper: this.API.unwrappedInstance,
+            };
+            this.servers[peerId] = this.myServer;
         }
         ClientRepository.prototype.addServer = function (info, serverId) {
             this.logger.debug("adding server " + serverId);
@@ -18104,7 +18954,7 @@
             if (current) {
                 return current.id;
             }
-            var wrapper = new InstanceWrapper$1(info);
+            var wrapper = new InstanceWrapper$1(this.API, info);
             var serverEntry = {
                 id: serverId,
                 methods: {},
@@ -18132,6 +18982,7 @@
             this.callbacks.execute("onServerRemoved", server.instance, reason);
         };
         ClientRepository.prototype.addServerMethod = function (serverId, method) {
+            var _a;
             var server = this.servers[serverId];
             if (!server) {
                 throw new Error("server does not exists");
@@ -18152,6 +19003,7 @@
                 accepts: method.input_signature,
                 returns: method.result_signature,
                 supportsStreaming: typeof method.flags !== "undefined" ? method.flags.streaming : false,
+                flags: (_a = method.flags) !== null && _a !== void 0 ? _a : {},
                 getServers: function () {
                     return that.getServersByMethod(identifier);
                 }
@@ -18160,12 +19012,13 @@
             methodDefinition.display_name = methodDefinition.displayName;
             methodDefinition.version = methodDefinition.version;
             server.methods[method.id] = methodDefinition;
+            var clientMethodDefinition = hideMethodSystemFlags$1(methodDefinition);
             if (!this.methodsCount[identifier]) {
                 this.methodsCount[identifier] = 0;
-                this.callbacks.execute("onMethodAdded", methodDefinition);
+                this.callbacks.execute("onMethodAdded", clientMethodDefinition);
             }
             this.methodsCount[identifier] = this.methodsCount[identifier] + 1;
-            this.callbacks.execute("onServerMethodAdded", server.instance, methodDefinition);
+            this.callbacks.execute("onServerMethodAdded", server.instance, clientMethodDefinition);
             return methodDefinition;
         };
         ClientRepository.prototype.removeServerMethod = function (serverId, methodId) {
@@ -18175,41 +19028,18 @@
             }
             var method = server.methods[methodId];
             delete server.methods[methodId];
+            var clientMethodDefinition = hideMethodSystemFlags$1(method);
             this.methodsCount[method.identifier] = this.methodsCount[method.identifier] - 1;
             if (this.methodsCount[method.identifier] === 0) {
-                this.callbacks.execute("onMethodRemoved", method);
+                this.callbacks.execute("onMethodRemoved", clientMethodDefinition);
             }
-            this.callbacks.execute("onServerMethodRemoved", server.instance, method);
+            this.callbacks.execute("onServerMethodRemoved", server.instance, clientMethodDefinition);
         };
         ClientRepository.prototype.getMethods = function () {
-            var _this = this;
-            var allMethods = {};
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                Object.keys(server.methods).forEach(function (methodId) {
-                    var method = server.methods[methodId];
-                    allMethods[method.identifier] = method;
-                });
-            });
-            var methodsAsArray = Object.keys(allMethods).map(function (id) {
-                return allMethods[id];
-            });
-            return methodsAsArray;
+            return this.extractMethodsFromServers(Object.values(this.servers)).map(hideMethodSystemFlags$1);
         };
         ClientRepository.prototype.getServers = function () {
-            var _this = this;
-            var allServers = [];
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                allServers.push(server);
-            });
-            return allServers;
-        };
-        ClientRepository.prototype.getServerMethodsById = function (serverId) {
-            var server = this.servers[serverId];
-            return Object.keys(server.methods).map(function (id) {
-                return server.methods[id];
-            });
+            return Object.values(this.servers).map(this.hideServerMethodSystemFlags);
         };
         ClientRepository.prototype.onServerAdded = function (callback) {
             var unsubscribeFunc = this.callbacks.add("onServerAdded", callback);
@@ -18253,14 +19083,17 @@
             return unsubscribeFunc;
         };
         ClientRepository.prototype.getServerById = function (id) {
-            return this.servers[id];
+            return this.hideServerMethodSystemFlags(this.servers[id]);
         };
         ClientRepository.prototype.reset = function () {
+            var _a;
             var _this = this;
             Object.keys(this.servers).forEach(function (key) {
                 _this.removeServerById(key, "reset");
             });
-            this.servers = {};
+            this.servers = (_a = {},
+                _a[this.myServer.id] = this.myServer,
+                _a);
             this.methodsCount = {};
         };
         ClientRepository.prototype.createMethodIdentifier = function (methodInfo) {
@@ -18269,13 +19102,10 @@
             return (methodInfo.name + accepts + returns).toLowerCase();
         };
         ClientRepository.prototype.getServersByMethod = function (identifier) {
-            var _this = this;
             var allServers = [];
-            Object.keys(this.servers).forEach(function (serverId) {
-                var server = _this.servers[serverId];
-                Object.keys(server.methods).forEach(function (methodId) {
-                    var methodInfo = server.methods[methodId];
-                    if (methodInfo.identifier === identifier) {
+            Object.values(this.servers).forEach(function (server) {
+                Object.values(server.methods).forEach(function (method) {
+                    if (method.identifier === identifier) {
                         allServers.push(server.instance);
                     }
                 });
@@ -18295,6 +19125,20 @@
                 unsubCalled = true;
                 unsubscribeFunc();
             };
+        };
+        ClientRepository.prototype.hideServerMethodSystemFlags = function (server) {
+            var clientMethods = {};
+            Object.entries(server.methods).forEach(function (_a) {
+                var name = _a[0], method = _a[1];
+                clientMethods[name] = hideMethodSystemFlags$1(method);
+            });
+            return __assign$3(__assign$3({}, server), { methods: clientMethods });
+        };
+        ClientRepository.prototype.extractMethodsFromServers = function (servers) {
+            var methods = Object.values(servers).reduce(function (clientMethods, server) {
+                return __spreadArrays$1(clientMethods, Object.values(server.methods));
+            }, []);
+            return methods;
         };
         return ClientRepository;
     }());
@@ -18348,7 +19192,7 @@
             this.repository = repository;
             this.serverRepository = serverRepository;
             this.ERR_URI_SUBSCRIPTION_FAILED = "com.tick42.agm.errors.subscription.failure";
-            this.callbacks = lib$3();
+            this.callbacks = lib$4();
             this.nextStreamId = 0;
             session.on("add-interest", function (msg) {
                 _this.handleAddInterest(msg);
@@ -18610,7 +19454,7 @@
             this.clientRepository = clientRepository;
             this.serverRepository = serverRepository;
             this.logger = logger;
-            this.callbacks = lib$3();
+            this.callbacks = lib$4();
             this.streaming = new ServerStreaming$1$1(session, clientRepository, serverRepository);
             this.session.on("invoke", function (msg) { return _this.handleInvokeMessage(msg); });
         }
@@ -18621,8 +19465,9 @@
         };
         ServerProtocol.prototype.register = function (repoMethod, isStreaming) {
             var _this = this;
+            var _a;
             var methodDef = repoMethod.definition;
-            var flags = { streaming: isStreaming || false };
+            var flags = Object.assign({}, { metadata: (_a = methodDef.flags) !== null && _a !== void 0 ? _a : {} }, { streaming: isStreaming || false });
             var registerMsg = {
                 type: "register",
                 methods: [{
@@ -19328,9 +20173,9 @@
             if (typeof configuration.waitTimeoutMs !== "number") {
                 configuration.waitTimeoutMs = 30 * 1000;
             }
-            InstanceWrapper$1.API = this;
-            this.instance = new InstanceWrapper$1(undefined, connection).unwrap();
-            this.clientRepository = new ClientRepository$1(configuration.logger.subLogger("cRep"));
+            this.unwrappedInstance = new InstanceWrapper$1(this, undefined, connection);
+            this.instance = this.unwrappedInstance.unwrap();
+            this.clientRepository = new ClientRepository$1(configuration.logger.subLogger("cRep"), this);
             this.serverRepository = new ServerRepository$1();
             var protocolPromise;
             if (connection.protocolVersion === 3) {
@@ -19393,6 +20238,16 @@
         };
         Interop.prototype.invoke = function (methodFilter, argumentObj, target, additionalOptions, success, error) {
             return this.client.invoke(methodFilter, argumentObj, target, additionalOptions, success, error);
+        };
+        Interop.prototype.waitForMethod = function (name) {
+            var pw = new PromiseWrapper$1();
+            var unsubscribe = this.client.methodAdded(function (m) {
+                if (m.name === name) {
+                    unsubscribe();
+                    pw.resolve(m);
+                }
+            });
+            return pw.promise;
         };
         return Interop;
     }());
@@ -19598,7 +20453,7 @@
             return Promise.resolve(undefined);
         }
         function setupMetrics() {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e;
             var initTimer = timer$1("metrics");
             var config = internalConfig.metrics;
             var metricsPublishingEnabledFunc = glue42gd === null || glue42gd === void 0 ? void 0 : glue42gd.getMetricsPublishingEnabled;
@@ -19610,8 +20465,8 @@
                 logger: _logger.subLogger("metrics"),
                 canUpdateMetric: canUpdateMetric,
                 system: "Glue42",
-                service: (_b = identity === null || identity === void 0 ? void 0 : identity.service) !== null && _b !== void 0 ? _b : "metrics-service",
-                instance: (_d = (_c = identity === null || identity === void 0 ? void 0 : identity.instance) !== null && _c !== void 0 ? _c : identity === null || identity === void 0 ? void 0 : identity.windowId) !== null && _d !== void 0 ? _d : shortid$2(),
+                service: (_c = (_b = identity === null || identity === void 0 ? void 0 : identity.service) !== null && _b !== void 0 ? _b : glue42gd === null || glue42gd === void 0 ? void 0 : glue42gd.applicationName) !== null && _c !== void 0 ? _c : internalConfig.application,
+                instance: (_e = (_d = identity === null || identity === void 0 ? void 0 : identity.instance) !== null && _d !== void 0 ? _d : identity === null || identity === void 0 ? void 0 : identity.windowId) !== null && _e !== void 0 ? _e : shortid$3(),
                 disableAutoAppSystem: disableAutoAppSystem,
                 pagePerformanceMetrics: typeof config !== "boolean" ? config === null || config === void 0 ? void 0 : config.pagePerformanceMetrics : undefined
             });
@@ -19696,7 +20551,7 @@
                 _interop.invoke("T42.ACS.Feedback", feedbackInfo, "best");
             };
             var info = {
-                coreVersion: version$4,
+                coreVersion: version$5,
                 version: internalConfig.version
             };
             glueInitTimer.stop();
@@ -19737,7 +20592,9 @@
                         return {
                             name: key,
                             duration: t.endTime - t.startTime,
-                            marks: t.marks
+                            marks: t.marks,
+                            startTime: t.startTime,
+                            endTime: t.endTime
                         };
                     });
                 }
@@ -19765,7 +20622,7 @@
                 var deprecatedDecorator = function (fn, wrong, proper) {
                     return function () {
                         glue.logger.warn("glue.js - 'glue.agm." + wrong + "' method is deprecated, use 'glue.interop." + proper + "' instead.");
-                        fn.apply(glue.agm, arguments);
+                        return fn.apply(glue.agm, arguments);
                     };
                 };
                 var agmAny = glue.agm;
@@ -19797,7 +20654,7 @@
     if (typeof window !== "undefined") {
         window.GlueCore = GlueCore$1;
     }
-    GlueCore$1.version = version$4;
+    GlueCore$1.version = version$5;
     GlueCore$1.default = GlueCore$1;
 
     const PromiseWrap$1 = (promise, timeoutMilliseconds, timeoutMessage) => {
@@ -19849,6 +20706,3525 @@
         });
     };
 
+    var toStr = Object.prototype.toString;
+
+    var isArguments = function isArguments(value) {
+    	var str = toStr.call(value);
+    	var isArgs = str === '[object Arguments]';
+    	if (!isArgs) {
+    		isArgs = str !== '[object Array]' &&
+    			value !== null &&
+    			typeof value === 'object' &&
+    			typeof value.length === 'number' &&
+    			value.length >= 0 &&
+    			toStr.call(value.callee) === '[object Function]';
+    	}
+    	return isArgs;
+    };
+
+    var keysShim;
+    if (!Object.keys) {
+    	// modified from https://github.com/es-shims/es5-shim
+    	var has = Object.prototype.hasOwnProperty;
+    	var toStr$1 = Object.prototype.toString;
+    	var isArgs = isArguments; // eslint-disable-line global-require
+    	var isEnumerable = Object.prototype.propertyIsEnumerable;
+    	var hasDontEnumBug = !isEnumerable.call({ toString: null }, 'toString');
+    	var hasProtoEnumBug = isEnumerable.call(function () {}, 'prototype');
+    	var dontEnums = [
+    		'toString',
+    		'toLocaleString',
+    		'valueOf',
+    		'hasOwnProperty',
+    		'isPrototypeOf',
+    		'propertyIsEnumerable',
+    		'constructor'
+    	];
+    	var equalsConstructorPrototype = function (o) {
+    		var ctor = o.constructor;
+    		return ctor && ctor.prototype === o;
+    	};
+    	var excludedKeys = {
+    		$applicationCache: true,
+    		$console: true,
+    		$external: true,
+    		$frame: true,
+    		$frameElement: true,
+    		$frames: true,
+    		$innerHeight: true,
+    		$innerWidth: true,
+    		$onmozfullscreenchange: true,
+    		$onmozfullscreenerror: true,
+    		$outerHeight: true,
+    		$outerWidth: true,
+    		$pageXOffset: true,
+    		$pageYOffset: true,
+    		$parent: true,
+    		$scrollLeft: true,
+    		$scrollTop: true,
+    		$scrollX: true,
+    		$scrollY: true,
+    		$self: true,
+    		$webkitIndexedDB: true,
+    		$webkitStorageInfo: true,
+    		$window: true
+    	};
+    	var hasAutomationEqualityBug = (function () {
+    		/* global window */
+    		if (typeof window === 'undefined') { return false; }
+    		for (var k in window) {
+    			try {
+    				if (!excludedKeys['$' + k] && has.call(window, k) && window[k] !== null && typeof window[k] === 'object') {
+    					try {
+    						equalsConstructorPrototype(window[k]);
+    					} catch (e) {
+    						return true;
+    					}
+    				}
+    			} catch (e) {
+    				return true;
+    			}
+    		}
+    		return false;
+    	}());
+    	var equalsConstructorPrototypeIfNotBuggy = function (o) {
+    		/* global window */
+    		if (typeof window === 'undefined' || !hasAutomationEqualityBug) {
+    			return equalsConstructorPrototype(o);
+    		}
+    		try {
+    			return equalsConstructorPrototype(o);
+    		} catch (e) {
+    			return false;
+    		}
+    	};
+
+    	keysShim = function keys(object) {
+    		var isObject = object !== null && typeof object === 'object';
+    		var isFunction = toStr$1.call(object) === '[object Function]';
+    		var isArguments = isArgs(object);
+    		var isString = isObject && toStr$1.call(object) === '[object String]';
+    		var theKeys = [];
+
+    		if (!isObject && !isFunction && !isArguments) {
+    			throw new TypeError('Object.keys called on a non-object');
+    		}
+
+    		var skipProto = hasProtoEnumBug && isFunction;
+    		if (isString && object.length > 0 && !has.call(object, 0)) {
+    			for (var i = 0; i < object.length; ++i) {
+    				theKeys.push(String(i));
+    			}
+    		}
+
+    		if (isArguments && object.length > 0) {
+    			for (var j = 0; j < object.length; ++j) {
+    				theKeys.push(String(j));
+    			}
+    		} else {
+    			for (var name in object) {
+    				if (!(skipProto && name === 'prototype') && has.call(object, name)) {
+    					theKeys.push(String(name));
+    				}
+    			}
+    		}
+
+    		if (hasDontEnumBug) {
+    			var skipConstructor = equalsConstructorPrototypeIfNotBuggy(object);
+
+    			for (var k = 0; k < dontEnums.length; ++k) {
+    				if (!(skipConstructor && dontEnums[k] === 'constructor') && has.call(object, dontEnums[k])) {
+    					theKeys.push(dontEnums[k]);
+    				}
+    			}
+    		}
+    		return theKeys;
+    	};
+    }
+    var implementation = keysShim;
+
+    var slice = Array.prototype.slice;
+
+
+    var origKeys = Object.keys;
+    var keysShim$1 = origKeys ? function keys(o) { return origKeys(o); } : implementation;
+
+    var originalKeys = Object.keys;
+
+    keysShim$1.shim = function shimObjectKeys() {
+    	if (Object.keys) {
+    		var keysWorksWithArguments = (function () {
+    			// Safari 5.0 bug
+    			var args = Object.keys(arguments);
+    			return args && args.length === arguments.length;
+    		}(1, 2));
+    		if (!keysWorksWithArguments) {
+    			Object.keys = function keys(object) { // eslint-disable-line func-name-matching
+    				if (isArguments(object)) {
+    					return originalKeys(slice.call(object));
+    				}
+    				return originalKeys(object);
+    			};
+    		}
+    	} else {
+    		Object.keys = keysShim$1;
+    	}
+    	return Object.keys || keysShim$1;
+    };
+
+    var objectKeys = keysShim$1;
+
+    /* eslint complexity: [2, 18], max-statements: [2, 33] */
+    var shams = function hasSymbols() {
+    	if (typeof Symbol !== 'function' || typeof Object.getOwnPropertySymbols !== 'function') { return false; }
+    	if (typeof Symbol.iterator === 'symbol') { return true; }
+
+    	var obj = {};
+    	var sym = Symbol('test');
+    	var symObj = Object(sym);
+    	if (typeof sym === 'string') { return false; }
+
+    	if (Object.prototype.toString.call(sym) !== '[object Symbol]') { return false; }
+    	if (Object.prototype.toString.call(symObj) !== '[object Symbol]') { return false; }
+
+    	// temp disabled per https://github.com/ljharb/object.assign/issues/17
+    	// if (sym instanceof Symbol) { return false; }
+    	// temp disabled per https://github.com/WebReflection/get-own-property-symbols/issues/4
+    	// if (!(symObj instanceof Symbol)) { return false; }
+
+    	// if (typeof Symbol.prototype.toString !== 'function') { return false; }
+    	// if (String(sym) !== Symbol.prototype.toString.call(sym)) { return false; }
+
+    	var symVal = 42;
+    	obj[sym] = symVal;
+    	for (sym in obj) { return false; } // eslint-disable-line no-restricted-syntax
+    	if (typeof Object.keys === 'function' && Object.keys(obj).length !== 0) { return false; }
+
+    	if (typeof Object.getOwnPropertyNames === 'function' && Object.getOwnPropertyNames(obj).length !== 0) { return false; }
+
+    	var syms = Object.getOwnPropertySymbols(obj);
+    	if (syms.length !== 1 || syms[0] !== sym) { return false; }
+
+    	if (!Object.prototype.propertyIsEnumerable.call(obj, sym)) { return false; }
+
+    	if (typeof Object.getOwnPropertyDescriptor === 'function') {
+    		var descriptor = Object.getOwnPropertyDescriptor(obj, sym);
+    		if (descriptor.value !== symVal || descriptor.enumerable !== true) { return false; }
+    	}
+
+    	return true;
+    };
+
+    var origSymbol = commonjsGlobal.Symbol;
+
+
+    var hasSymbols = function hasNativeSymbols() {
+    	if (typeof origSymbol !== 'function') { return false; }
+    	if (typeof Symbol !== 'function') { return false; }
+    	if (typeof origSymbol('foo') !== 'symbol') { return false; }
+    	if (typeof Symbol('bar') !== 'symbol') { return false; }
+
+    	return shams();
+    };
+
+    /* eslint no-invalid-this: 1 */
+
+    var ERROR_MESSAGE = 'Function.prototype.bind called on incompatible ';
+    var slice$1 = Array.prototype.slice;
+    var toStr$2 = Object.prototype.toString;
+    var funcType = '[object Function]';
+
+    var implementation$1 = function bind(that) {
+        var target = this;
+        if (typeof target !== 'function' || toStr$2.call(target) !== funcType) {
+            throw new TypeError(ERROR_MESSAGE + target);
+        }
+        var args = slice$1.call(arguments, 1);
+
+        var bound;
+        var binder = function () {
+            if (this instanceof bound) {
+                var result = target.apply(
+                    this,
+                    args.concat(slice$1.call(arguments))
+                );
+                if (Object(result) === result) {
+                    return result;
+                }
+                return this;
+            } else {
+                return target.apply(
+                    that,
+                    args.concat(slice$1.call(arguments))
+                );
+            }
+        };
+
+        var boundLength = Math.max(0, target.length - args.length);
+        var boundArgs = [];
+        for (var i = 0; i < boundLength; i++) {
+            boundArgs.push('$' + i);
+        }
+
+        bound = Function('binder', 'return function (' + boundArgs.join(',') + '){ return binder.apply(this,arguments); }')(binder);
+
+        if (target.prototype) {
+            var Empty = function Empty() {};
+            Empty.prototype = target.prototype;
+            bound.prototype = new Empty();
+            Empty.prototype = null;
+        }
+
+        return bound;
+    };
+
+    var functionBind = Function.prototype.bind || implementation$1;
+
+    var src = functionBind.call(Function.call, Object.prototype.hasOwnProperty);
+
+    /* globals
+    	AggregateError,
+    	Atomics,
+    	FinalizationRegistry,
+    	SharedArrayBuffer,
+    	WeakRef,
+    */
+
+    var undefined$1;
+
+    var $SyntaxError = SyntaxError;
+    var $Function = Function;
+    var $TypeError = TypeError;
+
+    // eslint-disable-next-line consistent-return
+    var getEvalledConstructor = function (expressionSyntax) {
+    	try {
+    		// eslint-disable-next-line no-new-func
+    		return Function('"use strict"; return (' + expressionSyntax + ').constructor;')();
+    	} catch (e) {}
+    };
+
+    var $gOPD = Object.getOwnPropertyDescriptor;
+    if ($gOPD) {
+    	try {
+    		$gOPD({}, '');
+    	} catch (e) {
+    		$gOPD = null; // this is IE 8, which has a broken gOPD
+    	}
+    }
+
+    var throwTypeError = function () {
+    	throw new $TypeError();
+    };
+    var ThrowTypeError = $gOPD
+    	? (function () {
+    		try {
+    			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
+    			arguments.callee; // IE 8 does not throw here
+    			return throwTypeError;
+    		} catch (calleeThrows) {
+    			try {
+    				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
+    				return $gOPD(arguments, 'callee').get;
+    			} catch (gOPDthrows) {
+    				return throwTypeError;
+    			}
+    		}
+    	}())
+    	: throwTypeError;
+
+    var hasSymbols$1 = hasSymbols();
+
+    var getProto = Object.getPrototypeOf || function (x) { return x.__proto__; }; // eslint-disable-line no-proto
+
+    var asyncGenFunction = getEvalledConstructor('async function* () {}');
+    var asyncGenFunctionPrototype = asyncGenFunction ? asyncGenFunction.prototype : undefined$1;
+    var asyncGenPrototype = asyncGenFunctionPrototype ? asyncGenFunctionPrototype.prototype : undefined$1;
+
+    var TypedArray = typeof Uint8Array === 'undefined' ? undefined$1 : getProto(Uint8Array);
+
+    var INTRINSICS = {
+    	'%AggregateError%': typeof AggregateError === 'undefined' ? undefined$1 : AggregateError,
+    	'%Array%': Array,
+    	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined$1 : ArrayBuffer,
+    	'%ArrayIteratorPrototype%': hasSymbols$1 ? getProto([][Symbol.iterator]()) : undefined$1,
+    	'%AsyncFromSyncIteratorPrototype%': undefined$1,
+    	'%AsyncFunction%': getEvalledConstructor('async function () {}'),
+    	'%AsyncGenerator%': asyncGenFunctionPrototype,
+    	'%AsyncGeneratorFunction%': asyncGenFunction,
+    	'%AsyncIteratorPrototype%': asyncGenPrototype ? getProto(asyncGenPrototype) : undefined$1,
+    	'%Atomics%': typeof Atomics === 'undefined' ? undefined$1 : Atomics,
+    	'%BigInt%': typeof BigInt === 'undefined' ? undefined$1 : BigInt,
+    	'%Boolean%': Boolean,
+    	'%DataView%': typeof DataView === 'undefined' ? undefined$1 : DataView,
+    	'%Date%': Date,
+    	'%decodeURI%': decodeURI,
+    	'%decodeURIComponent%': decodeURIComponent,
+    	'%encodeURI%': encodeURI,
+    	'%encodeURIComponent%': encodeURIComponent,
+    	'%Error%': Error,
+    	'%eval%': eval, // eslint-disable-line no-eval
+    	'%EvalError%': EvalError,
+    	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined$1 : Float32Array,
+    	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined$1 : Float64Array,
+    	'%FinalizationRegistry%': typeof FinalizationRegistry === 'undefined' ? undefined$1 : FinalizationRegistry,
+    	'%Function%': $Function,
+    	'%GeneratorFunction%': getEvalledConstructor('function* () {}'),
+    	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined$1 : Int8Array,
+    	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined$1 : Int16Array,
+    	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined$1 : Int32Array,
+    	'%isFinite%': isFinite,
+    	'%isNaN%': isNaN,
+    	'%IteratorPrototype%': hasSymbols$1 ? getProto(getProto([][Symbol.iterator]())) : undefined$1,
+    	'%JSON%': typeof JSON === 'object' ? JSON : undefined$1,
+    	'%Map%': typeof Map === 'undefined' ? undefined$1 : Map,
+    	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols$1 ? undefined$1 : getProto(new Map()[Symbol.iterator]()),
+    	'%Math%': Math,
+    	'%Number%': Number,
+    	'%Object%': Object,
+    	'%parseFloat%': parseFloat,
+    	'%parseInt%': parseInt,
+    	'%Promise%': typeof Promise === 'undefined' ? undefined$1 : Promise,
+    	'%Proxy%': typeof Proxy === 'undefined' ? undefined$1 : Proxy,
+    	'%RangeError%': RangeError,
+    	'%ReferenceError%': ReferenceError,
+    	'%Reflect%': typeof Reflect === 'undefined' ? undefined$1 : Reflect,
+    	'%RegExp%': RegExp,
+    	'%Set%': typeof Set === 'undefined' ? undefined$1 : Set,
+    	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols$1 ? undefined$1 : getProto(new Set()[Symbol.iterator]()),
+    	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined$1 : SharedArrayBuffer,
+    	'%String%': String,
+    	'%StringIteratorPrototype%': hasSymbols$1 ? getProto(''[Symbol.iterator]()) : undefined$1,
+    	'%Symbol%': hasSymbols$1 ? Symbol : undefined$1,
+    	'%SyntaxError%': $SyntaxError,
+    	'%ThrowTypeError%': ThrowTypeError,
+    	'%TypedArray%': TypedArray,
+    	'%TypeError%': $TypeError,
+    	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined$1 : Uint8Array,
+    	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined$1 : Uint8ClampedArray,
+    	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined$1 : Uint16Array,
+    	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined$1 : Uint32Array,
+    	'%URIError%': URIError,
+    	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined$1 : WeakMap,
+    	'%WeakRef%': typeof WeakRef === 'undefined' ? undefined$1 : WeakRef,
+    	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined$1 : WeakSet
+    };
+
+    var LEGACY_ALIASES = {
+    	'%ArrayBufferPrototype%': ['ArrayBuffer', 'prototype'],
+    	'%ArrayPrototype%': ['Array', 'prototype'],
+    	'%ArrayProto_entries%': ['Array', 'prototype', 'entries'],
+    	'%ArrayProto_forEach%': ['Array', 'prototype', 'forEach'],
+    	'%ArrayProto_keys%': ['Array', 'prototype', 'keys'],
+    	'%ArrayProto_values%': ['Array', 'prototype', 'values'],
+    	'%AsyncFunctionPrototype%': ['AsyncFunction', 'prototype'],
+    	'%AsyncGenerator%': ['AsyncGeneratorFunction', 'prototype'],
+    	'%AsyncGeneratorPrototype%': ['AsyncGeneratorFunction', 'prototype', 'prototype'],
+    	'%BooleanPrototype%': ['Boolean', 'prototype'],
+    	'%DataViewPrototype%': ['DataView', 'prototype'],
+    	'%DatePrototype%': ['Date', 'prototype'],
+    	'%ErrorPrototype%': ['Error', 'prototype'],
+    	'%EvalErrorPrototype%': ['EvalError', 'prototype'],
+    	'%Float32ArrayPrototype%': ['Float32Array', 'prototype'],
+    	'%Float64ArrayPrototype%': ['Float64Array', 'prototype'],
+    	'%FunctionPrototype%': ['Function', 'prototype'],
+    	'%Generator%': ['GeneratorFunction', 'prototype'],
+    	'%GeneratorPrototype%': ['GeneratorFunction', 'prototype', 'prototype'],
+    	'%Int8ArrayPrototype%': ['Int8Array', 'prototype'],
+    	'%Int16ArrayPrototype%': ['Int16Array', 'prototype'],
+    	'%Int32ArrayPrototype%': ['Int32Array', 'prototype'],
+    	'%JSONParse%': ['JSON', 'parse'],
+    	'%JSONStringify%': ['JSON', 'stringify'],
+    	'%MapPrototype%': ['Map', 'prototype'],
+    	'%NumberPrototype%': ['Number', 'prototype'],
+    	'%ObjectPrototype%': ['Object', 'prototype'],
+    	'%ObjProto_toString%': ['Object', 'prototype', 'toString'],
+    	'%ObjProto_valueOf%': ['Object', 'prototype', 'valueOf'],
+    	'%PromisePrototype%': ['Promise', 'prototype'],
+    	'%PromiseProto_then%': ['Promise', 'prototype', 'then'],
+    	'%Promise_all%': ['Promise', 'all'],
+    	'%Promise_reject%': ['Promise', 'reject'],
+    	'%Promise_resolve%': ['Promise', 'resolve'],
+    	'%RangeErrorPrototype%': ['RangeError', 'prototype'],
+    	'%ReferenceErrorPrototype%': ['ReferenceError', 'prototype'],
+    	'%RegExpPrototype%': ['RegExp', 'prototype'],
+    	'%SetPrototype%': ['Set', 'prototype'],
+    	'%SharedArrayBufferPrototype%': ['SharedArrayBuffer', 'prototype'],
+    	'%StringPrototype%': ['String', 'prototype'],
+    	'%SymbolPrototype%': ['Symbol', 'prototype'],
+    	'%SyntaxErrorPrototype%': ['SyntaxError', 'prototype'],
+    	'%TypedArrayPrototype%': ['TypedArray', 'prototype'],
+    	'%TypeErrorPrototype%': ['TypeError', 'prototype'],
+    	'%Uint8ArrayPrototype%': ['Uint8Array', 'prototype'],
+    	'%Uint8ClampedArrayPrototype%': ['Uint8ClampedArray', 'prototype'],
+    	'%Uint16ArrayPrototype%': ['Uint16Array', 'prototype'],
+    	'%Uint32ArrayPrototype%': ['Uint32Array', 'prototype'],
+    	'%URIErrorPrototype%': ['URIError', 'prototype'],
+    	'%WeakMapPrototype%': ['WeakMap', 'prototype'],
+    	'%WeakSetPrototype%': ['WeakSet', 'prototype']
+    };
+
+
+
+    var $concat = functionBind.call(Function.call, Array.prototype.concat);
+    var $spliceApply = functionBind.call(Function.apply, Array.prototype.splice);
+    var $replace = functionBind.call(Function.call, String.prototype.replace);
+    var $strSlice = functionBind.call(Function.call, String.prototype.slice);
+
+    /* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
+    var rePropName = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
+    var reEscapeChar = /\\(\\)?/g; /** Used to match backslashes in property paths. */
+    var stringToPath = function stringToPath(string) {
+    	var first = $strSlice(string, 0, 1);
+    	var last = $strSlice(string, -1);
+    	if (first === '%' && last !== '%') {
+    		throw new $SyntaxError('invalid intrinsic syntax, expected closing `%`');
+    	} else if (last === '%' && first !== '%') {
+    		throw new $SyntaxError('invalid intrinsic syntax, expected opening `%`');
+    	}
+    	var result = [];
+    	$replace(string, rePropName, function (match, number, quote, subString) {
+    		result[result.length] = quote ? $replace(subString, reEscapeChar, '$1') : number || match;
+    	});
+    	return result;
+    };
+    /* end adaptation */
+
+    var getBaseIntrinsic = function getBaseIntrinsic(name, allowMissing) {
+    	var intrinsicName = name;
+    	var alias;
+    	if (src(LEGACY_ALIASES, intrinsicName)) {
+    		alias = LEGACY_ALIASES[intrinsicName];
+    		intrinsicName = '%' + alias[0] + '%';
+    	}
+
+    	if (src(INTRINSICS, intrinsicName)) {
+    		var value = INTRINSICS[intrinsicName];
+    		if (typeof value === 'undefined' && !allowMissing) {
+    			throw new $TypeError('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
+    		}
+
+    		return {
+    			alias: alias,
+    			name: intrinsicName,
+    			value: value
+    		};
+    	}
+
+    	throw new $SyntaxError('intrinsic ' + name + ' does not exist!');
+    };
+
+    var getIntrinsic = function GetIntrinsic(name, allowMissing) {
+    	if (typeof name !== 'string' || name.length === 0) {
+    		throw new $TypeError('intrinsic name must be a non-empty string');
+    	}
+    	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
+    		throw new $TypeError('"allowMissing" argument must be a boolean');
+    	}
+
+    	var parts = stringToPath(name);
+    	var intrinsicBaseName = parts.length > 0 ? parts[0] : '';
+
+    	var intrinsic = getBaseIntrinsic('%' + intrinsicBaseName + '%', allowMissing);
+    	var intrinsicRealName = intrinsic.name;
+    	var value = intrinsic.value;
+    	var skipFurtherCaching = false;
+
+    	var alias = intrinsic.alias;
+    	if (alias) {
+    		intrinsicBaseName = alias[0];
+    		$spliceApply(parts, $concat([0, 1], alias));
+    	}
+
+    	for (var i = 1, isOwn = true; i < parts.length; i += 1) {
+    		var part = parts[i];
+    		var first = $strSlice(part, 0, 1);
+    		var last = $strSlice(part, -1);
+    		if (
+    			(
+    				(first === '"' || first === "'" || first === '`')
+    				|| (last === '"' || last === "'" || last === '`')
+    			)
+    			&& first !== last
+    		) {
+    			throw new $SyntaxError('property names with quotes must have matching quotes');
+    		}
+    		if (part === 'constructor' || !isOwn) {
+    			skipFurtherCaching = true;
+    		}
+
+    		intrinsicBaseName += '.' + part;
+    		intrinsicRealName = '%' + intrinsicBaseName + '%';
+
+    		if (src(INTRINSICS, intrinsicRealName)) {
+    			value = INTRINSICS[intrinsicRealName];
+    		} else if (value != null) {
+    			if (!(part in value)) {
+    				if (!allowMissing) {
+    					throw new $TypeError('base intrinsic for ' + name + ' exists, but the property is not available.');
+    				}
+    				return void undefined$1;
+    			}
+    			if ($gOPD && (i + 1) >= parts.length) {
+    				var desc = $gOPD(value, part);
+    				isOwn = !!desc;
+
+    				// By convention, when a data property is converted to an accessor
+    				// property to emulate a data property that does not suffer from
+    				// the override mistake, that accessor's getter is marked with
+    				// an `originalValue` property. Here, when we detect this, we
+    				// uphold the illusion by pretending to see that original data
+    				// property, i.e., returning the value rather than the getter
+    				// itself.
+    				if (isOwn && 'get' in desc && !('originalValue' in desc.get)) {
+    					value = desc.get;
+    				} else {
+    					value = value[part];
+    				}
+    			} else {
+    				isOwn = src(value, part);
+    				value = value[part];
+    			}
+
+    			if (isOwn && !skipFurtherCaching) {
+    				INTRINSICS[intrinsicRealName] = value;
+    			}
+    		}
+    	}
+    	return value;
+    };
+
+    var callBind = createCommonjsModule$2(function (module) {
+
+
+
+
+    var $apply = getIntrinsic('%Function.prototype.apply%');
+    var $call = getIntrinsic('%Function.prototype.call%');
+    var $reflectApply = getIntrinsic('%Reflect.apply%', true) || functionBind.call($call, $apply);
+
+    var $gOPD = getIntrinsic('%Object.getOwnPropertyDescriptor%', true);
+    var $defineProperty = getIntrinsic('%Object.defineProperty%', true);
+    var $max = getIntrinsic('%Math.max%');
+
+    if ($defineProperty) {
+    	try {
+    		$defineProperty({}, 'a', { value: 1 });
+    	} catch (e) {
+    		// IE 8 has a broken defineProperty
+    		$defineProperty = null;
+    	}
+    }
+
+    module.exports = function callBind(originalFunction) {
+    	var func = $reflectApply(functionBind, $call, arguments);
+    	if ($gOPD && $defineProperty) {
+    		var desc = $gOPD(func, 'length');
+    		if (desc.configurable) {
+    			// original length, plus the receiver, minus any additional arguments (after the receiver)
+    			$defineProperty(
+    				func,
+    				'length',
+    				{ value: 1 + $max(0, originalFunction.length - (arguments.length - 1)) }
+    			);
+    		}
+    	}
+    	return func;
+    };
+
+    var applyBind = function applyBind() {
+    	return $reflectApply(functionBind, $apply, arguments);
+    };
+
+    if ($defineProperty) {
+    	$defineProperty(module.exports, 'apply', { value: applyBind });
+    } else {
+    	module.exports.apply = applyBind;
+    }
+    });
+
+    var $indexOf = callBind(getIntrinsic('String.prototype.indexOf'));
+
+    var callBound = function callBoundIntrinsic(name, allowMissing) {
+    	var intrinsic = getIntrinsic(name, !!allowMissing);
+    	if (typeof intrinsic === 'function' && $indexOf(name, '.prototype.') > -1) {
+    		return callBind(intrinsic);
+    	}
+    	return intrinsic;
+    };
+
+    var hasToStringTag = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
+
+
+    var $toString = callBound('Object.prototype.toString');
+
+    var isStandardArguments = function isArguments(value) {
+    	if (hasToStringTag && value && typeof value === 'object' && Symbol.toStringTag in value) {
+    		return false;
+    	}
+    	return $toString(value) === '[object Arguments]';
+    };
+
+    var isLegacyArguments = function isArguments(value) {
+    	if (isStandardArguments(value)) {
+    		return true;
+    	}
+    	return value !== null &&
+    		typeof value === 'object' &&
+    		typeof value.length === 'number' &&
+    		value.length >= 0 &&
+    		$toString(value) !== '[object Array]' &&
+    		$toString(value.callee) === '[object Function]';
+    };
+
+    var supportsStandardArguments = (function () {
+    	return isStandardArguments(arguments);
+    }());
+
+    isStandardArguments.isLegacyArguments = isLegacyArguments; // for tests
+
+    var isArguments$1 = supportsStandardArguments ? isStandardArguments : isLegacyArguments;
+
+    var hasSymbols$2 = typeof Symbol === 'function' && typeof Symbol('foo') === 'symbol';
+
+    var toStr$3 = Object.prototype.toString;
+    var concat = Array.prototype.concat;
+    var origDefineProperty = Object.defineProperty;
+
+    var isFunction = function (fn) {
+    	return typeof fn === 'function' && toStr$3.call(fn) === '[object Function]';
+    };
+
+    var arePropertyDescriptorsSupported = function () {
+    	var obj = {};
+    	try {
+    		origDefineProperty(obj, 'x', { enumerable: false, value: obj });
+    		// eslint-disable-next-line no-unused-vars, no-restricted-syntax
+    		for (var _ in obj) { // jscs:ignore disallowUnusedVariables
+    			return false;
+    		}
+    		return obj.x === obj;
+    	} catch (e) { /* this is IE 8. */
+    		return false;
+    	}
+    };
+    var supportsDescriptors = origDefineProperty && arePropertyDescriptorsSupported();
+
+    var defineProperty = function (object, name, value, predicate) {
+    	if (name in object && (!isFunction(predicate) || !predicate())) {
+    		return;
+    	}
+    	if (supportsDescriptors) {
+    		origDefineProperty(object, name, {
+    			configurable: true,
+    			enumerable: false,
+    			value: value,
+    			writable: true
+    		});
+    	} else {
+    		object[name] = value;
+    	}
+    };
+
+    var defineProperties = function (object, map) {
+    	var predicates = arguments.length > 2 ? arguments[2] : {};
+    	var props = objectKeys(map);
+    	if (hasSymbols$2) {
+    		props = concat.call(props, Object.getOwnPropertySymbols(map));
+    	}
+    	for (var i = 0; i < props.length; i += 1) {
+    		defineProperty(object, props[i], map[props[i]], predicates[props[i]]);
+    	}
+    };
+
+    defineProperties.supportsDescriptors = !!supportsDescriptors;
+
+    var defineProperties_1 = defineProperties;
+
+    var numberIsNaN = function (value) {
+    	return value !== value;
+    };
+
+    var implementation$2 = function is(a, b) {
+    	if (a === 0 && b === 0) {
+    		return 1 / a === 1 / b;
+    	}
+    	if (a === b) {
+    		return true;
+    	}
+    	if (numberIsNaN(a) && numberIsNaN(b)) {
+    		return true;
+    	}
+    	return false;
+    };
+
+    var polyfill = function getPolyfill() {
+    	return typeof Object.is === 'function' ? Object.is : implementation$2;
+    };
+
+    var shim = function shimObjectIs() {
+    	var polyfill$1 = polyfill();
+    	defineProperties_1(Object, { is: polyfill$1 }, {
+    		is: function testObjectIs() {
+    			return Object.is !== polyfill$1;
+    		}
+    	});
+    	return polyfill$1;
+    };
+
+    var polyfill$1 = callBind(polyfill(), Object);
+
+    defineProperties_1(polyfill$1, {
+    	getPolyfill: polyfill,
+    	implementation: implementation$2,
+    	shim: shim
+    });
+
+    var objectIs = polyfill$1;
+
+    var hasSymbols$3 = hasSymbols();
+    var hasToStringTag$1 = hasSymbols$3 && typeof Symbol.toStringTag === 'symbol';
+    var hasOwnProperty;
+    var regexExec;
+    var isRegexMarker;
+    var badStringifier;
+
+    if (hasToStringTag$1) {
+    	hasOwnProperty = Function.call.bind(Object.prototype.hasOwnProperty);
+    	regexExec = Function.call.bind(RegExp.prototype.exec);
+    	isRegexMarker = {};
+
+    	var throwRegexMarker = function () {
+    		throw isRegexMarker;
+    	};
+    	badStringifier = {
+    		toString: throwRegexMarker,
+    		valueOf: throwRegexMarker
+    	};
+
+    	if (typeof Symbol.toPrimitive === 'symbol') {
+    		badStringifier[Symbol.toPrimitive] = throwRegexMarker;
+    	}
+    }
+
+    var toStr$4 = Object.prototype.toString;
+    var gOPD = Object.getOwnPropertyDescriptor;
+    var regexClass = '[object RegExp]';
+
+    var isRegex = hasToStringTag$1
+    	// eslint-disable-next-line consistent-return
+    	? function isRegex(value) {
+    		if (!value || typeof value !== 'object') {
+    			return false;
+    		}
+
+    		var descriptor = gOPD(value, 'lastIndex');
+    		var hasLastIndexDataProperty = descriptor && hasOwnProperty(descriptor, 'value');
+    		if (!hasLastIndexDataProperty) {
+    			return false;
+    		}
+
+    		try {
+    			regexExec(value, badStringifier);
+    		} catch (e) {
+    			return e === isRegexMarker;
+    		}
+    	}
+    	: function isRegex(value) {
+    		// In older browsers, typeof regex incorrectly returns 'function'
+    		if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+    			return false;
+    		}
+
+    		return toStr$4.call(value) === regexClass;
+    	};
+
+    /* globals
+    	Atomics,
+    	SharedArrayBuffer,
+    */
+
+    var undefined$2;
+
+    var $TypeError$1 = TypeError;
+
+    var $gOPD$1 = Object.getOwnPropertyDescriptor;
+    if ($gOPD$1) {
+    	try {
+    		$gOPD$1({}, '');
+    	} catch (e) {
+    		$gOPD$1 = null; // this is IE 8, which has a broken gOPD
+    	}
+    }
+
+    var throwTypeError$1 = function () { throw new $TypeError$1(); };
+    var ThrowTypeError$1 = $gOPD$1
+    	? (function () {
+    		try {
+    			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
+    			arguments.callee; // IE 8 does not throw here
+    			return throwTypeError$1;
+    		} catch (calleeThrows) {
+    			try {
+    				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
+    				return $gOPD$1(arguments, 'callee').get;
+    			} catch (gOPDthrows) {
+    				return throwTypeError$1;
+    			}
+    		}
+    	}())
+    	: throwTypeError$1;
+
+    var hasSymbols$4 = hasSymbols();
+
+    var getProto$1 = Object.getPrototypeOf || function (x) { return x.__proto__; }; // eslint-disable-line no-proto
+    var generatorFunction =  undefined$2;
+    var asyncFunction =  undefined$2;
+    var asyncGenFunction$1 =  undefined$2;
+
+    var TypedArray$1 = typeof Uint8Array === 'undefined' ? undefined$2 : getProto$1(Uint8Array);
+
+    var INTRINSICS$1 = {
+    	'%Array%': Array,
+    	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined$2 : ArrayBuffer,
+    	'%ArrayBufferPrototype%': typeof ArrayBuffer === 'undefined' ? undefined$2 : ArrayBuffer.prototype,
+    	'%ArrayIteratorPrototype%': hasSymbols$4 ? getProto$1([][Symbol.iterator]()) : undefined$2,
+    	'%ArrayPrototype%': Array.prototype,
+    	'%ArrayProto_entries%': Array.prototype.entries,
+    	'%ArrayProto_forEach%': Array.prototype.forEach,
+    	'%ArrayProto_keys%': Array.prototype.keys,
+    	'%ArrayProto_values%': Array.prototype.values,
+    	'%AsyncFromSyncIteratorPrototype%': undefined$2,
+    	'%AsyncFunction%': asyncFunction,
+    	'%AsyncFunctionPrototype%':  undefined$2,
+    	'%AsyncGenerator%':  undefined$2,
+    	'%AsyncGeneratorFunction%': asyncGenFunction$1,
+    	'%AsyncGeneratorPrototype%':  undefined$2,
+    	'%AsyncIteratorPrototype%':  undefined$2,
+    	'%Atomics%': typeof Atomics === 'undefined' ? undefined$2 : Atomics,
+    	'%Boolean%': Boolean,
+    	'%BooleanPrototype%': Boolean.prototype,
+    	'%DataView%': typeof DataView === 'undefined' ? undefined$2 : DataView,
+    	'%DataViewPrototype%': typeof DataView === 'undefined' ? undefined$2 : DataView.prototype,
+    	'%Date%': Date,
+    	'%DatePrototype%': Date.prototype,
+    	'%decodeURI%': decodeURI,
+    	'%decodeURIComponent%': decodeURIComponent,
+    	'%encodeURI%': encodeURI,
+    	'%encodeURIComponent%': encodeURIComponent,
+    	'%Error%': Error,
+    	'%ErrorPrototype%': Error.prototype,
+    	'%eval%': eval, // eslint-disable-line no-eval
+    	'%EvalError%': EvalError,
+    	'%EvalErrorPrototype%': EvalError.prototype,
+    	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined$2 : Float32Array,
+    	'%Float32ArrayPrototype%': typeof Float32Array === 'undefined' ? undefined$2 : Float32Array.prototype,
+    	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined$2 : Float64Array,
+    	'%Float64ArrayPrototype%': typeof Float64Array === 'undefined' ? undefined$2 : Float64Array.prototype,
+    	'%Function%': Function,
+    	'%FunctionPrototype%': Function.prototype,
+    	'%Generator%':  undefined$2,
+    	'%GeneratorFunction%': generatorFunction,
+    	'%GeneratorPrototype%':  undefined$2,
+    	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined$2 : Int8Array,
+    	'%Int8ArrayPrototype%': typeof Int8Array === 'undefined' ? undefined$2 : Int8Array.prototype,
+    	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined$2 : Int16Array,
+    	'%Int16ArrayPrototype%': typeof Int16Array === 'undefined' ? undefined$2 : Int8Array.prototype,
+    	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined$2 : Int32Array,
+    	'%Int32ArrayPrototype%': typeof Int32Array === 'undefined' ? undefined$2 : Int32Array.prototype,
+    	'%isFinite%': isFinite,
+    	'%isNaN%': isNaN,
+    	'%IteratorPrototype%': hasSymbols$4 ? getProto$1(getProto$1([][Symbol.iterator]())) : undefined$2,
+    	'%JSON%': typeof JSON === 'object' ? JSON : undefined$2,
+    	'%JSONParse%': typeof JSON === 'object' ? JSON.parse : undefined$2,
+    	'%Map%': typeof Map === 'undefined' ? undefined$2 : Map,
+    	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols$4 ? undefined$2 : getProto$1(new Map()[Symbol.iterator]()),
+    	'%MapPrototype%': typeof Map === 'undefined' ? undefined$2 : Map.prototype,
+    	'%Math%': Math,
+    	'%Number%': Number,
+    	'%NumberPrototype%': Number.prototype,
+    	'%Object%': Object,
+    	'%ObjectPrototype%': Object.prototype,
+    	'%ObjProto_toString%': Object.prototype.toString,
+    	'%ObjProto_valueOf%': Object.prototype.valueOf,
+    	'%parseFloat%': parseFloat,
+    	'%parseInt%': parseInt,
+    	'%Promise%': typeof Promise === 'undefined' ? undefined$2 : Promise,
+    	'%PromisePrototype%': typeof Promise === 'undefined' ? undefined$2 : Promise.prototype,
+    	'%PromiseProto_then%': typeof Promise === 'undefined' ? undefined$2 : Promise.prototype.then,
+    	'%Promise_all%': typeof Promise === 'undefined' ? undefined$2 : Promise.all,
+    	'%Promise_reject%': typeof Promise === 'undefined' ? undefined$2 : Promise.reject,
+    	'%Promise_resolve%': typeof Promise === 'undefined' ? undefined$2 : Promise.resolve,
+    	'%Proxy%': typeof Proxy === 'undefined' ? undefined$2 : Proxy,
+    	'%RangeError%': RangeError,
+    	'%RangeErrorPrototype%': RangeError.prototype,
+    	'%ReferenceError%': ReferenceError,
+    	'%ReferenceErrorPrototype%': ReferenceError.prototype,
+    	'%Reflect%': typeof Reflect === 'undefined' ? undefined$2 : Reflect,
+    	'%RegExp%': RegExp,
+    	'%RegExpPrototype%': RegExp.prototype,
+    	'%Set%': typeof Set === 'undefined' ? undefined$2 : Set,
+    	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols$4 ? undefined$2 : getProto$1(new Set()[Symbol.iterator]()),
+    	'%SetPrototype%': typeof Set === 'undefined' ? undefined$2 : Set.prototype,
+    	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined$2 : SharedArrayBuffer,
+    	'%SharedArrayBufferPrototype%': typeof SharedArrayBuffer === 'undefined' ? undefined$2 : SharedArrayBuffer.prototype,
+    	'%String%': String,
+    	'%StringIteratorPrototype%': hasSymbols$4 ? getProto$1(''[Symbol.iterator]()) : undefined$2,
+    	'%StringPrototype%': String.prototype,
+    	'%Symbol%': hasSymbols$4 ? Symbol : undefined$2,
+    	'%SymbolPrototype%': hasSymbols$4 ? Symbol.prototype : undefined$2,
+    	'%SyntaxError%': SyntaxError,
+    	'%SyntaxErrorPrototype%': SyntaxError.prototype,
+    	'%ThrowTypeError%': ThrowTypeError$1,
+    	'%TypedArray%': TypedArray$1,
+    	'%TypedArrayPrototype%': TypedArray$1 ? TypedArray$1.prototype : undefined$2,
+    	'%TypeError%': $TypeError$1,
+    	'%TypeErrorPrototype%': $TypeError$1.prototype,
+    	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined$2 : Uint8Array,
+    	'%Uint8ArrayPrototype%': typeof Uint8Array === 'undefined' ? undefined$2 : Uint8Array.prototype,
+    	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined$2 : Uint8ClampedArray,
+    	'%Uint8ClampedArrayPrototype%': typeof Uint8ClampedArray === 'undefined' ? undefined$2 : Uint8ClampedArray.prototype,
+    	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined$2 : Uint16Array,
+    	'%Uint16ArrayPrototype%': typeof Uint16Array === 'undefined' ? undefined$2 : Uint16Array.prototype,
+    	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined$2 : Uint32Array,
+    	'%Uint32ArrayPrototype%': typeof Uint32Array === 'undefined' ? undefined$2 : Uint32Array.prototype,
+    	'%URIError%': URIError,
+    	'%URIErrorPrototype%': URIError.prototype,
+    	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined$2 : WeakMap,
+    	'%WeakMapPrototype%': typeof WeakMap === 'undefined' ? undefined$2 : WeakMap.prototype,
+    	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined$2 : WeakSet,
+    	'%WeakSetPrototype%': typeof WeakSet === 'undefined' ? undefined$2 : WeakSet.prototype
+    };
+
+
+    var $replace$1 = functionBind.call(Function.call, String.prototype.replace);
+
+    /* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
+    var rePropName$1 = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
+    var reEscapeChar$1 = /\\(\\)?/g; /** Used to match backslashes in property paths. */
+    var stringToPath$1 = function stringToPath(string) {
+    	var result = [];
+    	$replace$1(string, rePropName$1, function (match, number, quote, subString) {
+    		result[result.length] = quote ? $replace$1(subString, reEscapeChar$1, '$1') : (number || match);
+    	});
+    	return result;
+    };
+    /* end adaptation */
+
+    var getBaseIntrinsic$1 = function getBaseIntrinsic(name, allowMissing) {
+    	if (!(name in INTRINSICS$1)) {
+    		throw new SyntaxError('intrinsic ' + name + ' does not exist!');
+    	}
+
+    	// istanbul ignore if // hopefully this is impossible to test :-)
+    	if (typeof INTRINSICS$1[name] === 'undefined' && !allowMissing) {
+    		throw new $TypeError$1('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
+    	}
+
+    	return INTRINSICS$1[name];
+    };
+
+    var GetIntrinsic = function GetIntrinsic(name, allowMissing) {
+    	if (typeof name !== 'string' || name.length === 0) {
+    		throw new TypeError('intrinsic name must be a non-empty string');
+    	}
+    	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
+    		throw new TypeError('"allowMissing" argument must be a boolean');
+    	}
+
+    	var parts = stringToPath$1(name);
+
+    	var value = getBaseIntrinsic$1('%' + (parts.length > 0 ? parts[0] : '') + '%', allowMissing);
+    	for (var i = 1; i < parts.length; i += 1) {
+    		if (value != null) {
+    			if ($gOPD$1 && (i + 1) >= parts.length) {
+    				var desc = $gOPD$1(value, parts[i]);
+    				if (!allowMissing && !(parts[i] in value)) {
+    					throw new $TypeError$1('base intrinsic for ' + name + ' exists, but the property is not available.');
+    				}
+    				// By convention, when a data property is converted to an accessor
+    				// property to emulate a data property that does not suffer from
+    				// the override mistake, that accessor's getter is marked with
+    				// an `originalValue` property. Here, when we detect this, we
+    				// uphold the illusion by pretending to see that original data
+    				// property, i.e., returning the value rather than the getter
+    				// itself.
+    				value = desc && 'get' in desc && !('originalValue' in desc.get) ? desc.get : value[parts[i]];
+    			} else {
+    				value = value[parts[i]];
+    			}
+    		}
+    	}
+    	return value;
+    };
+
+    var callBind$1 = createCommonjsModule$2(function (module) {
+
+
+
+
+
+    var $apply = GetIntrinsic('%Function.prototype.apply%');
+    var $call = GetIntrinsic('%Function.prototype.call%');
+    var $reflectApply = GetIntrinsic('%Reflect.apply%', true) || functionBind.call($call, $apply);
+
+    var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
+
+    if ($defineProperty) {
+    	try {
+    		$defineProperty({}, 'a', { value: 1 });
+    	} catch (e) {
+    		// IE 8 has a broken defineProperty
+    		$defineProperty = null;
+    	}
+    }
+
+    module.exports = function callBind() {
+    	return $reflectApply(functionBind, $call, arguments);
+    };
+
+    var applyBind = function applyBind() {
+    	return $reflectApply(functionBind, $apply, arguments);
+    };
+
+    if ($defineProperty) {
+    	$defineProperty(module.exports, 'apply', { value: applyBind });
+    } else {
+    	module.exports.apply = applyBind;
+    }
+    });
+
+    var $Object = Object;
+    var $TypeError$2 = TypeError;
+
+    var implementation$3 = function flags() {
+    	if (this != null && this !== $Object(this)) {
+    		throw new $TypeError$2('RegExp.prototype.flags getter called on non-object');
+    	}
+    	var result = '';
+    	if (this.global) {
+    		result += 'g';
+    	}
+    	if (this.ignoreCase) {
+    		result += 'i';
+    	}
+    	if (this.multiline) {
+    		result += 'm';
+    	}
+    	if (this.dotAll) {
+    		result += 's';
+    	}
+    	if (this.unicode) {
+    		result += 'u';
+    	}
+    	if (this.sticky) {
+    		result += 'y';
+    	}
+    	return result;
+    };
+
+    var supportsDescriptors$1 = defineProperties_1.supportsDescriptors;
+    var $gOPD$2 = Object.getOwnPropertyDescriptor;
+    var $TypeError$3 = TypeError;
+
+    var polyfill$2 = function getPolyfill() {
+    	if (!supportsDescriptors$1) {
+    		throw new $TypeError$3('RegExp.prototype.flags requires a true ES5 environment that supports property descriptors');
+    	}
+    	if ((/a/mig).flags === 'gim') {
+    		var descriptor = $gOPD$2(RegExp.prototype, 'flags');
+    		if (descriptor && typeof descriptor.get === 'function' && typeof (/a/).dotAll === 'boolean') {
+    			return descriptor.get;
+    		}
+    	}
+    	return implementation$3;
+    };
+
+    var supportsDescriptors$2 = defineProperties_1.supportsDescriptors;
+
+    var gOPD$1 = Object.getOwnPropertyDescriptor;
+    var defineProperty$1 = Object.defineProperty;
+    var TypeErr = TypeError;
+    var getProto$2 = Object.getPrototypeOf;
+    var regex = /a/;
+
+    var shim$1 = function shimFlags() {
+    	if (!supportsDescriptors$2 || !getProto$2) {
+    		throw new TypeErr('RegExp.prototype.flags requires a true ES5 environment that supports property descriptors');
+    	}
+    	var polyfill = polyfill$2();
+    	var proto = getProto$2(regex);
+    	var descriptor = gOPD$1(proto, 'flags');
+    	if (!descriptor || descriptor.get !== polyfill) {
+    		defineProperty$1(proto, 'flags', {
+    			configurable: true,
+    			enumerable: false,
+    			get: polyfill
+    		});
+    	}
+    	return polyfill;
+    };
+
+    var flagsBound = callBind$1(implementation$3);
+
+    defineProperties_1(flagsBound, {
+    	getPolyfill: polyfill$2,
+    	implementation: implementation$3,
+    	shim: shim$1
+    });
+
+    var regexp_prototype_flags = flagsBound;
+
+    var toString = {}.toString;
+
+    var isarray = Array.isArray || function (arr) {
+      return toString.call(arr) == '[object Array]';
+    };
+
+    var getDay = Date.prototype.getDay;
+    var tryDateObject = function tryDateGetDayCall(value) {
+    	try {
+    		getDay.call(value);
+    		return true;
+    	} catch (e) {
+    		return false;
+    	}
+    };
+
+    var toStr$5 = Object.prototype.toString;
+    var dateClass = '[object Date]';
+    var hasToStringTag$2 = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
+
+    var isDateObject = function isDateObject(value) {
+    	if (typeof value !== 'object' || value === null) {
+    		return false;
+    	}
+    	return hasToStringTag$2 ? tryDateObject(value) : toStr$5.call(value) === dateClass;
+    };
+
+    var strValue = String.prototype.valueOf;
+    var tryStringObject = function tryStringObject(value) {
+    	try {
+    		strValue.call(value);
+    		return true;
+    	} catch (e) {
+    		return false;
+    	}
+    };
+    var toStr$6 = Object.prototype.toString;
+    var strClass = '[object String]';
+    var hasToStringTag$3 = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
+
+    var isString = function isString(value) {
+    	if (typeof value === 'string') {
+    		return true;
+    	}
+    	if (typeof value !== 'object') {
+    		return false;
+    	}
+    	return hasToStringTag$3 ? tryStringObject(value) : toStr$6.call(value) === strClass;
+    };
+
+    var numToStr = Number.prototype.toString;
+    var tryNumberObject = function tryNumberObject(value) {
+    	try {
+    		numToStr.call(value);
+    		return true;
+    	} catch (e) {
+    		return false;
+    	}
+    };
+    var toStr$7 = Object.prototype.toString;
+    var numClass = '[object Number]';
+    var hasToStringTag$4 = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
+
+    var isNumberObject = function isNumberObject(value) {
+    	if (typeof value === 'number') {
+    		return true;
+    	}
+    	if (typeof value !== 'object') {
+    		return false;
+    	}
+    	return hasToStringTag$4 ? tryNumberObject(value) : toStr$7.call(value) === numClass;
+    };
+
+    var $boolToStr = callBound('Boolean.prototype.toString');
+    var $toString$1 = callBound('Object.prototype.toString');
+
+    var tryBooleanObject = function booleanBrandCheck(value) {
+    	try {
+    		$boolToStr(value);
+    		return true;
+    	} catch (e) {
+    		return false;
+    	}
+    };
+    var boolClass = '[object Boolean]';
+    var hasToStringTag$5 = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
+
+    var isBooleanObject = function isBoolean(value) {
+    	if (typeof value === 'boolean') {
+    		return true;
+    	}
+    	if (value === null || typeof value !== 'object') {
+    		return false;
+    	}
+    	return hasToStringTag$5 && Symbol.toStringTag in value ? tryBooleanObject(value) : $toString$1(value) === boolClass;
+    };
+
+    var isSymbol = createCommonjsModule$2(function (module) {
+
+    var toStr = Object.prototype.toString;
+    var hasSymbols$1 = hasSymbols();
+
+    if (hasSymbols$1) {
+    	var symToStr = Symbol.prototype.toString;
+    	var symStringRegex = /^Symbol\(.*\)$/;
+    	var isSymbolObject = function isRealSymbolObject(value) {
+    		if (typeof value.valueOf() !== 'symbol') {
+    			return false;
+    		}
+    		return symStringRegex.test(symToStr.call(value));
+    	};
+
+    	module.exports = function isSymbol(value) {
+    		if (typeof value === 'symbol') {
+    			return true;
+    		}
+    		if (toStr.call(value) !== '[object Symbol]') {
+    			return false;
+    		}
+    		try {
+    			return isSymbolObject(value);
+    		} catch (e) {
+    			return false;
+    		}
+    	};
+    } else {
+
+    	module.exports = function isSymbol(value) {
+    		// this environment does not support Symbols.
+    		return false ;
+    	};
+    }
+    });
+
+    var isBigint = createCommonjsModule$2(function (module) {
+
+    if (typeof BigInt === 'function') {
+    	var bigIntValueOf = BigInt.prototype.valueOf;
+    	var tryBigInt = function tryBigIntObject(value) {
+    		try {
+    			bigIntValueOf.call(value);
+    			return true;
+    		} catch (e) {
+    		}
+    		return false;
+    	};
+
+    	module.exports = function isBigInt(value) {
+    		if (
+    			value === null
+    			|| typeof value === 'undefined'
+    			|| typeof value === 'boolean'
+    			|| typeof value === 'string'
+    			|| typeof value === 'number'
+    			|| typeof value === 'symbol'
+    			|| typeof value === 'function'
+    		) {
+    			return false;
+    		}
+    		if (typeof value === 'bigint') {
+    			return true;
+    		}
+
+    		return tryBigInt(value);
+    	};
+    } else {
+    	module.exports = function isBigInt(value) {
+    		return false ;
+    	};
+    }
+    });
+
+    // eslint-disable-next-line consistent-return
+    var whichBoxedPrimitive = function whichBoxedPrimitive(value) {
+    	// eslint-disable-next-line eqeqeq
+    	if (value == null || (typeof value !== 'object' && typeof value !== 'function')) {
+    		return null;
+    	}
+    	if (isString(value)) {
+    		return 'String';
+    	}
+    	if (isNumberObject(value)) {
+    		return 'Number';
+    	}
+    	if (isBooleanObject(value)) {
+    		return 'Boolean';
+    	}
+    	if (isSymbol(value)) {
+    		return 'Symbol';
+    	}
+    	if (isBigint(value)) {
+    		return 'BigInt';
+    	}
+    };
+
+    var $Map = typeof Map === 'function' && Map.prototype ? Map : null;
+    var $Set = typeof Set === 'function' && Set.prototype ? Set : null;
+
+    var exported;
+
+    if (!$Map) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported = function isMap(x) {
+    		// `Map` is not present in this environment.
+    		return false;
+    	};
+    }
+
+    var $mapHas = $Map ? Map.prototype.has : null;
+    var $setHas = $Set ? Set.prototype.has : null;
+    if (!exported && !$mapHas) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported = function isMap(x) {
+    		// `Map` does not have a `has` method
+    		return false;
+    	};
+    }
+
+    var isMap = exported || function isMap(x) {
+    	if (!x || typeof x !== 'object') {
+    		return false;
+    	}
+    	try {
+    		$mapHas.call(x);
+    		if ($setHas) {
+    			try {
+    				$setHas.call(x);
+    			} catch (e) {
+    				return true;
+    			}
+    		}
+    		return x instanceof $Map; // core-js workaround, pre-v2.5.0
+    	} catch (e) {}
+    	return false;
+    };
+
+    var $Map$1 = typeof Map === 'function' && Map.prototype ? Map : null;
+    var $Set$1 = typeof Set === 'function' && Set.prototype ? Set : null;
+
+    var exported$1;
+
+    if (!$Set$1) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported$1 = function isSet(x) {
+    		// `Set` is not present in this environment.
+    		return false;
+    	};
+    }
+
+    var $mapHas$1 = $Map$1 ? Map.prototype.has : null;
+    var $setHas$1 = $Set$1 ? Set.prototype.has : null;
+    if (!exported$1 && !$setHas$1) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported$1 = function isSet(x) {
+    		// `Set` does not have a `has` method
+    		return false;
+    	};
+    }
+
+    var isSet = exported$1 || function isSet(x) {
+    	if (!x || typeof x !== 'object') {
+    		return false;
+    	}
+    	try {
+    		$setHas$1.call(x);
+    		if ($mapHas$1) {
+    			try {
+    				$mapHas$1.call(x);
+    			} catch (e) {
+    				return true;
+    			}
+    		}
+    		return x instanceof $Set$1; // core-js workaround, pre-v2.5.0
+    	} catch (e) {}
+    	return false;
+    };
+
+    var $WeakMap = typeof WeakMap === 'function' && WeakMap.prototype ? WeakMap : null;
+    var $WeakSet = typeof WeakSet === 'function' && WeakSet.prototype ? WeakSet : null;
+
+    var exported$2;
+
+    if (!$WeakMap) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported$2 = function isWeakMap(x) {
+    		// `WeakMap` is not present in this environment.
+    		return false;
+    	};
+    }
+
+    var $mapHas$2 = $WeakMap ? $WeakMap.prototype.has : null;
+    var $setHas$2 = $WeakSet ? $WeakSet.prototype.has : null;
+    if (!exported$2 && !$mapHas$2) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported$2 = function isWeakMap(x) {
+    		// `WeakMap` does not have a `has` method
+    		return false;
+    	};
+    }
+
+    var isWeakmap = exported$2 || function isWeakMap(x) {
+    	if (!x || typeof x !== 'object') {
+    		return false;
+    	}
+    	try {
+    		$mapHas$2.call(x, $mapHas$2);
+    		if ($setHas$2) {
+    			try {
+    				$setHas$2.call(x, $setHas$2);
+    			} catch (e) {
+    				return true;
+    			}
+    		}
+    		return x instanceof $WeakMap; // core-js workaround, pre-v3
+    	} catch (e) {}
+    	return false;
+    };
+
+    var isWeakset = createCommonjsModule$2(function (module) {
+
+    var $WeakMap = typeof WeakMap === 'function' && WeakMap.prototype ? WeakMap : null;
+    var $WeakSet = typeof WeakSet === 'function' && WeakSet.prototype ? WeakSet : null;
+
+    var exported;
+
+    if (!$WeakMap) {
+    	// eslint-disable-next-line no-unused-vars
+    	exported = function isWeakSet(x) {
+    		// `WeakSet` is not present in this environment.
+    		return false;
+    	};
+    }
+
+    var $mapHas = $WeakMap ? $WeakMap.prototype.has : null;
+    var $setHas = $WeakSet ? $WeakSet.prototype.has : null;
+    if (!exported && !$setHas) {
+    	// eslint-disable-next-line no-unused-vars
+    	module.exports = function isWeakSet(x) {
+    		// `WeakSet` does not have a `has` method
+    		return false;
+    	};
+    }
+
+    module.exports = exported || function isWeakSet(x) {
+    	if (!x || typeof x !== 'object') {
+    		return false;
+    	}
+    	try {
+    		$setHas.call(x, $setHas);
+    		if ($mapHas) {
+    			try {
+    				$mapHas.call(x, $mapHas);
+    			} catch (e) {
+    				return true;
+    			}
+    		}
+    		return x instanceof $WeakSet; // core-js workaround, pre-v3
+    	} catch (e) {}
+    	return false;
+    };
+    });
+
+    var whichCollection = function whichCollection(value) {
+    	if (value && typeof value === 'object') {
+    		if (isMap(value)) {
+    			return 'Map';
+    		}
+    		if (isSet(value)) {
+    			return 'Set';
+    		}
+    		if (isWeakmap(value)) {
+    			return 'WeakMap';
+    		}
+    		if (isWeakset(value)) {
+    			return 'WeakSet';
+    		}
+    	}
+    	return false;
+    };
+
+    var esGetIterator = createCommonjsModule$2(function (module) {
+
+    /* eslint global-require: 0 */
+    // the code is structured this way so that bundlers can
+    // alias out `has-symbols` to `() => true` or `() => false` if your target
+    // environments' Symbol capabilities are known, and then use
+    // dead code elimination on the rest of this module.
+    //
+    // Similarly, `isarray` can be aliased to `Array.isArray` if
+    // available in all target environments.
+
+
+
+    if (hasSymbols() || shams()) {
+    	var $iterator = Symbol.iterator;
+    	// Symbol is available natively or shammed
+    	// natively:
+    	//  - Chrome >= 38
+    	//  - Edge 12-14?, Edge >= 15 for sure
+    	//  - FF >= 36
+    	//  - Safari >= 9
+    	//  - node >= 0.12
+    	module.exports = function getIterator(iterable) {
+    		// alternatively, `iterable[$iterator]?.()`
+    		if (iterable != null && typeof iterable[$iterator] !== 'undefined') {
+    			return iterable[$iterator]();
+    		}
+    		if (isArguments$1(iterable)) {
+    			// arguments objects lack Symbol.iterator
+    			// - node 0.12
+    			return Array.prototype[$iterator].call(iterable);
+    		}
+    	};
+    } else {
+    	// Symbol is not available, native or shammed
+    	var isArray = isarray;
+    	var isString$1 = isString;
+    	var GetIntrinsic = getIntrinsic;
+    	var $Map = GetIntrinsic('%Map%', true);
+    	var $Set = GetIntrinsic('%Set%', true);
+    	var callBound$1 = callBound;
+    	var $arrayPush = callBound$1('Array.prototype.push');
+    	var $charCodeAt = callBound$1('String.prototype.charCodeAt');
+    	var $stringSlice = callBound$1('String.prototype.slice');
+
+    	var advanceStringIndex = function advanceStringIndex(S, index) {
+    		var length = S.length;
+    		if ((index + 1) >= length) {
+    			return index + 1;
+    		}
+
+    		var first = $charCodeAt(S, index);
+    		if (first < 0xD800 || first > 0xDBFF) {
+    			return index + 1;
+    		}
+
+    		var second = $charCodeAt(S, index + 1);
+    		if (second < 0xDC00 || second > 0xDFFF) {
+    			return index + 1;
+    		}
+
+    		return index + 2;
+    	};
+
+    	var getArrayIterator = function getArrayIterator(arraylike) {
+    		var i = 0;
+    		return {
+    			next: function next() {
+    				var done = i >= arraylike.length;
+    				var value;
+    				if (!done) {
+    					value = arraylike[i];
+    					i += 1;
+    				}
+    				return {
+    					done: done,
+    					value: value
+    				};
+    			}
+    		};
+    	};
+
+    	var getNonCollectionIterator = function getNonCollectionIterator(iterable, noPrimordialCollections) {
+    		if (isArray(iterable) || isArguments$1(iterable)) {
+    			return getArrayIterator(iterable);
+    		}
+    		if (isString$1(iterable)) {
+    			var i = 0;
+    			return {
+    				next: function next() {
+    					var nextIndex = advanceStringIndex(iterable, i);
+    					var value = $stringSlice(iterable, i, nextIndex);
+    					i = nextIndex;
+    					return {
+    						done: nextIndex > iterable.length,
+    						value: value
+    					};
+    				}
+    			};
+    		}
+
+    		// es6-shim and es-shims' es-map use a string "_es6-shim iterator_" property on different iterables, such as MapIterator.
+    		if (noPrimordialCollections && typeof iterable['_es6-shim iterator_'] !== 'undefined') {
+    			return iterable['_es6-shim iterator_']();
+    		}
+    	};
+
+    	if (!$Map && !$Set) {
+    		// the only language iterables are Array, String, arguments
+    		// - Safari <= 6.0
+    		// - Chrome < 38
+    		// - node < 0.12
+    		// - FF < 13
+    		// - IE < 11
+    		// - Edge < 11
+
+    		module.exports = function getIterator(iterable) {
+    			if (iterable != null) {
+    				return getNonCollectionIterator(iterable, true);
+    			}
+    		};
+    	} else {
+    		// either Map or Set are available, but Symbol is not
+    		// - es6-shim on an ES5 browser
+    		// - Safari 6.2 (maybe 6.1?)
+    		// - FF v[13, 36)
+    		// - IE 11
+    		// - Edge 11
+    		// - Safari v[6, 9)
+
+    		var isMap$1 = isMap;
+    		var isSet$1 = isSet;
+
+    		// Firefox >= 27, IE 11, Safari 6.2 - 9, Edge 11, es6-shim in older envs, all have forEach
+    		var $mapForEach = callBound$1('Map.prototype.forEach', true);
+    		var $setForEach = callBound$1('Set.prototype.forEach', true);
+    		if (typeof process === 'undefined' || !process.versions || !process.versions.node) { // "if is not node"
+
+    			// Firefox 17 - 26 has `.iterator()`, whose iterator `.next()` either
+    			// returns a value, or throws a StopIteration object. These browsers
+    			// do not have any other mechanism for iteration.
+    			var $mapIterator = callBound$1('Map.prototype.iterator', true);
+    			var $setIterator = callBound$1('Set.prototype.iterator', true);
+    			var getStopIterationIterator = function (iterator) {
+    				var done = false;
+    				return {
+    					next: function next() {
+    						try {
+    							return {
+    								done: done,
+    								value: done ? undefined : iterator.next()
+    							};
+    						} catch (e) {
+    							done = true;
+    							return {
+    								done: true,
+    								value: undefined
+    							};
+    						}
+    					}
+    				};
+    			};
+    		}
+    		// Firefox 27-35, and some older es6-shim versions, use a string "@@iterator" property
+    		// this returns a proper iterator object, so we should use it instead of forEach.
+    		// newer es6-shim versions use a string "_es6-shim iterator_" property.
+    		var $mapAtAtIterator = callBound$1('Map.prototype.@@iterator', true) || callBound$1('Map.prototype._es6-shim iterator_', true);
+    		var $setAtAtIterator = callBound$1('Set.prototype.@@iterator', true) || callBound$1('Set.prototype._es6-shim iterator_', true);
+
+    		var getCollectionIterator = function getCollectionIterator(iterable) {
+    			if (isMap$1(iterable)) {
+    				if ($mapIterator) {
+    					return getStopIterationIterator($mapIterator(iterable));
+    				}
+    				if ($mapAtAtIterator) {
+    					return $mapAtAtIterator(iterable);
+    				}
+    				if ($mapForEach) {
+    					var entries = [];
+    					$mapForEach(iterable, function (v, k) {
+    						$arrayPush(entries, [k, v]);
+    					});
+    					return getArrayIterator(entries);
+    				}
+    			}
+    			if (isSet$1(iterable)) {
+    				if ($setIterator) {
+    					return getStopIterationIterator($setIterator(iterable));
+    				}
+    				if ($setAtAtIterator) {
+    					return $setAtAtIterator(iterable);
+    				}
+    				if ($setForEach) {
+    					var values = [];
+    					$setForEach(iterable, function (v) {
+    						$arrayPush(values, v);
+    					});
+    					return getArrayIterator(values);
+    				}
+    			}
+    		};
+
+    		module.exports = function getIterator(iterable) {
+    			return getCollectionIterator(iterable) || getNonCollectionIterator(iterable);
+    		};
+    	}
+    }
+    });
+
+    var _nodeResolve_empty = {};
+
+    var _nodeResolve_empty$1 = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        'default': _nodeResolve_empty
+    });
+
+    var require$$0 = /*@__PURE__*/getAugmentedNamespace(_nodeResolve_empty$1);
+
+    var hasMap = typeof Map === 'function' && Map.prototype;
+    var mapSizeDescriptor = Object.getOwnPropertyDescriptor && hasMap ? Object.getOwnPropertyDescriptor(Map.prototype, 'size') : null;
+    var mapSize = hasMap && mapSizeDescriptor && typeof mapSizeDescriptor.get === 'function' ? mapSizeDescriptor.get : null;
+    var mapForEach = hasMap && Map.prototype.forEach;
+    var hasSet = typeof Set === 'function' && Set.prototype;
+    var setSizeDescriptor = Object.getOwnPropertyDescriptor && hasSet ? Object.getOwnPropertyDescriptor(Set.prototype, 'size') : null;
+    var setSize = hasSet && setSizeDescriptor && typeof setSizeDescriptor.get === 'function' ? setSizeDescriptor.get : null;
+    var setForEach = hasSet && Set.prototype.forEach;
+    var hasWeakMap = typeof WeakMap === 'function' && WeakMap.prototype;
+    var weakMapHas = hasWeakMap ? WeakMap.prototype.has : null;
+    var hasWeakSet = typeof WeakSet === 'function' && WeakSet.prototype;
+    var weakSetHas = hasWeakSet ? WeakSet.prototype.has : null;
+    var booleanValueOf = Boolean.prototype.valueOf;
+    var objectToString = Object.prototype.toString;
+    var functionToString = Function.prototype.toString;
+    var match = String.prototype.match;
+    var bigIntValueOf = typeof BigInt === 'function' ? BigInt.prototype.valueOf : null;
+    var gOPS = Object.getOwnPropertySymbols;
+    var symToString = typeof Symbol === 'function' ? Symbol.prototype.toString : null;
+    var isEnumerable$1 = Object.prototype.propertyIsEnumerable;
+
+    var inspectCustom = require$$0.custom;
+    var inspectSymbol = inspectCustom && isSymbol$1(inspectCustom) ? inspectCustom : null;
+
+    var objectInspect = function inspect_(obj, options, depth, seen) {
+        var opts = options || {};
+
+        if (has$1(opts, 'quoteStyle') && (opts.quoteStyle !== 'single' && opts.quoteStyle !== 'double')) {
+            throw new TypeError('option "quoteStyle" must be "single" or "double"');
+        }
+        if (
+            has$1(opts, 'maxStringLength') && (typeof opts.maxStringLength === 'number'
+                ? opts.maxStringLength < 0 && opts.maxStringLength !== Infinity
+                : opts.maxStringLength !== null
+            )
+        ) {
+            throw new TypeError('option "maxStringLength", if provided, must be a positive integer, Infinity, or `null`');
+        }
+        var customInspect = has$1(opts, 'customInspect') ? opts.customInspect : true;
+        if (typeof customInspect !== 'boolean') {
+            throw new TypeError('option "customInspect", if provided, must be `true` or `false`');
+        }
+
+        if (
+            has$1(opts, 'indent')
+            && opts.indent !== null
+            && opts.indent !== '\t'
+            && !(parseInt(opts.indent, 10) === opts.indent && opts.indent > 0)
+        ) {
+            throw new TypeError('options "indent" must be "\\t", an integer > 0, or `null`');
+        }
+
+        if (typeof obj === 'undefined') {
+            return 'undefined';
+        }
+        if (obj === null) {
+            return 'null';
+        }
+        if (typeof obj === 'boolean') {
+            return obj ? 'true' : 'false';
+        }
+
+        if (typeof obj === 'string') {
+            return inspectString(obj, opts);
+        }
+        if (typeof obj === 'number') {
+            if (obj === 0) {
+                return Infinity / obj > 0 ? '0' : '-0';
+            }
+            return String(obj);
+        }
+        if (typeof obj === 'bigint') {
+            return String(obj) + 'n';
+        }
+
+        var maxDepth = typeof opts.depth === 'undefined' ? 5 : opts.depth;
+        if (typeof depth === 'undefined') { depth = 0; }
+        if (depth >= maxDepth && maxDepth > 0 && typeof obj === 'object') {
+            return isArray(obj) ? '[Array]' : '[Object]';
+        }
+
+        var indent = getIndent(opts, depth);
+
+        if (typeof seen === 'undefined') {
+            seen = [];
+        } else if (indexOf(seen, obj) >= 0) {
+            return '[Circular]';
+        }
+
+        function inspect(value, from, noIndent) {
+            if (from) {
+                seen = seen.slice();
+                seen.push(from);
+            }
+            if (noIndent) {
+                var newOpts = {
+                    depth: opts.depth
+                };
+                if (has$1(opts, 'quoteStyle')) {
+                    newOpts.quoteStyle = opts.quoteStyle;
+                }
+                return inspect_(value, newOpts, depth + 1, seen);
+            }
+            return inspect_(value, opts, depth + 1, seen);
+        }
+
+        if (typeof obj === 'function') {
+            var name = nameOf(obj);
+            var keys = arrObjKeys(obj, inspect);
+            return '[Function' + (name ? ': ' + name : ' (anonymous)') + ']' + (keys.length > 0 ? ' { ' + keys.join(', ') + ' }' : '');
+        }
+        if (isSymbol$1(obj)) {
+            var symString = symToString.call(obj);
+            return typeof obj === 'object' ? markBoxed(symString) : symString;
+        }
+        if (isElement(obj)) {
+            var s = '<' + String(obj.nodeName).toLowerCase();
+            var attrs = obj.attributes || [];
+            for (var i = 0; i < attrs.length; i++) {
+                s += ' ' + attrs[i].name + '=' + wrapQuotes(quote(attrs[i].value), 'double', opts);
+            }
+            s += '>';
+            if (obj.childNodes && obj.childNodes.length) { s += '...'; }
+            s += '</' + String(obj.nodeName).toLowerCase() + '>';
+            return s;
+        }
+        if (isArray(obj)) {
+            if (obj.length === 0) { return '[]'; }
+            var xs = arrObjKeys(obj, inspect);
+            if (indent && !singleLineValues(xs)) {
+                return '[' + indentedJoin(xs, indent) + ']';
+            }
+            return '[ ' + xs.join(', ') + ' ]';
+        }
+        if (isError(obj)) {
+            var parts = arrObjKeys(obj, inspect);
+            if (parts.length === 0) { return '[' + String(obj) + ']'; }
+            return '{ [' + String(obj) + '] ' + parts.join(', ') + ' }';
+        }
+        if (typeof obj === 'object' && customInspect) {
+            if (inspectSymbol && typeof obj[inspectSymbol] === 'function') {
+                return obj[inspectSymbol]();
+            } else if (typeof obj.inspect === 'function') {
+                return obj.inspect();
+            }
+        }
+        if (isMap$1(obj)) {
+            var mapParts = [];
+            mapForEach.call(obj, function (value, key) {
+                mapParts.push(inspect(key, obj, true) + ' => ' + inspect(value, obj));
+            });
+            return collectionOf('Map', mapSize.call(obj), mapParts, indent);
+        }
+        if (isSet$1(obj)) {
+            var setParts = [];
+            setForEach.call(obj, function (value) {
+                setParts.push(inspect(value, obj));
+            });
+            return collectionOf('Set', setSize.call(obj), setParts, indent);
+        }
+        if (isWeakMap(obj)) {
+            return weakCollectionOf('WeakMap');
+        }
+        if (isWeakSet(obj)) {
+            return weakCollectionOf('WeakSet');
+        }
+        if (isNumber(obj)) {
+            return markBoxed(inspect(Number(obj)));
+        }
+        if (isBigInt(obj)) {
+            return markBoxed(inspect(bigIntValueOf.call(obj)));
+        }
+        if (isBoolean(obj)) {
+            return markBoxed(booleanValueOf.call(obj));
+        }
+        if (isString$1(obj)) {
+            return markBoxed(inspect(String(obj)));
+        }
+        if (!isDate(obj) && !isRegExp(obj)) {
+            var ys = arrObjKeys(obj, inspect);
+            if (ys.length === 0) { return '{}'; }
+            if (indent) {
+                return '{' + indentedJoin(ys, indent) + '}';
+            }
+            return '{ ' + ys.join(', ') + ' }';
+        }
+        return String(obj);
+    };
+
+    function wrapQuotes(s, defaultStyle, opts) {
+        var quoteChar = (opts.quoteStyle || defaultStyle) === 'double' ? '"' : "'";
+        return quoteChar + s + quoteChar;
+    }
+
+    function quote(s) {
+        return String(s).replace(/"/g, '&quot;');
+    }
+
+    function isArray(obj) { return toStr$8(obj) === '[object Array]'; }
+    function isDate(obj) { return toStr$8(obj) === '[object Date]'; }
+    function isRegExp(obj) { return toStr$8(obj) === '[object RegExp]'; }
+    function isError(obj) { return toStr$8(obj) === '[object Error]'; }
+    function isSymbol$1(obj) { return toStr$8(obj) === '[object Symbol]'; }
+    function isString$1(obj) { return toStr$8(obj) === '[object String]'; }
+    function isNumber(obj) { return toStr$8(obj) === '[object Number]'; }
+    function isBigInt(obj) { return toStr$8(obj) === '[object BigInt]'; }
+    function isBoolean(obj) { return toStr$8(obj) === '[object Boolean]'; }
+
+    var hasOwn = Object.prototype.hasOwnProperty || function (key) { return key in this; };
+    function has$1(obj, key) {
+        return hasOwn.call(obj, key);
+    }
+
+    function toStr$8(obj) {
+        return objectToString.call(obj);
+    }
+
+    function nameOf(f) {
+        if (f.name) { return f.name; }
+        var m = match.call(functionToString.call(f), /^function\s*([\w$]+)/);
+        if (m) { return m[1]; }
+        return null;
+    }
+
+    function indexOf(xs, x) {
+        if (xs.indexOf) { return xs.indexOf(x); }
+        for (var i = 0, l = xs.length; i < l; i++) {
+            if (xs[i] === x) { return i; }
+        }
+        return -1;
+    }
+
+    function isMap$1(x) {
+        if (!mapSize || !x || typeof x !== 'object') {
+            return false;
+        }
+        try {
+            mapSize.call(x);
+            try {
+                setSize.call(x);
+            } catch (s) {
+                return true;
+            }
+            return x instanceof Map; // core-js workaround, pre-v2.5.0
+        } catch (e) {}
+        return false;
+    }
+
+    function isWeakMap(x) {
+        if (!weakMapHas || !x || typeof x !== 'object') {
+            return false;
+        }
+        try {
+            weakMapHas.call(x, weakMapHas);
+            try {
+                weakSetHas.call(x, weakSetHas);
+            } catch (s) {
+                return true;
+            }
+            return x instanceof WeakMap; // core-js workaround, pre-v2.5.0
+        } catch (e) {}
+        return false;
+    }
+
+    function isSet$1(x) {
+        if (!setSize || !x || typeof x !== 'object') {
+            return false;
+        }
+        try {
+            setSize.call(x);
+            try {
+                mapSize.call(x);
+            } catch (m) {
+                return true;
+            }
+            return x instanceof Set; // core-js workaround, pre-v2.5.0
+        } catch (e) {}
+        return false;
+    }
+
+    function isWeakSet(x) {
+        if (!weakSetHas || !x || typeof x !== 'object') {
+            return false;
+        }
+        try {
+            weakSetHas.call(x, weakSetHas);
+            try {
+                weakMapHas.call(x, weakMapHas);
+            } catch (s) {
+                return true;
+            }
+            return x instanceof WeakSet; // core-js workaround, pre-v2.5.0
+        } catch (e) {}
+        return false;
+    }
+
+    function isElement(x) {
+        if (!x || typeof x !== 'object') { return false; }
+        if (typeof HTMLElement !== 'undefined' && x instanceof HTMLElement) {
+            return true;
+        }
+        return typeof x.nodeName === 'string' && typeof x.getAttribute === 'function';
+    }
+
+    function inspectString(str, opts) {
+        if (str.length > opts.maxStringLength) {
+            var remaining = str.length - opts.maxStringLength;
+            var trailer = '... ' + remaining + ' more character' + (remaining > 1 ? 's' : '');
+            return inspectString(str.slice(0, opts.maxStringLength), opts) + trailer;
+        }
+        // eslint-disable-next-line no-control-regex
+        var s = str.replace(/(['\\])/g, '\\$1').replace(/[\x00-\x1f]/g, lowbyte);
+        return wrapQuotes(s, 'single', opts);
+    }
+
+    function lowbyte(c) {
+        var n = c.charCodeAt(0);
+        var x = {
+            8: 'b',
+            9: 't',
+            10: 'n',
+            12: 'f',
+            13: 'r'
+        }[n];
+        if (x) { return '\\' + x; }
+        return '\\x' + (n < 0x10 ? '0' : '') + n.toString(16).toUpperCase();
+    }
+
+    function markBoxed(str) {
+        return 'Object(' + str + ')';
+    }
+
+    function weakCollectionOf(type) {
+        return type + ' { ? }';
+    }
+
+    function collectionOf(type, size, entries, indent) {
+        var joinedEntries = indent ? indentedJoin(entries, indent) : entries.join(', ');
+        return type + ' (' + size + ') {' + joinedEntries + '}';
+    }
+
+    function singleLineValues(xs) {
+        for (var i = 0; i < xs.length; i++) {
+            if (indexOf(xs[i], '\n') >= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function getIndent(opts, depth) {
+        var baseIndent;
+        if (opts.indent === '\t') {
+            baseIndent = '\t';
+        } else if (typeof opts.indent === 'number' && opts.indent > 0) {
+            baseIndent = Array(opts.indent + 1).join(' ');
+        } else {
+            return null;
+        }
+        return {
+            base: baseIndent,
+            prev: Array(depth + 1).join(baseIndent)
+        };
+    }
+
+    function indentedJoin(xs, indent) {
+        if (xs.length === 0) { return ''; }
+        var lineJoiner = '\n' + indent.prev + indent.base;
+        return lineJoiner + xs.join(',' + lineJoiner) + '\n' + indent.prev;
+    }
+
+    function arrObjKeys(obj, inspect) {
+        var isArr = isArray(obj);
+        var xs = [];
+        if (isArr) {
+            xs.length = obj.length;
+            for (var i = 0; i < obj.length; i++) {
+                xs[i] = has$1(obj, i) ? inspect(obj[i], obj) : '';
+            }
+        }
+        for (var key in obj) { // eslint-disable-line no-restricted-syntax
+            if (!has$1(obj, key)) { continue; } // eslint-disable-line no-restricted-syntax, no-continue
+            if (isArr && String(Number(key)) === key && key < obj.length) { continue; } // eslint-disable-line no-restricted-syntax, no-continue
+            if ((/[^\w$]/).test(key)) {
+                xs.push(inspect(key, obj) + ': ' + inspect(obj[key], obj));
+            } else {
+                xs.push(key + ': ' + inspect(obj[key], obj));
+            }
+        }
+        if (typeof gOPS === 'function') {
+            var syms = gOPS(obj);
+            for (var j = 0; j < syms.length; j++) {
+                if (isEnumerable$1.call(obj, syms[j])) {
+                    xs.push('[' + inspect(syms[j]) + ']: ' + inspect(obj[syms[j]], obj));
+                }
+            }
+        }
+        return xs;
+    }
+
+    var $TypeError$4 = getIntrinsic('%TypeError%');
+    var $WeakMap$1 = getIntrinsic('%WeakMap%', true);
+    var $Map$2 = getIntrinsic('%Map%', true);
+
+    var $weakMapGet = callBound('WeakMap.prototype.get', true);
+    var $weakMapSet = callBound('WeakMap.prototype.set', true);
+    var $weakMapHas = callBound('WeakMap.prototype.has', true);
+    var $mapGet = callBound('Map.prototype.get', true);
+    var $mapSet = callBound('Map.prototype.set', true);
+    var $mapHas$3 = callBound('Map.prototype.has', true);
+
+    /*
+     * This function traverses the list returning the node corresponding to the
+     * given key.
+     *
+     * That node is also moved to the head of the list, so that if it's accessed
+     * again we don't need to traverse the whole list. By doing so, all the recently
+     * used nodes can be accessed relatively quickly.
+     */
+    var listGetNode = function (list, key) { // eslint-disable-line consistent-return
+    	for (var prev = list, curr; (curr = prev.next) !== null; prev = curr) {
+    		if (curr.key === key) {
+    			prev.next = curr.next;
+    			curr.next = list.next;
+    			list.next = curr; // eslint-disable-line no-param-reassign
+    			return curr;
+    		}
+    	}
+    };
+
+    var listGet = function (objects, key) {
+    	var node = listGetNode(objects, key);
+    	return node && node.value;
+    };
+    var listSet = function (objects, key, value) {
+    	var node = listGetNode(objects, key);
+    	if (node) {
+    		node.value = value;
+    	} else {
+    		// Prepend the new node to the beginning of the list
+    		objects.next = { // eslint-disable-line no-param-reassign
+    			key: key,
+    			next: objects.next,
+    			value: value
+    		};
+    	}
+    };
+    var listHas = function (objects, key) {
+    	return !!listGetNode(objects, key);
+    };
+
+    var sideChannel = function getSideChannel() {
+    	var $wm;
+    	var $m;
+    	var $o;
+    	var channel = {
+    		assert: function (key) {
+    			if (!channel.has(key)) {
+    				throw new $TypeError$4('Side channel does not contain ' + objectInspect(key));
+    			}
+    		},
+    		get: function (key) { // eslint-disable-line consistent-return
+    			if ($WeakMap$1 && key && (typeof key === 'object' || typeof key === 'function')) {
+    				if ($wm) {
+    					return $weakMapGet($wm, key);
+    				}
+    			} else if ($Map$2) {
+    				if ($m) {
+    					return $mapGet($m, key);
+    				}
+    			} else {
+    				if ($o) { // eslint-disable-line no-lonely-if
+    					return listGet($o, key);
+    				}
+    			}
+    		},
+    		has: function (key) {
+    			if ($WeakMap$1 && key && (typeof key === 'object' || typeof key === 'function')) {
+    				if ($wm) {
+    					return $weakMapHas($wm, key);
+    				}
+    			} else if ($Map$2) {
+    				if ($m) {
+    					return $mapHas$3($m, key);
+    				}
+    			} else {
+    				if ($o) { // eslint-disable-line no-lonely-if
+    					return listHas($o, key);
+    				}
+    			}
+    			return false;
+    		},
+    		set: function (key, value) {
+    			if ($WeakMap$1 && key && (typeof key === 'object' || typeof key === 'function')) {
+    				if (!$wm) {
+    					$wm = new $WeakMap$1();
+    				}
+    				$weakMapSet($wm, key, value);
+    			} else if ($Map$2) {
+    				if (!$m) {
+    					$m = new $Map$2();
+    				}
+    				$mapSet($m, key, value);
+    			} else {
+    				if (!$o) {
+    					/*
+    					 * Initialize the linked list as an empty node, so that we don't have
+    					 * to special-case handling of the first node: we can always refer to
+    					 * it as (previous node).next, instead of something like (list).head
+    					 */
+    					$o = { key: {}, next: null };
+    				}
+    				listSet($o, key, value);
+    			}
+    		}
+    	};
+    	return channel;
+    };
+
+    var hasOwn$1 = Object.prototype.hasOwnProperty;
+    var toString$1 = Object.prototype.toString;
+
+    var foreach = function forEach (obj, fn, ctx) {
+        if (toString$1.call(fn) !== '[object Function]') {
+            throw new TypeError('iterator must be a function');
+        }
+        var l = obj.length;
+        if (l === +l) {
+            for (var i = 0; i < l; i++) {
+                fn.call(ctx, obj[i], i, obj);
+            }
+        } else {
+            for (var k in obj) {
+                if (hasOwn$1.call(obj, k)) {
+                    fn.call(ctx, obj[k], k, obj);
+                }
+            }
+        }
+    };
+
+    /**
+     * Array#filter.
+     *
+     * @param {Array} arr
+     * @param {Function} fn
+     * @param {Object=} self
+     * @return {Array}
+     * @throw TypeError
+     */
+
+    var arrayFilter = function (arr, fn, self) {
+      if (arr.filter) return arr.filter(fn, self);
+      if (void 0 === arr || null === arr) throw new TypeError;
+      if ('function' != typeof fn) throw new TypeError;
+      var ret = [];
+      for (var i = 0; i < arr.length; i++) {
+        if (!hasOwn$2.call(arr, i)) continue;
+        var val = arr[i];
+        if (fn.call(self, val, i, arr)) ret.push(val);
+      }
+      return ret;
+    };
+
+    var hasOwn$2 = Object.prototype.hasOwnProperty;
+
+    var availableTypedArrays = function availableTypedArrays() {
+    	return arrayFilter([
+    		'BigInt64Array',
+    		'BigUint64Array',
+    		'Float32Array',
+    		'Float64Array',
+    		'Int16Array',
+    		'Int32Array',
+    		'Int8Array',
+    		'Uint16Array',
+    		'Uint32Array',
+    		'Uint8Array',
+    		'Uint8ClampedArray'
+    	], function (typedArray) {
+    		return typeof commonjsGlobal[typedArray] === 'function';
+    	});
+    };
+
+    /* globals
+    	AggregateError,
+    	Atomics,
+    	FinalizationRegistry,
+    	SharedArrayBuffer,
+    	WeakRef,
+    */
+
+    var undefined$3;
+
+    var $SyntaxError$1 = SyntaxError;
+    var $Function$1 = Function;
+    var $TypeError$5 = TypeError;
+
+    // eslint-disable-next-line consistent-return
+    var getEvalledConstructor$1 = function (expressionSyntax) {
+    	try {
+    		// eslint-disable-next-line no-new-func
+    		return Function('"use strict"; return (' + expressionSyntax + ').constructor;')();
+    	} catch (e) {}
+    };
+
+    var $gOPD$3 = Object.getOwnPropertyDescriptor;
+    if ($gOPD$3) {
+    	try {
+    		$gOPD$3({}, '');
+    	} catch (e) {
+    		$gOPD$3 = null; // this is IE 8, which has a broken gOPD
+    	}
+    }
+
+    var throwTypeError$2 = function () { throw new $TypeError$5(); };
+    var ThrowTypeError$2 = $gOPD$3
+    	? (function () {
+    		try {
+    			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
+    			arguments.callee; // IE 8 does not throw here
+    			return throwTypeError$2;
+    		} catch (calleeThrows) {
+    			try {
+    				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
+    				return $gOPD$3(arguments, 'callee').get;
+    			} catch (gOPDthrows) {
+    				return throwTypeError$2;
+    			}
+    		}
+    	}())
+    	: throwTypeError$2;
+
+    var hasSymbols$5 = hasSymbols();
+
+    var getProto$3 = Object.getPrototypeOf || function (x) { return x.__proto__; }; // eslint-disable-line no-proto
+
+    var asyncGenFunction$2 = getEvalledConstructor$1('async function* () {}');
+    var asyncGenFunctionPrototype$1 = asyncGenFunction$2 ? asyncGenFunction$2.prototype : undefined$3;
+    var asyncGenPrototype$1 = asyncGenFunctionPrototype$1 ? asyncGenFunctionPrototype$1.prototype : undefined$3;
+
+    var TypedArray$2 = typeof Uint8Array === 'undefined' ? undefined$3 : getProto$3(Uint8Array);
+
+    var INTRINSICS$2 = {
+    	'%AggregateError%': typeof AggregateError === 'undefined' ? undefined$3 : AggregateError,
+    	'%Array%': Array,
+    	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined$3 : ArrayBuffer,
+    	'%ArrayIteratorPrototype%': hasSymbols$5 ? getProto$3([][Symbol.iterator]()) : undefined$3,
+    	'%AsyncFromSyncIteratorPrototype%': undefined$3,
+    	'%AsyncFunction%': getEvalledConstructor$1('async function () {}'),
+    	'%AsyncGenerator%': asyncGenFunctionPrototype$1,
+    	'%AsyncGeneratorFunction%': asyncGenFunction$2,
+    	'%AsyncIteratorPrototype%': asyncGenPrototype$1 ? getProto$3(asyncGenPrototype$1) : undefined$3,
+    	'%Atomics%': typeof Atomics === 'undefined' ? undefined$3 : Atomics,
+    	'%BigInt%': typeof BigInt === 'undefined' ? undefined$3 : BigInt,
+    	'%Boolean%': Boolean,
+    	'%DataView%': typeof DataView === 'undefined' ? undefined$3 : DataView,
+    	'%Date%': Date,
+    	'%decodeURI%': decodeURI,
+    	'%decodeURIComponent%': decodeURIComponent,
+    	'%encodeURI%': encodeURI,
+    	'%encodeURIComponent%': encodeURIComponent,
+    	'%Error%': Error,
+    	'%eval%': eval, // eslint-disable-line no-eval
+    	'%EvalError%': EvalError,
+    	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined$3 : Float32Array,
+    	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined$3 : Float64Array,
+    	'%FinalizationRegistry%': typeof FinalizationRegistry === 'undefined' ? undefined$3 : FinalizationRegistry,
+    	'%Function%': $Function$1,
+    	'%GeneratorFunction%': getEvalledConstructor$1('function* () {}'),
+    	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined$3 : Int8Array,
+    	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined$3 : Int16Array,
+    	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined$3 : Int32Array,
+    	'%isFinite%': isFinite,
+    	'%isNaN%': isNaN,
+    	'%IteratorPrototype%': hasSymbols$5 ? getProto$3(getProto$3([][Symbol.iterator]())) : undefined$3,
+    	'%JSON%': typeof JSON === 'object' ? JSON : undefined$3,
+    	'%Map%': typeof Map === 'undefined' ? undefined$3 : Map,
+    	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols$5 ? undefined$3 : getProto$3(new Map()[Symbol.iterator]()),
+    	'%Math%': Math,
+    	'%Number%': Number,
+    	'%Object%': Object,
+    	'%parseFloat%': parseFloat,
+    	'%parseInt%': parseInt,
+    	'%Promise%': typeof Promise === 'undefined' ? undefined$3 : Promise,
+    	'%Proxy%': typeof Proxy === 'undefined' ? undefined$3 : Proxy,
+    	'%RangeError%': RangeError,
+    	'%ReferenceError%': ReferenceError,
+    	'%Reflect%': typeof Reflect === 'undefined' ? undefined$3 : Reflect,
+    	'%RegExp%': RegExp,
+    	'%Set%': typeof Set === 'undefined' ? undefined$3 : Set,
+    	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols$5 ? undefined$3 : getProto$3(new Set()[Symbol.iterator]()),
+    	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined$3 : SharedArrayBuffer,
+    	'%String%': String,
+    	'%StringIteratorPrototype%': hasSymbols$5 ? getProto$3(''[Symbol.iterator]()) : undefined$3,
+    	'%Symbol%': hasSymbols$5 ? Symbol : undefined$3,
+    	'%SyntaxError%': $SyntaxError$1,
+    	'%ThrowTypeError%': ThrowTypeError$2,
+    	'%TypedArray%': TypedArray$2,
+    	'%TypeError%': $TypeError$5,
+    	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined$3 : Uint8Array,
+    	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined$3 : Uint8ClampedArray,
+    	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined$3 : Uint16Array,
+    	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined$3 : Uint32Array,
+    	'%URIError%': URIError,
+    	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined$3 : WeakMap,
+    	'%WeakRef%': typeof WeakRef === 'undefined' ? undefined$3 : WeakRef,
+    	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined$3 : WeakSet
+    };
+
+    var LEGACY_ALIASES$1 = {
+    	'%ArrayBufferPrototype%': ['ArrayBuffer', 'prototype'],
+    	'%ArrayPrototype%': ['Array', 'prototype'],
+    	'%ArrayProto_entries%': ['Array', 'prototype', 'entries'],
+    	'%ArrayProto_forEach%': ['Array', 'prototype', 'forEach'],
+    	'%ArrayProto_keys%': ['Array', 'prototype', 'keys'],
+    	'%ArrayProto_values%': ['Array', 'prototype', 'values'],
+    	'%AsyncFunctionPrototype%': ['AsyncFunction', 'prototype'],
+    	'%AsyncGenerator%': ['AsyncGeneratorFunction', 'prototype'],
+    	'%AsyncGeneratorPrototype%': ['AsyncGeneratorFunction', 'prototype', 'prototype'],
+    	'%BooleanPrototype%': ['Boolean', 'prototype'],
+    	'%DataViewPrototype%': ['DataView', 'prototype'],
+    	'%DatePrototype%': ['Date', 'prototype'],
+    	'%ErrorPrototype%': ['Error', 'prototype'],
+    	'%EvalErrorPrototype%': ['EvalError', 'prototype'],
+    	'%Float32ArrayPrototype%': ['Float32Array', 'prototype'],
+    	'%Float64ArrayPrototype%': ['Float64Array', 'prototype'],
+    	'%FunctionPrototype%': ['Function', 'prototype'],
+    	'%Generator%': ['GeneratorFunction', 'prototype'],
+    	'%GeneratorPrototype%': ['GeneratorFunction', 'prototype', 'prototype'],
+    	'%Int8ArrayPrototype%': ['Int8Array', 'prototype'],
+    	'%Int16ArrayPrototype%': ['Int16Array', 'prototype'],
+    	'%Int32ArrayPrototype%': ['Int32Array', 'prototype'],
+    	'%JSONParse%': ['JSON', 'parse'],
+    	'%JSONStringify%': ['JSON', 'stringify'],
+    	'%MapPrototype%': ['Map', 'prototype'],
+    	'%NumberPrototype%': ['Number', 'prototype'],
+    	'%ObjectPrototype%': ['Object', 'prototype'],
+    	'%ObjProto_toString%': ['Object', 'prototype', 'toString'],
+    	'%ObjProto_valueOf%': ['Object', 'prototype', 'valueOf'],
+    	'%PromisePrototype%': ['Promise', 'prototype'],
+    	'%PromiseProto_then%': ['Promise', 'prototype', 'then'],
+    	'%Promise_all%': ['Promise', 'all'],
+    	'%Promise_reject%': ['Promise', 'reject'],
+    	'%Promise_resolve%': ['Promise', 'resolve'],
+    	'%RangeErrorPrototype%': ['RangeError', 'prototype'],
+    	'%ReferenceErrorPrototype%': ['ReferenceError', 'prototype'],
+    	'%RegExpPrototype%': ['RegExp', 'prototype'],
+    	'%SetPrototype%': ['Set', 'prototype'],
+    	'%SharedArrayBufferPrototype%': ['SharedArrayBuffer', 'prototype'],
+    	'%StringPrototype%': ['String', 'prototype'],
+    	'%SymbolPrototype%': ['Symbol', 'prototype'],
+    	'%SyntaxErrorPrototype%': ['SyntaxError', 'prototype'],
+    	'%TypedArrayPrototype%': ['TypedArray', 'prototype'],
+    	'%TypeErrorPrototype%': ['TypeError', 'prototype'],
+    	'%Uint8ArrayPrototype%': ['Uint8Array', 'prototype'],
+    	'%Uint8ClampedArrayPrototype%': ['Uint8ClampedArray', 'prototype'],
+    	'%Uint16ArrayPrototype%': ['Uint16Array', 'prototype'],
+    	'%Uint32ArrayPrototype%': ['Uint32Array', 'prototype'],
+    	'%URIErrorPrototype%': ['URIError', 'prototype'],
+    	'%WeakMapPrototype%': ['WeakMap', 'prototype'],
+    	'%WeakSetPrototype%': ['WeakSet', 'prototype']
+    };
+
+
+
+    var $concat$1 = functionBind.call(Function.call, Array.prototype.concat);
+    var $spliceApply$1 = functionBind.call(Function.apply, Array.prototype.splice);
+    var $replace$2 = functionBind.call(Function.call, String.prototype.replace);
+
+    /* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
+    var rePropName$2 = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
+    var reEscapeChar$2 = /\\(\\)?/g; /** Used to match backslashes in property paths. */
+    var stringToPath$2 = function stringToPath(string) {
+    	var result = [];
+    	$replace$2(string, rePropName$2, function (match, number, quote, subString) {
+    		result[result.length] = quote ? $replace$2(subString, reEscapeChar$2, '$1') : number || match;
+    	});
+    	return result;
+    };
+    /* end adaptation */
+
+    var getBaseIntrinsic$2 = function getBaseIntrinsic(name, allowMissing) {
+    	var intrinsicName = name;
+    	var alias;
+    	if (src(LEGACY_ALIASES$1, intrinsicName)) {
+    		alias = LEGACY_ALIASES$1[intrinsicName];
+    		intrinsicName = '%' + alias[0] + '%';
+    	}
+
+    	if (src(INTRINSICS$2, intrinsicName)) {
+    		var value = INTRINSICS$2[intrinsicName];
+    		if (typeof value === 'undefined' && !allowMissing) {
+    			throw new $TypeError$5('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
+    		}
+
+    		return {
+    			alias: alias,
+    			name: intrinsicName,
+    			value: value
+    		};
+    	}
+
+    	throw new $SyntaxError$1('intrinsic ' + name + ' does not exist!');
+    };
+
+    var GetIntrinsic$1 = function GetIntrinsic(name, allowMissing) {
+    	if (typeof name !== 'string' || name.length === 0) {
+    		throw new $TypeError$5('intrinsic name must be a non-empty string');
+    	}
+    	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
+    		throw new $TypeError$5('"allowMissing" argument must be a boolean');
+    	}
+
+    	var parts = stringToPath$2(name);
+    	var intrinsicBaseName = parts.length > 0 ? parts[0] : '';
+
+    	var intrinsic = getBaseIntrinsic$2('%' + intrinsicBaseName + '%', allowMissing);
+    	var intrinsicRealName = intrinsic.name;
+    	var value = intrinsic.value;
+    	var skipFurtherCaching = false;
+
+    	var alias = intrinsic.alias;
+    	if (alias) {
+    		intrinsicBaseName = alias[0];
+    		$spliceApply$1(parts, $concat$1([0, 1], alias));
+    	}
+
+    	for (var i = 1, isOwn = true; i < parts.length; i += 1) {
+    		var part = parts[i];
+    		if (part === 'constructor' || !isOwn) {
+    			skipFurtherCaching = true;
+    		}
+
+    		intrinsicBaseName += '.' + part;
+    		intrinsicRealName = '%' + intrinsicBaseName + '%';
+
+    		if (src(INTRINSICS$2, intrinsicRealName)) {
+    			value = INTRINSICS$2[intrinsicRealName];
+    		} else if (value != null) {
+    			if ($gOPD$3 && (i + 1) >= parts.length) {
+    				var desc = $gOPD$3(value, part);
+    				isOwn = !!desc;
+
+    				if (!allowMissing && !(part in value)) {
+    					throw new $TypeError$5('base intrinsic for ' + name + ' exists, but the property is not available.');
+    				}
+    				// By convention, when a data property is converted to an accessor
+    				// property to emulate a data property that does not suffer from
+    				// the override mistake, that accessor's getter is marked with
+    				// an `originalValue` property. Here, when we detect this, we
+    				// uphold the illusion by pretending to see that original data
+    				// property, i.e., returning the value rather than the getter
+    				// itself.
+    				if (isOwn && 'get' in desc && !('originalValue' in desc.get)) {
+    					value = desc.get;
+    				} else {
+    					value = value[part];
+    				}
+    			} else {
+    				isOwn = src(value, part);
+    				value = value[part];
+    			}
+
+    			if (isOwn && !skipFurtherCaching) {
+    				INTRINSICS$2[intrinsicRealName] = value;
+    			}
+    		}
+    	}
+    	return value;
+    };
+
+    var $gOPD$4 = GetIntrinsic$1('%Object.getOwnPropertyDescriptor%');
+    if ($gOPD$4) {
+    	try {
+    		$gOPD$4([], 'length');
+    	} catch (e) {
+    		// IE 8 has a broken gOPD
+    		$gOPD$4 = null;
+    	}
+    }
+
+    var getOwnPropertyDescriptor = $gOPD$4;
+
+    /* globals
+    	AggregateError,
+    	Atomics,
+    	FinalizationRegistry,
+    	SharedArrayBuffer,
+    	WeakRef,
+    */
+
+    var undefined$4;
+
+    var $SyntaxError$2 = SyntaxError;
+    var $Function$2 = Function;
+    var $TypeError$6 = TypeError;
+
+    // eslint-disable-next-line consistent-return
+    var getEvalledConstructor$2 = function (expressionSyntax) {
+    	try {
+    		// eslint-disable-next-line no-new-func
+    		return Function('"use strict"; return (' + expressionSyntax + ').constructor;')();
+    	} catch (e) {}
+    };
+
+    var $gOPD$5 = Object.getOwnPropertyDescriptor;
+    if ($gOPD$5) {
+    	try {
+    		$gOPD$5({}, '');
+    	} catch (e) {
+    		$gOPD$5 = null; // this is IE 8, which has a broken gOPD
+    	}
+    }
+
+    var throwTypeError$3 = function () { throw new $TypeError$6(); };
+    var ThrowTypeError$3 = $gOPD$5
+    	? (function () {
+    		try {
+    			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
+    			arguments.callee; // IE 8 does not throw here
+    			return throwTypeError$3;
+    		} catch (calleeThrows) {
+    			try {
+    				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
+    				return $gOPD$5(arguments, 'callee').get;
+    			} catch (gOPDthrows) {
+    				return throwTypeError$3;
+    			}
+    		}
+    	}())
+    	: throwTypeError$3;
+
+    var hasSymbols$6 = hasSymbols();
+
+    var getProto$4 = Object.getPrototypeOf || function (x) { return x.__proto__; }; // eslint-disable-line no-proto
+
+    var asyncGenFunction$3 = getEvalledConstructor$2('async function* () {}');
+    var asyncGenFunctionPrototype$2 = asyncGenFunction$3 ? asyncGenFunction$3.prototype : undefined$4;
+    var asyncGenPrototype$2 = asyncGenFunctionPrototype$2 ? asyncGenFunctionPrototype$2.prototype : undefined$4;
+
+    var TypedArray$3 = typeof Uint8Array === 'undefined' ? undefined$4 : getProto$4(Uint8Array);
+
+    var INTRINSICS$3 = {
+    	'%AggregateError%': typeof AggregateError === 'undefined' ? undefined$4 : AggregateError,
+    	'%Array%': Array,
+    	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined$4 : ArrayBuffer,
+    	'%ArrayIteratorPrototype%': hasSymbols$6 ? getProto$4([][Symbol.iterator]()) : undefined$4,
+    	'%AsyncFromSyncIteratorPrototype%': undefined$4,
+    	'%AsyncFunction%': getEvalledConstructor$2('async function () {}'),
+    	'%AsyncGenerator%': asyncGenFunctionPrototype$2,
+    	'%AsyncGeneratorFunction%': asyncGenFunction$3,
+    	'%AsyncIteratorPrototype%': asyncGenPrototype$2 ? getProto$4(asyncGenPrototype$2) : undefined$4,
+    	'%Atomics%': typeof Atomics === 'undefined' ? undefined$4 : Atomics,
+    	'%BigInt%': typeof BigInt === 'undefined' ? undefined$4 : BigInt,
+    	'%Boolean%': Boolean,
+    	'%DataView%': typeof DataView === 'undefined' ? undefined$4 : DataView,
+    	'%Date%': Date,
+    	'%decodeURI%': decodeURI,
+    	'%decodeURIComponent%': decodeURIComponent,
+    	'%encodeURI%': encodeURI,
+    	'%encodeURIComponent%': encodeURIComponent,
+    	'%Error%': Error,
+    	'%eval%': eval, // eslint-disable-line no-eval
+    	'%EvalError%': EvalError,
+    	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined$4 : Float32Array,
+    	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined$4 : Float64Array,
+    	'%FinalizationRegistry%': typeof FinalizationRegistry === 'undefined' ? undefined$4 : FinalizationRegistry,
+    	'%Function%': $Function$2,
+    	'%GeneratorFunction%': getEvalledConstructor$2('function* () {}'),
+    	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined$4 : Int8Array,
+    	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined$4 : Int16Array,
+    	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined$4 : Int32Array,
+    	'%isFinite%': isFinite,
+    	'%isNaN%': isNaN,
+    	'%IteratorPrototype%': hasSymbols$6 ? getProto$4(getProto$4([][Symbol.iterator]())) : undefined$4,
+    	'%JSON%': typeof JSON === 'object' ? JSON : undefined$4,
+    	'%Map%': typeof Map === 'undefined' ? undefined$4 : Map,
+    	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols$6 ? undefined$4 : getProto$4(new Map()[Symbol.iterator]()),
+    	'%Math%': Math,
+    	'%Number%': Number,
+    	'%Object%': Object,
+    	'%parseFloat%': parseFloat,
+    	'%parseInt%': parseInt,
+    	'%Promise%': typeof Promise === 'undefined' ? undefined$4 : Promise,
+    	'%Proxy%': typeof Proxy === 'undefined' ? undefined$4 : Proxy,
+    	'%RangeError%': RangeError,
+    	'%ReferenceError%': ReferenceError,
+    	'%Reflect%': typeof Reflect === 'undefined' ? undefined$4 : Reflect,
+    	'%RegExp%': RegExp,
+    	'%Set%': typeof Set === 'undefined' ? undefined$4 : Set,
+    	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols$6 ? undefined$4 : getProto$4(new Set()[Symbol.iterator]()),
+    	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined$4 : SharedArrayBuffer,
+    	'%String%': String,
+    	'%StringIteratorPrototype%': hasSymbols$6 ? getProto$4(''[Symbol.iterator]()) : undefined$4,
+    	'%Symbol%': hasSymbols$6 ? Symbol : undefined$4,
+    	'%SyntaxError%': $SyntaxError$2,
+    	'%ThrowTypeError%': ThrowTypeError$3,
+    	'%TypedArray%': TypedArray$3,
+    	'%TypeError%': $TypeError$6,
+    	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined$4 : Uint8Array,
+    	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined$4 : Uint8ClampedArray,
+    	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined$4 : Uint16Array,
+    	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined$4 : Uint32Array,
+    	'%URIError%': URIError,
+    	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined$4 : WeakMap,
+    	'%WeakRef%': typeof WeakRef === 'undefined' ? undefined$4 : WeakRef,
+    	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined$4 : WeakSet
+    };
+
+    var LEGACY_ALIASES$2 = {
+    	'%ArrayBufferPrototype%': ['ArrayBuffer', 'prototype'],
+    	'%ArrayPrototype%': ['Array', 'prototype'],
+    	'%ArrayProto_entries%': ['Array', 'prototype', 'entries'],
+    	'%ArrayProto_forEach%': ['Array', 'prototype', 'forEach'],
+    	'%ArrayProto_keys%': ['Array', 'prototype', 'keys'],
+    	'%ArrayProto_values%': ['Array', 'prototype', 'values'],
+    	'%AsyncFunctionPrototype%': ['AsyncFunction', 'prototype'],
+    	'%AsyncGenerator%': ['AsyncGeneratorFunction', 'prototype'],
+    	'%AsyncGeneratorPrototype%': ['AsyncGeneratorFunction', 'prototype', 'prototype'],
+    	'%BooleanPrototype%': ['Boolean', 'prototype'],
+    	'%DataViewPrototype%': ['DataView', 'prototype'],
+    	'%DatePrototype%': ['Date', 'prototype'],
+    	'%ErrorPrototype%': ['Error', 'prototype'],
+    	'%EvalErrorPrototype%': ['EvalError', 'prototype'],
+    	'%Float32ArrayPrototype%': ['Float32Array', 'prototype'],
+    	'%Float64ArrayPrototype%': ['Float64Array', 'prototype'],
+    	'%FunctionPrototype%': ['Function', 'prototype'],
+    	'%Generator%': ['GeneratorFunction', 'prototype'],
+    	'%GeneratorPrototype%': ['GeneratorFunction', 'prototype', 'prototype'],
+    	'%Int8ArrayPrototype%': ['Int8Array', 'prototype'],
+    	'%Int16ArrayPrototype%': ['Int16Array', 'prototype'],
+    	'%Int32ArrayPrototype%': ['Int32Array', 'prototype'],
+    	'%JSONParse%': ['JSON', 'parse'],
+    	'%JSONStringify%': ['JSON', 'stringify'],
+    	'%MapPrototype%': ['Map', 'prototype'],
+    	'%NumberPrototype%': ['Number', 'prototype'],
+    	'%ObjectPrototype%': ['Object', 'prototype'],
+    	'%ObjProto_toString%': ['Object', 'prototype', 'toString'],
+    	'%ObjProto_valueOf%': ['Object', 'prototype', 'valueOf'],
+    	'%PromisePrototype%': ['Promise', 'prototype'],
+    	'%PromiseProto_then%': ['Promise', 'prototype', 'then'],
+    	'%Promise_all%': ['Promise', 'all'],
+    	'%Promise_reject%': ['Promise', 'reject'],
+    	'%Promise_resolve%': ['Promise', 'resolve'],
+    	'%RangeErrorPrototype%': ['RangeError', 'prototype'],
+    	'%ReferenceErrorPrototype%': ['ReferenceError', 'prototype'],
+    	'%RegExpPrototype%': ['RegExp', 'prototype'],
+    	'%SetPrototype%': ['Set', 'prototype'],
+    	'%SharedArrayBufferPrototype%': ['SharedArrayBuffer', 'prototype'],
+    	'%StringPrototype%': ['String', 'prototype'],
+    	'%SymbolPrototype%': ['Symbol', 'prototype'],
+    	'%SyntaxErrorPrototype%': ['SyntaxError', 'prototype'],
+    	'%TypedArrayPrototype%': ['TypedArray', 'prototype'],
+    	'%TypeErrorPrototype%': ['TypeError', 'prototype'],
+    	'%Uint8ArrayPrototype%': ['Uint8Array', 'prototype'],
+    	'%Uint8ClampedArrayPrototype%': ['Uint8ClampedArray', 'prototype'],
+    	'%Uint16ArrayPrototype%': ['Uint16Array', 'prototype'],
+    	'%Uint32ArrayPrototype%': ['Uint32Array', 'prototype'],
+    	'%URIErrorPrototype%': ['URIError', 'prototype'],
+    	'%WeakMapPrototype%': ['WeakMap', 'prototype'],
+    	'%WeakSetPrototype%': ['WeakSet', 'prototype']
+    };
+
+
+
+    var $concat$2 = functionBind.call(Function.call, Array.prototype.concat);
+    var $spliceApply$2 = functionBind.call(Function.apply, Array.prototype.splice);
+    var $replace$3 = functionBind.call(Function.call, String.prototype.replace);
+
+    /* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
+    var rePropName$3 = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
+    var reEscapeChar$3 = /\\(\\)?/g; /** Used to match backslashes in property paths. */
+    var stringToPath$3 = function stringToPath(string) {
+    	var result = [];
+    	$replace$3(string, rePropName$3, function (match, number, quote, subString) {
+    		result[result.length] = quote ? $replace$3(subString, reEscapeChar$3, '$1') : number || match;
+    	});
+    	return result;
+    };
+    /* end adaptation */
+
+    var getBaseIntrinsic$3 = function getBaseIntrinsic(name, allowMissing) {
+    	var intrinsicName = name;
+    	var alias;
+    	if (src(LEGACY_ALIASES$2, intrinsicName)) {
+    		alias = LEGACY_ALIASES$2[intrinsicName];
+    		intrinsicName = '%' + alias[0] + '%';
+    	}
+
+    	if (src(INTRINSICS$3, intrinsicName)) {
+    		var value = INTRINSICS$3[intrinsicName];
+    		if (typeof value === 'undefined' && !allowMissing) {
+    			throw new $TypeError$6('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
+    		}
+
+    		return {
+    			alias: alias,
+    			name: intrinsicName,
+    			value: value
+    		};
+    	}
+
+    	throw new $SyntaxError$2('intrinsic ' + name + ' does not exist!');
+    };
+
+    var GetIntrinsic$2 = function GetIntrinsic(name, allowMissing) {
+    	if (typeof name !== 'string' || name.length === 0) {
+    		throw new $TypeError$6('intrinsic name must be a non-empty string');
+    	}
+    	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
+    		throw new $TypeError$6('"allowMissing" argument must be a boolean');
+    	}
+
+    	var parts = stringToPath$3(name);
+    	var intrinsicBaseName = parts.length > 0 ? parts[0] : '';
+
+    	var intrinsic = getBaseIntrinsic$3('%' + intrinsicBaseName + '%', allowMissing);
+    	var intrinsicRealName = intrinsic.name;
+    	var value = intrinsic.value;
+    	var skipFurtherCaching = false;
+
+    	var alias = intrinsic.alias;
+    	if (alias) {
+    		intrinsicBaseName = alias[0];
+    		$spliceApply$2(parts, $concat$2([0, 1], alias));
+    	}
+
+    	for (var i = 1, isOwn = true; i < parts.length; i += 1) {
+    		var part = parts[i];
+    		if (part === 'constructor' || !isOwn) {
+    			skipFurtherCaching = true;
+    		}
+
+    		intrinsicBaseName += '.' + part;
+    		intrinsicRealName = '%' + intrinsicBaseName + '%';
+
+    		if (src(INTRINSICS$3, intrinsicRealName)) {
+    			value = INTRINSICS$3[intrinsicRealName];
+    		} else if (value != null) {
+    			if ($gOPD$5 && (i + 1) >= parts.length) {
+    				var desc = $gOPD$5(value, part);
+    				isOwn = !!desc;
+
+    				if (!allowMissing && !(part in value)) {
+    					throw new $TypeError$6('base intrinsic for ' + name + ' exists, but the property is not available.');
+    				}
+    				// By convention, when a data property is converted to an accessor
+    				// property to emulate a data property that does not suffer from
+    				// the override mistake, that accessor's getter is marked with
+    				// an `originalValue` property. Here, when we detect this, we
+    				// uphold the illusion by pretending to see that original data
+    				// property, i.e., returning the value rather than the getter
+    				// itself.
+    				if (isOwn && 'get' in desc && !('originalValue' in desc.get)) {
+    					value = desc.get;
+    				} else {
+    					value = value[part];
+    				}
+    			} else {
+    				isOwn = src(value, part);
+    				value = value[part];
+    			}
+
+    			if (isOwn && !skipFurtherCaching) {
+    				INTRINSICS$3[intrinsicRealName] = value;
+    			}
+    		}
+    	}
+    	return value;
+    };
+
+    var $gOPD$6 = GetIntrinsic$2('%Object.getOwnPropertyDescriptor%');
+    if ($gOPD$6) {
+    	try {
+    		$gOPD$6([], 'length');
+    	} catch (e) {
+    		// IE 8 has a broken gOPD
+    		$gOPD$6 = null;
+    	}
+    }
+
+    var getOwnPropertyDescriptor$1 = $gOPD$6;
+
+    var $toString$2 = callBound('Object.prototype.toString');
+    var hasSymbols$7 = hasSymbols();
+    var hasToStringTag$6 = hasSymbols$7 && typeof Symbol.toStringTag === 'symbol';
+
+    var typedArrays = availableTypedArrays();
+
+    var $indexOf$1 = callBound('Array.prototype.indexOf', true) || function indexOf(array, value) {
+    	for (var i = 0; i < array.length; i += 1) {
+    		if (array[i] === value) {
+    			return i;
+    		}
+    	}
+    	return -1;
+    };
+    var $slice = callBound('String.prototype.slice');
+    var toStrTags = {};
+
+    var getPrototypeOf = Object.getPrototypeOf; // require('getprototypeof');
+    if (hasToStringTag$6 && getOwnPropertyDescriptor$1 && getPrototypeOf) {
+    	foreach(typedArrays, function (typedArray) {
+    		var arr = new commonjsGlobal[typedArray]();
+    		if (!(Symbol.toStringTag in arr)) {
+    			throw new EvalError('this engine has support for Symbol.toStringTag, but ' + typedArray + ' does not have the property! Please report this.');
+    		}
+    		var proto = getPrototypeOf(arr);
+    		var descriptor = getOwnPropertyDescriptor$1(proto, Symbol.toStringTag);
+    		if (!descriptor) {
+    			var superProto = getPrototypeOf(proto);
+    			descriptor = getOwnPropertyDescriptor$1(superProto, Symbol.toStringTag);
+    		}
+    		toStrTags[typedArray] = descriptor.get;
+    	});
+    }
+
+    var tryTypedArrays = function tryAllTypedArrays(value) {
+    	var anyTrue = false;
+    	foreach(toStrTags, function (getter, typedArray) {
+    		if (!anyTrue) {
+    			try {
+    				anyTrue = getter.call(value) === typedArray;
+    			} catch (e) { /**/ }
+    		}
+    	});
+    	return anyTrue;
+    };
+
+    var isTypedArray = function isTypedArray(value) {
+    	if (!value || typeof value !== 'object') { return false; }
+    	if (!hasToStringTag$6) {
+    		var tag = $slice($toString$2(value), 8, -1);
+    		return $indexOf$1(typedArrays, tag) > -1;
+    	}
+    	if (!getOwnPropertyDescriptor$1) { return false; }
+    	return tryTypedArrays(value);
+    };
+
+    var $toString$3 = callBound('Object.prototype.toString');
+    var hasSymbols$8 = hasSymbols();
+    var hasToStringTag$7 = hasSymbols$8 && typeof Symbol.toStringTag === 'symbol';
+
+    var typedArrays$1 = availableTypedArrays();
+
+    var $slice$1 = callBound('String.prototype.slice');
+    var toStrTags$1 = {};
+
+    var getPrototypeOf$1 = Object.getPrototypeOf; // require('getprototypeof');
+    if (hasToStringTag$7 && getOwnPropertyDescriptor && getPrototypeOf$1) {
+    	foreach(typedArrays$1, function (typedArray) {
+    		if (typeof commonjsGlobal[typedArray] === 'function') {
+    			var arr = new commonjsGlobal[typedArray]();
+    			if (!(Symbol.toStringTag in arr)) {
+    				throw new EvalError('this engine has support for Symbol.toStringTag, but ' + typedArray + ' does not have the property! Please report this.');
+    			}
+    			var proto = getPrototypeOf$1(arr);
+    			var descriptor = getOwnPropertyDescriptor(proto, Symbol.toStringTag);
+    			if (!descriptor) {
+    				var superProto = getPrototypeOf$1(proto);
+    				descriptor = getOwnPropertyDescriptor(superProto, Symbol.toStringTag);
+    			}
+    			toStrTags$1[typedArray] = descriptor.get;
+    		}
+    	});
+    }
+
+    var tryTypedArrays$1 = function tryAllTypedArrays(value) {
+    	var foundName = false;
+    	foreach(toStrTags$1, function (getter, typedArray) {
+    		if (!foundName) {
+    			try {
+    				var name = getter.call(value);
+    				if (name === typedArray) {
+    					foundName = name;
+    				}
+    			} catch (e) {}
+    		}
+    	});
+    	return foundName;
+    };
+
+
+
+    var whichTypedArray = function whichTypedArray(value) {
+    	if (!isTypedArray(value)) { return false; }
+    	if (!hasToStringTag$7) { return $slice$1($toString$3(value), 8, -1); }
+    	return tryTypedArrays$1(value);
+    };
+
+    // modified from https://github.com/es-shims/es6-shim
+
+    var canBeObject = function (obj) {
+    	return typeof obj !== 'undefined' && obj !== null;
+    };
+    var hasSymbols$9 = shams();
+
+    var toObject = Object;
+    var $push = callBound('Array.prototype.push');
+    var $propIsEnumerable = callBound('Object.prototype.propertyIsEnumerable');
+    var originalGetSymbols = hasSymbols$9 ? Object.getOwnPropertySymbols : null;
+
+    // eslint-disable-next-line no-unused-vars
+    var implementation$4 = function assign(target, source1) {
+    	if (!canBeObject(target)) { throw new TypeError('target must be an object'); }
+    	var objTarget = toObject(target);
+    	var s, source, i, props, syms, value, key;
+    	for (s = 1; s < arguments.length; ++s) {
+    		source = toObject(arguments[s]);
+    		props = objectKeys(source);
+    		var getSymbols = hasSymbols$9 && (Object.getOwnPropertySymbols || originalGetSymbols);
+    		if (getSymbols) {
+    			syms = getSymbols(source);
+    			for (i = 0; i < syms.length; ++i) {
+    				key = syms[i];
+    				if ($propIsEnumerable(source, key)) {
+    					$push(props, key);
+    				}
+    			}
+    		}
+    		for (i = 0; i < props.length; ++i) {
+    			key = props[i];
+    			value = source[key];
+    			if ($propIsEnumerable(source, key)) {
+    				objTarget[key] = value;
+    			}
+    		}
+    	}
+    	return objTarget;
+    };
+
+    var lacksProperEnumerationOrder = function () {
+    	if (!Object.assign) {
+    		return false;
+    	}
+    	/*
+    	 * v8, specifically in node 4.x, has a bug with incorrect property enumeration order
+    	 * note: this does not detect the bug unless there's 20 characters
+    	 */
+    	var str = 'abcdefghijklmnopqrst';
+    	var letters = str.split('');
+    	var map = {};
+    	for (var i = 0; i < letters.length; ++i) {
+    		map[letters[i]] = letters[i];
+    	}
+    	var obj = Object.assign({}, map);
+    	var actual = '';
+    	for (var k in obj) {
+    		actual += k;
+    	}
+    	return str !== actual;
+    };
+
+    var assignHasPendingExceptions = function () {
+    	if (!Object.assign || !Object.preventExtensions) {
+    		return false;
+    	}
+    	/*
+    	 * Firefox 37 still has "pending exception" logic in its Object.assign implementation,
+    	 * which is 72% slower than our shim, and Firefox 40's native implementation.
+    	 */
+    	var thrower = Object.preventExtensions({ 1: 2 });
+    	try {
+    		Object.assign(thrower, 'xy');
+    	} catch (e) {
+    		return thrower[1] === 'y';
+    	}
+    	return false;
+    };
+
+    var polyfill$3 = function getPolyfill() {
+    	if (!Object.assign) {
+    		return implementation$4;
+    	}
+    	if (lacksProperEnumerationOrder()) {
+    		return implementation$4;
+    	}
+    	if (assignHasPendingExceptions()) {
+    		return implementation$4;
+    	}
+    	return Object.assign;
+    };
+
+    var shim$2 = function shimAssign() {
+    	var polyfill = polyfill$3();
+    	defineProperties_1(
+    		Object,
+    		{ assign: polyfill },
+    		{ assign: function () { return Object.assign !== polyfill; } }
+    	);
+    	return polyfill;
+    };
+
+    var polyfill$4 = callBind.apply(polyfill$3());
+    // eslint-disable-next-line no-unused-vars
+    var bound = function assign(target, source1) {
+    	return polyfill$4(Object, arguments);
+    };
+
+    defineProperties_1(bound, {
+    	getPolyfill: polyfill$3,
+    	implementation: implementation$4,
+    	shim: shim$2
+    });
+
+    var object_assign = bound;
+
+    var $getTime = callBound('Date.prototype.getTime');
+    var gPO = Object.getPrototypeOf;
+    var $objToString = callBound('Object.prototype.toString');
+
+    var $Set$2 = getIntrinsic('%Set%', true);
+    var $mapHas$4 = callBound('Map.prototype.has', true);
+    var $mapGet$1 = callBound('Map.prototype.get', true);
+    var $mapSize = callBound('Map.prototype.size', true);
+    var $setAdd = callBound('Set.prototype.add', true);
+    var $setDelete = callBound('Set.prototype.delete', true);
+    var $setHas$3 = callBound('Set.prototype.has', true);
+    var $setSize = callBound('Set.prototype.size', true);
+
+    // taken from https://github.com/browserify/commonjs-assert/blob/bba838e9ba9e28edf3127ce6974624208502f6bc/internal/util/comparisons.js#L401-L414
+    function setHasEqualElement(set, val1, opts, channel) {
+      var i = esGetIterator(set);
+      var result;
+      while ((result = i.next()) && !result.done) {
+        if (internalDeepEqual(val1, result.value, opts, channel)) { // eslint-disable-line no-use-before-define
+          // Remove the matching element to make sure we do not check that again.
+          $setDelete(set, result.value);
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // taken from https://github.com/browserify/commonjs-assert/blob/bba838e9ba9e28edf3127ce6974624208502f6bc/internal/util/comparisons.js#L416-L439
+    function findLooseMatchingPrimitives(prim) {
+      if (typeof prim === 'undefined') {
+        return null;
+      }
+      if (typeof prim === 'object') { // Only pass in null as object!
+        return void 0;
+      }
+      if (typeof prim === 'symbol') {
+        return false;
+      }
+      if (typeof prim === 'string' || typeof prim === 'number') {
+        // Loose equal entries exist only if the string is possible to convert to a regular number and not NaN.
+        return +prim === +prim; // eslint-disable-line no-implicit-coercion
+      }
+      return true;
+    }
+
+    // taken from https://github.com/browserify/commonjs-assert/blob/bba838e9ba9e28edf3127ce6974624208502f6bc/internal/util/comparisons.js#L449-L460
+    function mapMightHaveLoosePrim(a, b, prim, item, opts, channel) {
+      var altValue = findLooseMatchingPrimitives(prim);
+      if (altValue != null) {
+        return altValue;
+      }
+      var curB = $mapGet$1(b, altValue);
+      var looseOpts = object_assign({}, opts, { strict: false });
+      if (
+        (typeof curB === 'undefined' && !$mapHas$4(b, altValue))
+        // eslint-disable-next-line no-use-before-define
+        || !internalDeepEqual(item, curB, looseOpts, channel)
+      ) {
+        return false;
+      }
+      // eslint-disable-next-line no-use-before-define
+      return !$mapHas$4(a, altValue) && internalDeepEqual(item, curB, looseOpts, channel);
+    }
+
+    // taken from https://github.com/browserify/commonjs-assert/blob/bba838e9ba9e28edf3127ce6974624208502f6bc/internal/util/comparisons.js#L441-L447
+    function setMightHaveLoosePrim(a, b, prim) {
+      var altValue = findLooseMatchingPrimitives(prim);
+      if (altValue != null) {
+        return altValue;
+      }
+
+      return $setHas$3(b, altValue) && !$setHas$3(a, altValue);
+    }
+
+    // taken from https://github.com/browserify/commonjs-assert/blob/bba838e9ba9e28edf3127ce6974624208502f6bc/internal/util/comparisons.js#L518-L533
+    function mapHasEqualEntry(set, map, key1, item1, opts, channel) {
+      var i = esGetIterator(set);
+      var result;
+      var key2;
+      while ((result = i.next()) && !result.done) {
+        key2 = result.value;
+        if (
+          // eslint-disable-next-line no-use-before-define
+          internalDeepEqual(key1, key2, opts, channel)
+          // eslint-disable-next-line no-use-before-define
+          && internalDeepEqual(item1, $mapGet$1(map, key2), opts, channel)
+        ) {
+          $setDelete(set, key2);
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function internalDeepEqual(actual, expected, options, channel) {
+      var opts = options || {};
+
+      // 7.1. All identical values are equivalent, as determined by ===.
+      if (opts.strict ? objectIs(actual, expected) : actual === expected) {
+        return true;
+      }
+
+      var actualBoxed = whichBoxedPrimitive(actual);
+      var expectedBoxed = whichBoxedPrimitive(expected);
+      if (actualBoxed !== expectedBoxed) {
+        return false;
+      }
+
+      // 7.3. Other pairs that do not both pass typeof value == 'object', equivalence is determined by ==.
+      if (!actual || !expected || (typeof actual !== 'object' && typeof expected !== 'object')) {
+        return opts.strict ? objectIs(actual, expected) : actual == expected; // eslint-disable-line eqeqeq
+      }
+
+      /*
+       * 7.4. For all other Object pairs, including Array objects, equivalence is
+       * determined by having the same number of owned properties (as verified
+       * with Object.prototype.hasOwnProperty.call), the same set of keys
+       * (although not necessarily the same order), equivalent values for every
+       * corresponding key, and an identical 'prototype' property. Note: this
+       * accounts for both named and indexed properties on Arrays.
+       */
+      // see https://github.com/nodejs/node/commit/d3aafd02efd3a403d646a3044adcf14e63a88d32 for memos/channel inspiration
+
+      var hasActual = channel.has(actual);
+      var hasExpected = channel.has(expected);
+      var sentinel;
+      if (hasActual && hasExpected) {
+        if (channel.get(actual) === channel.get(expected)) {
+          return true;
+        }
+      } else {
+        sentinel = {};
+      }
+      if (!hasActual) { channel.set(actual, sentinel); }
+      if (!hasExpected) { channel.set(expected, sentinel); }
+
+      // eslint-disable-next-line no-use-before-define
+      return objEquiv(actual, expected, opts, channel);
+    }
+
+    function isBuffer(x) {
+      if (!x || typeof x !== 'object' || typeof x.length !== 'number') {
+        return false;
+      }
+      if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
+        return false;
+      }
+      if (x.length > 0 && typeof x[0] !== 'number') {
+        return false;
+      }
+
+      return !!(x.constructor && x.constructor.isBuffer && x.constructor.isBuffer(x));
+    }
+
+    function setEquiv(a, b, opts, channel) {
+      if ($setSize(a) !== $setSize(b)) {
+        return false;
+      }
+      var iA = esGetIterator(a);
+      var iB = esGetIterator(b);
+      var resultA;
+      var resultB;
+      var set;
+      while ((resultA = iA.next()) && !resultA.done) {
+        if (resultA.value && typeof resultA.value === 'object') {
+          if (!set) { set = new $Set$2(); }
+          $setAdd(set, resultA.value);
+        } else if (!$setHas$3(b, resultA.value)) {
+          if (opts.strict) { return false; }
+          if (!setMightHaveLoosePrim(a, b, resultA.value)) {
+            return false;
+          }
+          if (!set) { set = new $Set$2(); }
+          $setAdd(set, resultA.value);
+        }
+      }
+      if (set) {
+        while ((resultB = iB.next()) && !resultB.done) {
+          // We have to check if a primitive value is already matching and only if it's not, go hunting for it.
+          if (resultB.value && typeof resultB.value === 'object') {
+            if (!setHasEqualElement(set, resultB.value, opts.strict, channel)) {
+              return false;
+            }
+          } else if (
+            !opts.strict
+            && !$setHas$3(a, resultB.value)
+            && !setHasEqualElement(set, resultB.value, opts.strict, channel)
+          ) {
+            return false;
+          }
+        }
+        return $setSize(set) === 0;
+      }
+      return true;
+    }
+
+    function mapEquiv(a, b, opts, channel) {
+      if ($mapSize(a) !== $mapSize(b)) {
+        return false;
+      }
+      var iA = esGetIterator(a);
+      var iB = esGetIterator(b);
+      var resultA;
+      var resultB;
+      var set;
+      var key;
+      var item1;
+      var item2;
+      while ((resultA = iA.next()) && !resultA.done) {
+        key = resultA.value[0];
+        item1 = resultA.value[1];
+        if (key && typeof key === 'object') {
+          if (!set) { set = new $Set$2(); }
+          $setAdd(set, key);
+        } else {
+          item2 = $mapGet$1(b, key);
+          if ((typeof item2 === 'undefined' && !$mapHas$4(b, key)) || !internalDeepEqual(item1, item2, opts, channel)) {
+            if (opts.strict) {
+              return false;
+            }
+            if (!mapMightHaveLoosePrim(a, b, key, item1, opts, channel)) {
+              return false;
+            }
+            if (!set) { set = new $Set$2(); }
+            $setAdd(set, key);
+          }
+        }
+      }
+
+      if (set) {
+        while ((resultB = iB.next()) && !resultB.done) {
+          key = resultB.value[0];
+          item2 = resultB.value[1];
+          if (key && typeof key === 'object') {
+            if (!mapHasEqualEntry(set, a, key, item2, opts, channel)) {
+              return false;
+            }
+          } else if (
+            !opts.strict
+            && (!a.has(key) || !internalDeepEqual($mapGet$1(a, key), item2, opts, channel))
+            && !mapHasEqualEntry(set, a, key, item2, object_assign({}, opts, { strict: false }), channel)
+          ) {
+            return false;
+          }
+        }
+        return $setSize(set) === 0;
+      }
+      return true;
+    }
+
+    function objEquiv(a, b, opts, channel) {
+      /* eslint max-statements: [2, 100], max-lines-per-function: [2, 120], max-depth: [2, 5] */
+      var i, key;
+
+      if (typeof a !== typeof b) { return false; }
+      if (a == null || b == null) { return false; }
+
+      if ($objToString(a) !== $objToString(b)) { return false; }
+
+      if (isArguments$1(a) !== isArguments$1(b)) { return false; }
+
+      var aIsArray = isarray(a);
+      var bIsArray = isarray(b);
+      if (aIsArray !== bIsArray) { return false; }
+
+      // TODO: replace when a cross-realm brand check is available
+      var aIsError = a instanceof Error;
+      var bIsError = b instanceof Error;
+      if (aIsError !== bIsError) { return false; }
+      if (aIsError || bIsError) {
+        if (a.name !== b.name || a.message !== b.message) { return false; }
+      }
+
+      var aIsRegex = isRegex(a);
+      var bIsRegex = isRegex(b);
+      if (aIsRegex !== bIsRegex) { return false; }
+      if ((aIsRegex || bIsRegex) && (a.source !== b.source || regexp_prototype_flags(a) !== regexp_prototype_flags(b))) {
+        return false;
+      }
+
+      var aIsDate = isDateObject(a);
+      var bIsDate = isDateObject(b);
+      if (aIsDate !== bIsDate) { return false; }
+      if (aIsDate || bIsDate) { // && would work too, because both are true or both false here
+        if ($getTime(a) !== $getTime(b)) { return false; }
+      }
+      if (opts.strict && gPO && gPO(a) !== gPO(b)) { return false; }
+
+      if (whichTypedArray(a) !== whichTypedArray(b)) {
+        return false;
+      }
+
+      var aIsBuffer = isBuffer(a);
+      var bIsBuffer = isBuffer(b);
+      if (aIsBuffer !== bIsBuffer) { return false; }
+      if (aIsBuffer || bIsBuffer) { // && would work too, because both are true or both false here
+        if (a.length !== b.length) { return false; }
+        for (i = 0; i < a.length; i++) {
+          if (a[i] !== b[i]) { return false; }
+        }
+        return true;
+      }
+
+      if (typeof a !== typeof b) { return false; }
+
+      var ka = objectKeys(a);
+      var kb = objectKeys(b);
+      // having the same number of owned properties (keys incorporates hasOwnProperty)
+      if (ka.length !== kb.length) { return false; }
+
+      // the same set of keys (although not necessarily the same order),
+      ka.sort();
+      kb.sort();
+      // ~~~cheap key test
+      for (i = ka.length - 1; i >= 0; i--) {
+        if (ka[i] != kb[i]) { return false; } // eslint-disable-line eqeqeq
+      }
+
+      // equivalent values for every corresponding key, and ~~~possibly expensive deep test
+      for (i = ka.length - 1; i >= 0; i--) {
+        key = ka[i];
+        if (!internalDeepEqual(a[key], b[key], opts, channel)) { return false; }
+      }
+
+      var aCollection = whichCollection(a);
+      var bCollection = whichCollection(b);
+      if (aCollection !== bCollection) {
+        return false;
+      }
+      if (aCollection === 'Set' || bCollection === 'Set') { // aCollection === bCollection
+        return setEquiv(a, b, opts, channel);
+      }
+      if (aCollection === 'Map') { // aCollection === bCollection
+        return mapEquiv(a, b, opts, channel);
+      }
+
+      return true;
+    }
+
+    var deepEqual$2 = function deepEqual(a, b, opts) {
+      return internalDeepEqual(a, b, opts, sideChannel());
+    };
+
     const getRelativeBounds = (rect, relativeTo, relativeDirection) => {
         const edgeDistance = 0;
         if (relativeDirection === "bottom") {
@@ -19885,7 +24261,7 @@
         }
         throw new Error("invalid relativeDirection");
     };
-    const objEqual = (objOne, objTwo) => JSON.stringify(objOne) === JSON.stringify(objTwo);
+    const objEqual = (objOne, objTwo) => deepEqual$2(objOne, objTwo, { strict: true });
     const waitFor = (invocations, callback) => {
         let left = invocations;
         return () => {
@@ -19913,14 +24289,10 @@
                 logger.setLogger(this._systemGlue.logger);
             });
         }
-        initClientGlue(config, factory) {
+        initClientGlue(config, factory, isWorkspaceFrame) {
             return __awaiter(this, void 0, void 0, function* () {
                 const port = yield this.portsBridge.createInternalClient();
-                const platformWindowData = this.sessionStorage.getWindowDataByName("Platform");
-                this._platformClientWindowId = platformWindowData ? platformWindowData.windowId : shortid$1.generate();
-                if (!platformWindowData) {
-                    this.sessionStorage.saveWindowData({ name: "Platform", windowId: this.platformWindowId });
-                }
+                this.registerClientWindow(isWorkspaceFrame);
                 const webConfig = {
                     application: "Platform",
                     gateway: { webPlatform: { port, windowId: this.platformWindowId } }
@@ -20041,7 +24413,7 @@
             var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
                 const port = yield this.portsBridge.createInternalClient();
-                const logLevel = (_b = (_a = config === null || config === void 0 ? void 0 : config.systemLogger) === null || _a === void 0 ? void 0 : _a.level) !== null && _b !== void 0 ? _b : "trace";
+                const logLevel = (_b = (_a = config === null || config === void 0 ? void 0 : config.systemLogger) === null || _a === void 0 ? void 0 : _a.level) !== null && _b !== void 0 ? _b : "info";
                 return yield GlueCore$1({
                     application: "Platform",
                     gateway: { webPlatform: { port } },
@@ -20051,6 +24423,22 @@
         }
         setContext(name, data) {
             return this._systemGlue.contexts.set(name, data);
+        }
+        registerClientWindow(isWorkspaceFrame) {
+            if (isWorkspaceFrame) {
+                const platformFrame = this.sessionStorage.getPlatformFrame();
+                this._platformClientWindowId = platformFrame ? platformFrame.windowId : shortid$2.generate();
+                if (!platformFrame) {
+                    const platformFrameData = { windowId: this._platformClientWindowId, active: true, isPlatform: true };
+                    this.sessionStorage.saveFrameData(platformFrameData);
+                }
+                return;
+            }
+            const platformWindowData = this.sessionStorage.getWindowDataByName("Platform");
+            this._platformClientWindowId = platformWindowData ? platformWindowData.windowId : shortid$2.generate();
+            if (!platformWindowData) {
+                this.sessionStorage.saveWindowData({ name: "Platform", windowId: this.platformWindowId });
+            }
         }
         createMethodAsync(name, handler) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -20201,14 +24589,14 @@
         };
     }
     createRegistry$3.default = createRegistry$3;
-    var lib$4 = createRegistry$3;
+    var lib$5 = createRegistry$3;
 
     class PortsBridge {
         constructor(gateway, sessionStorage, ioc) {
             this.gateway = gateway;
             this.sessionStorage = sessionStorage;
             this.ioc = ioc;
-            this.registry = lib$4();
+            this.registry = lib$5();
             this.clients = {};
             this.unLoadStarted = false;
         }
@@ -20262,18 +24650,24 @@
                 if (data.type === Glue42CoreMessageTypes.platformPing.name) {
                     return this.handlePlatformPing(event.source, event.origin);
                 }
+                if (data.type === Glue42CoreMessageTypes.parentPing.name) {
+                    return this.handleParentPing(event.source, event.origin);
+                }
             });
         }
         handleRemoteConnectionRequest(source, origin, clientId, clientType, bridgeInstanceId) {
+            var _a;
             return __awaiter(this, void 0, void 0, function* () {
                 const channel = this.ioc.createMessageChannel();
                 yield this.gateway.connectClient(channel.port1, this.removeClient.bind(this));
                 const foundData = this.sessionStorage.getBridgeInstanceData(bridgeInstanceId);
                 const appName = foundData === null || foundData === void 0 ? void 0 : foundData.appName;
+                const myWindowId = (_a = this.sessionStorage.getWindowDataByName("Platform")) === null || _a === void 0 ? void 0 : _a.windowId;
                 const message = {
                     glue42core: {
                         type: Glue42CoreMessageTypes.connectionAccepted.name,
                         port: channel.port2,
+                        parentWindowId: myWindowId,
                         appName, clientId, clientType
                     }
                 };
@@ -20282,6 +24676,14 @@
                 }
                 source.postMessage(message, origin, [channel.port2]);
             });
+        }
+        handleParentPing(source, origin) {
+            const message = {
+                glue42core: {
+                    type: Glue42CoreMessageTypes.parentReady.name
+                }
+            };
+            source.postMessage(message, origin);
         }
         handlePlatformPing(source, origin) {
             const message = {
@@ -20301,7 +24703,7 @@
         }
     }
 
-    const windowOperationDecoder = oneOf$1(constant$1("openWindow"), constant$1("windowHello"), constant$1("getUrl"), constant$1("getTitle"), constant$1("setTitle"), constant$1("moveResize"), constant$1("focus"), constant$1("close"), constant$1("getBounds"), constant$1("registerWorkspaceWindow"), constant$1("unregisterWorkspaceWindow"));
+    const windowOperationDecoder = oneOf$1(constant$1("openWindow"), constant$1("windowHello"), constant$1("getUrl"), constant$1("getTitle"), constant$1("setTitle"), constant$1("moveResize"), constant$1("focus"), constant$1("close"), constant$1("getBounds"), constant$1("getFrameBounds"), constant$1("registerWorkspaceWindow"), constant$1("unregisterWorkspaceWindow"));
     const openWindowConfigDecoder$1 = object$1({
         name: nonEmptyStringDecoder$1,
         url: nonEmptyStringDecoder$1,
@@ -20316,6 +24718,14 @@
     });
     const windowBoundsResultDecoder$1 = object$1({
         windowId: nonEmptyStringDecoder$1,
+        bounds: object$1({
+            top: number$1(),
+            left: number$1(),
+            width: nonNegativeNumberDecoder$1,
+            height: nonNegativeNumberDecoder$1
+        })
+    });
+    const frameWindowBoundsResultDecoder$1 = object$1({
         bounds: object$1({
             top: number$1(),
             left: number$1(),
@@ -20340,7 +24750,7 @@
         title: string$1()
     });
 
-    const workspacesOperationDecoder = oneOf$1(constant$1("isWindowInWorkspace"), constant$1("createWorkspace"), constant$1("getAllFramesSummaries"), constant$1("getFrameSummary"), constant$1("getAllWorkspacesSummaries"), constant$1("getWorkspaceSnapshot"), constant$1("getAllLayoutsSummaries"), constant$1("openWorkspace"), constant$1("deleteLayout"), constant$1("saveLayout"), constant$1("importLayout"), constant$1("exportAllLayouts"), constant$1("restoreItem"), constant$1("maximizeItem"), constant$1("focusItem"), constant$1("closeItem"), constant$1("resizeItem"), constant$1("moveFrame"), constant$1("getFrameSnapshot"), constant$1("forceLoadWindow"), constant$1("ejectWindow"), constant$1("setItemTitle"), constant$1("moveWindowTo"), constant$1("addWindow"), constant$1("addContainer"), constant$1("bundleWorkspace"), constant$1("changeFrameState"), constant$1("getFrameState"), constant$1("frameHello"));
+    const workspacesOperationDecoder = oneOf$1(constant$1("isWindowInWorkspace"), constant$1("createWorkspace"), constant$1("getAllFramesSummaries"), constant$1("getFrameSummary"), constant$1("getAllWorkspacesSummaries"), constant$1("getWorkspaceSnapshot"), constant$1("getAllLayoutsSummaries"), constant$1("openWorkspace"), constant$1("deleteLayout"), constant$1("saveLayout"), constant$1("importLayout"), constant$1("exportAllLayouts"), constant$1("restoreItem"), constant$1("maximizeItem"), constant$1("focusItem"), constant$1("closeItem"), constant$1("resizeItem"), constant$1("moveFrame"), constant$1("getFrameSnapshot"), constant$1("forceLoadWindow"), constant$1("ejectWindow"), constant$1("setItemTitle"), constant$1("moveWindowTo"), constant$1("addWindow"), constant$1("addContainer"), constant$1("bundleWorkspace"), constant$1("changeFrameState"), constant$1("getFrameState"), constant$1("getFrameBounds"), constant$1("frameHello"), constant$1("hibernateWorkspace"), constant$1("resumeWorkspace"), constant$1("getWorkspacesConfig"), constant$1("lockWorkspace"), constant$1("lockContainer"), constant$1("lockWindow"));
     const frameHelloDecoder = object$1({
         windowId: optional$1(nonEmptyStringDecoder$1)
     });
@@ -20378,12 +24788,55 @@
     });
     const parentDefinitionDecoder = object$1({
         type: optional$1(subParentDecoder),
-        children: optional$1(lazy$1(() => array$1(oneOf$1(swimlaneWindowDefinitionDecoder, parentDefinitionDecoder))))
+        children: optional$1(lazy$1(() => array$1(oneOf$1(swimlaneWindowDefinitionDecoder, parentDefinitionDecoder)))),
+        config: optional$1(anyJson$1())
     });
-    const strictParentDefinitionDecoder = object$1({
-        type: subParentDecoder,
-        children: optional$1(lazy$1(() => array$1(oneOf$1(strictSwimlaneWindowDefinitionDecoder, strictParentDefinitionDecoder))))
+    const groupDefinitionConfigDecoder = object$1({
+        minWidth: optional$1(number$1()),
+        maxWidth: optional$1(number$1()),
+        minHeight: optional$1(number$1()),
+        maxHeight: optional$1(number$1()),
+        allowExtract: optional$1(boolean$1()),
+        allowDrop: optional$1(boolean$1()),
+        allowDropHeader: optional$1(boolean$1()),
+        allowDropLeft: optional$1(boolean$1()),
+        allowDropTop: optional$1(boolean$1()),
+        allowDropRight: optional$1(boolean$1()),
+        allowDropBottom: optional$1(boolean$1()),
+        showMaximizeButton: optional$1(boolean$1()),
+        showEjectButton: optional$1(boolean$1()),
+        showAddWindowButton: optional$1(boolean$1())
     });
+    const rowDefinitionConfigDecoder = object$1({
+        minHeight: optional$1(number$1()),
+        maxHeight: optional$1(number$1()),
+        allowDrop: optional$1(boolean$1()),
+        allowSplitters: optional$1(boolean$1()),
+        isPinned: optional$1(boolean$1())
+    });
+    const columnDefinitionConfigDecoder = object$1({
+        minWidth: optional$1(number$1()),
+        maxWidth: optional$1(number$1()),
+        allowDrop: optional$1(boolean$1()),
+        allowSplitters: optional$1(boolean$1()),
+        isPinned: optional$1(boolean$1())
+    });
+    const strictColumnDefinitionDecoder = object$1({
+        type: constant$1("column"),
+        children: optional$1(lazy$1(() => array$1(oneOf$1(strictSwimlaneWindowDefinitionDecoder, strictParentDefinitionDecoder)))),
+        config: optional$1(columnDefinitionConfigDecoder)
+    });
+    const strictRowDefinitionDecoder = object$1({
+        type: constant$1("row"),
+        children: optional$1(lazy$1(() => array$1(oneOf$1(strictSwimlaneWindowDefinitionDecoder, strictParentDefinitionDecoder)))),
+        config: optional$1(rowDefinitionConfigDecoder)
+    });
+    const strictGroupDefinitionDecoder = object$1({
+        type: constant$1("group"),
+        children: optional$1(lazy$1(() => array$1(oneOf$1(strictSwimlaneWindowDefinitionDecoder, strictParentDefinitionDecoder)))),
+        config: optional$1(groupDefinitionConfigDecoder)
+    });
+    const strictParentDefinitionDecoder = oneOf$1(strictGroupDefinitionDecoder, strictColumnDefinitionDecoder, strictRowDefinitionDecoder);
     const stateDecoder = oneOf$1(string$1().where((s) => s.toLowerCase() === "maximized", "Expected a case insensitive variation of 'maximized'"), string$1().where((s) => s.toLowerCase() === "normal", "Expected a case insensitive variation of 'normal'"));
     const newFrameConfigDecoder = object$1({
         bounds: optional$1(object$1({
@@ -20393,11 +24846,11 @@
             height: optional$1(nonNegativeNumberDecoder$1)
         }))
     });
-    const restoreTypeDecoder = oneOf$1(constant$1("direct"), constant$1("delayed"), constant$1("lazy"));
+    const loadStrategyDecoder = oneOf$1(constant$1("direct"), constant$1("delayed"), constant$1("lazy"));
     const restoreWorkspaceConfigDecoder = object$1({
         app: optional$1(nonEmptyStringDecoder$1),
         context: optional$1(anyJson$1()),
-        restoreType: optional$1(restoreTypeDecoder),
+        loadStrategy: optional$1(loadStrategyDecoder),
         title: optional$1(nonEmptyStringDecoder$1),
         reuseWorkspaceId: optional$1(nonEmptyStringDecoder$1),
         frameId: optional$1(nonEmptyStringDecoder$1),
@@ -20418,7 +24871,17 @@
             title: optional$1(nonEmptyStringDecoder$1),
             position: optional$1(nonNegativeNumberDecoder$1),
             isFocused: optional$1(boolean$1()),
-            noTabHeader: optional$1(boolean$1())
+            loadStrategy: optional$1(loadStrategyDecoder),
+            noTabHeader: optional$1(boolean$1()),
+            allowDrop: optional$1(boolean$1()),
+            allowDropLeft: optional$1(boolean$1()),
+            allowDropTop: optional$1(boolean$1()),
+            allowDropRight: optional$1(boolean$1()),
+            allowDropBottom: optional$1(boolean$1()),
+            allowExtract: optional$1(boolean$1()),
+            showSaveButton: optional$1(boolean$1()),
+            showCloseButton: optional$1(boolean$1()),
+            allowSplitters: optional$1(boolean$1()),
         })),
         frame: optional$1(object$1({
             reuseFrameId: optional$1(nonEmptyStringDecoder$1),
@@ -20446,7 +24909,8 @@
         positionIndex: number$1(),
         title: nonEmptyStringDecoder$1,
         focused: boolean$1(),
-        layoutName: optional$1(nonEmptyStringDecoder$1)
+        layoutName: optional$1(nonEmptyStringDecoder$1),
+        isSelected: optional$1(boolean$1())
     });
     const containerSummaryDecoder = object$1({
         type: subParentDecoder,
@@ -20466,7 +24930,28 @@
         title: nonEmptyStringDecoder$1,
         positionIndex: nonNegativeNumberDecoder$1,
         name: nonEmptyStringDecoder$1,
-        layoutName: optional$1(nonEmptyStringDecoder$1)
+        layoutName: optional$1(nonEmptyStringDecoder$1),
+        isHibernated: boolean$1(),
+        isSelected: boolean$1(),
+        lastActive: number$1(),
+        allowDrop: optional$1(boolean$1()),
+        allowExtract: optional$1(boolean$1()),
+        allowSplitters: optional$1(boolean$1()),
+        showCloseButton: optional$1(boolean$1()),
+        showSaveButton: optional$1(boolean$1()),
+        allowDropLeft: optional$1(boolean$1()),
+        allowDropTop: optional$1(boolean$1()),
+        allowDropRight: optional$1(boolean$1()),
+        allowDropBottom: optional$1(boolean$1()),
+        showAddWindowButtons: optional$1(boolean$1()),
+        showEjectButtons: optional$1(boolean$1()),
+        showWindowCloseButtons: optional$1(boolean$1()),
+        minWidth: optional$1(number$1()),
+        maxWidth: optional$1(number$1()),
+        minHeight: optional$1(number$1()),
+        maxHeight: optional$1(number$1()),
+        widthInPx: optional$1(number$1()),
+        heightInPx: optional$1(number$1())
     });
     const baseChildSnapshotConfigDecoder = object$1({
         frameId: nonEmptyStringDecoder$1,
@@ -20499,27 +24984,20 @@
         children: optional$1(lazy$1(() => array$1(customWorkspaceChildSnapshotDecoder))),
         type: oneOf$1(constant$1("window"), constant$1("row"), constant$1("column"), constant$1("group"))
     });
-    const windowLayoutItemDecoder$2 = object$1({
-        type: constant$1("window"),
-        config: object$1({
-            appName: nonEmptyStringDecoder$1,
-            url: optional$1(nonEmptyStringDecoder$1)
-        })
-    });
     const groupLayoutItemDecoder$2 = object$1({
         type: constant$1("group"),
         config: anyJson$1(),
-        children: array$1(oneOf$1(windowLayoutItemDecoder$2))
+        children: array$1(oneOf$1(windowLayoutItemDecoder$1))
     });
     const columnLayoutItemDecoder$2 = object$1({
         type: constant$1("column"),
         config: anyJson$1(),
-        children: array$1(oneOf$1(groupLayoutItemDecoder$2, windowLayoutItemDecoder$2, lazy$1(() => columnLayoutItemDecoder$2), lazy$1(() => rowLayoutItemDecoder$2)))
+        children: array$1(oneOf$1(groupLayoutItemDecoder$2, windowLayoutItemDecoder$1, lazy$1(() => columnLayoutItemDecoder$2), lazy$1(() => rowLayoutItemDecoder$2)))
     });
     const rowLayoutItemDecoder$2 = object$1({
         type: constant$1("row"),
         config: anyJson$1(),
-        children: array$1(oneOf$1(columnLayoutItemDecoder$2, groupLayoutItemDecoder$2, windowLayoutItemDecoder$2, lazy$1(() => rowLayoutItemDecoder$2)))
+        children: array$1(oneOf$1(columnLayoutItemDecoder$2, groupLayoutItemDecoder$2, windowLayoutItemDecoder$1, lazy$1(() => rowLayoutItemDecoder$2)))
     });
     const workspaceLayoutDecoder = object$1({
         name: nonEmptyStringDecoder$1,
@@ -20530,7 +25008,7 @@
             state: object$1({
                 config: anyJson$1(),
                 context: anyJson$1(),
-                children: array$1(oneOf$1(rowLayoutItemDecoder$2, columnLayoutItemDecoder$2, groupLayoutItemDecoder$2, windowLayoutItemDecoder$2))
+                children: array$1(oneOf$1(rowLayoutItemDecoder$2, columnLayoutItemDecoder$2, groupLayoutItemDecoder$2, windowLayoutItemDecoder$1))
             })
         }))
     });
@@ -20571,6 +25049,14 @@
     const voidResultDecoder = anyJson$1();
     const frameStateResultDecoder = object$1({
         state: frameStateDecoder
+    });
+    const frameBoundsResultDecoder = object$1({
+        bounds: object$1({
+            top: nonNegativeNumberDecoder$1,
+            left: nonNegativeNumberDecoder$1,
+            width: nonNegativeNumberDecoder$1,
+            height: nonNegativeNumberDecoder$1
+        })
     });
     const resizeConfigDecoder = object$1({
         width: optional$1(nonNegativeNumberDecoder$1),
@@ -20624,6 +25110,9 @@
         type: oneOf$1(constant$1("row"), constant$1("column")),
         workspaceId: nonEmptyStringDecoder$1
     });
+    const workspaceSelectorDecoder = object$1({
+        workspaceId: nonEmptyStringDecoder$1
+    });
     const containerSummaryResultDecoder = object$1({
         itemId: nonEmptyStringDecoder$1,
         config: parentSnapshotConfigDecoder
@@ -20650,6 +25139,63 @@
         workspaceId: nonEmptyStringDecoder$1,
         saveContext: optional$1(boolean$1())
     });
+    const lockWorkspaceDecoder = object$1({
+        workspaceId: nonEmptyStringDecoder$1,
+        config: optional$1(object$1({
+            allowDrop: optional$1(boolean$1()),
+            allowDropLeft: optional$1(boolean$1()),
+            allowDropTop: optional$1(boolean$1()),
+            allowDropRight: optional$1(boolean$1()),
+            allowDropBottom: optional$1(boolean$1()),
+            allowExtract: optional$1(boolean$1()),
+            allowSplitters: optional$1(boolean$1()),
+            showCloseButton: optional$1(boolean$1()),
+            showSaveButton: optional$1(boolean$1()),
+            showWindowCloseButtons: optional$1(boolean$1()),
+            showEjectButtons: optional$1(boolean$1()),
+            showAddWindowButtons: optional$1(boolean$1())
+        }))
+    });
+    const lockWindowDecoder = object$1({
+        windowPlacementId: nonEmptyStringDecoder$1,
+        config: optional$1(object$1({
+            allowExtract: optional$1(boolean$1()),
+            showCloseButton: optional$1(boolean$1())
+        }))
+    });
+    const lockRowDecoder = object$1({
+        itemId: nonEmptyStringDecoder$1,
+        type: constant$1("row"),
+        config: optional$1(object$1({
+            allowDrop: optional$1(boolean$1()),
+            allowSplitters: optional$1(boolean$1()),
+        }))
+    });
+    const lockColumnDecoder = object$1({
+        itemId: nonEmptyStringDecoder$1,
+        type: constant$1("column"),
+        config: optional$1(object$1({
+            allowDrop: optional$1(boolean$1()),
+            allowSplitters: optional$1(boolean$1()),
+        }))
+    });
+    const lockGroupDecoder = object$1({
+        itemId: nonEmptyStringDecoder$1,
+        type: constant$1("group"),
+        config: optional$1(object$1({
+            allowExtract: optional$1(boolean$1()),
+            allowDrop: optional$1(boolean$1()),
+            allowDropHeader: optional$1(boolean$1()),
+            allowDropLeft: optional$1(boolean$1()),
+            allowDropTop: optional$1(boolean$1()),
+            allowDropRight: optional$1(boolean$1()),
+            allowDropBottom: optional$1(boolean$1()),
+            showMaximizeButton: optional$1(boolean$1()),
+            showEjectButton: optional$1(boolean$1()),
+            showAddWindowButton: optional$1(boolean$1()),
+        }))
+    });
+    const lockContainerDecoder = oneOf$1(lockColumnDecoder, lockGroupDecoder, lockRowDecoder);
 
     class WindowsController$1 {
         constructor(glueController, sessionController, stateController, ioc) {
@@ -20662,6 +25208,7 @@
                 openWindow: { name: "openWindow", execute: this.openWindow.bind(this), dataDecoder: openWindowConfigDecoder$1 },
                 windowHello: { name: "windowHello", execute: this.handleWindowHello.bind(this) },
                 getBounds: { name: "getBounds", dataDecoder: simpleWindowDecoder$1, resultDecoder: windowBoundsResultDecoder$1, execute: this.handleGetBounds.bind(this) },
+                getFrameBounds: { name: "getFrameBounds", dataDecoder: simpleWindowDecoder$1, resultDecoder: frameWindowBoundsResultDecoder$1, execute: this.handleGetBounds.bind(this) },
                 getUrl: { name: "getUrl", dataDecoder: simpleWindowDecoder$1, resultDecoder: windowUrlResultDecoder$1, execute: this.handleGetUrl.bind(this) },
                 moveResize: { name: "moveResize", dataDecoder: windowMoveResizeConfigDecoder$1, execute: this.handleMoveResize.bind(this) },
                 focus: { name: "focus", dataDecoder: simpleWindowDecoder$1, execute: this.handleFocus.bind(this) },
@@ -20677,6 +25224,9 @@
         }
         get moveResizeOperation() {
             return this.operations.moveResize;
+        }
+        get getFrameBoundsOperation() {
+            return this.operations.getFrameBounds;
         }
         get setTitleOperation() {
             return this.operations.setTitle;
@@ -20752,7 +25302,7 @@
             if (!windowId) {
                 return;
             }
-            if (win.closed) {
+            if (!win || win.closed) {
                 (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`${windowId} detected as closed, processing window cleanup`);
                 return this.cleanUpWindow(windowId);
             }
@@ -20794,7 +25344,7 @@
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling open command with a valid name: ${config.name}, url: ${config.url} and options: ${JSON.stringify(config.options)}`);
                 const windowData = {
                     name: config.name,
-                    windowId: (_c = (_b = config.options) === null || _b === void 0 ? void 0 : _b.windowId) !== null && _c !== void 0 ? _c : shortid$1.generate()
+                    windowId: (_c = (_b = config.options) === null || _b === void 0 ? void 0 : _b.windowId) !== null && _c !== void 0 ? _c : shortid$2.generate()
                 };
                 const openBounds = yield this.getStartingBounds(config, commandId);
                 const options = `left=${openBounds.left},top=${openBounds.top},width=${openBounds.width},height=${openBounds.height}`;
@@ -20974,8 +25524,10 @@
             this.nonGlueNamespace = "g42_core_nonglue";
             this.workspaceWindowsNamespace = "g42_core_workspace_clients";
             this.workspaceFramesNamespace = "g42_core_workspace_frames";
+            this.workspaceHibernationNamespace = "g42_core_workspace_hibernation";
             this.layoutNamespace = "g42_core_layouts";
             this.appDefsNamespace = "g42_core_app_definitions";
+            this.appDefsInmemoryNamespace = "g42_core_app_definitions_inmemory";
             this.sessionStorage = window.sessionStorage;
             [
                 this.bridgeInstancesNamespace,
@@ -20985,7 +25537,9 @@
                 this.workspaceWindowsNamespace,
                 this.workspaceFramesNamespace,
                 this.layoutNamespace,
-                this.appDefsNamespace
+                this.appDefsNamespace,
+                this.workspaceHibernationNamespace,
+                this.appDefsInmemoryNamespace
             ].forEach((namespace) => {
                 const data = this.sessionStorage.getItem(namespace);
                 if (!data) {
@@ -20996,18 +25550,46 @@
         get logger() {
             return logger.get("session.storage");
         }
-        getAllApps() {
-            const appsString = JSON.parse(this.sessionStorage.getItem(this.appDefsNamespace));
+        getTimeout(workspaceId) {
+            var _a;
+            const timers = JSON.parse(this.sessionStorage.getItem(this.workspaceHibernationNamespace));
+            return (_a = timers.find((timer) => timer.workspaceId === workspaceId)) === null || _a === void 0 ? void 0 : _a.timeout;
+        }
+        removeTimeout(workspaceId) {
+            const timers = JSON.parse(this.sessionStorage.getItem(this.workspaceHibernationNamespace));
+            const timer = timers.find((timer) => timer.workspaceId === workspaceId);
+            if (timer) {
+                this.sessionStorage.setItem(this.workspaceHibernationNamespace, JSON.stringify(timers.filter((timer) => timer.workspaceId !== workspaceId)));
+            }
+        }
+        saveTimeout(workspaceId, timeout) {
+            const allData = JSON.parse(this.sessionStorage.getItem(this.workspaceHibernationNamespace));
+            if (allData.some((data) => data.workspaceId === workspaceId)) {
+                return;
+            }
+            allData.push({ workspaceId, timeout });
+            this.sessionStorage.setItem(this.workspaceHibernationNamespace, JSON.stringify(allData));
+        }
+        exportClearTimeouts() {
+            const timers = JSON.parse(this.sessionStorage.getItem(this.workspaceHibernationNamespace));
+            this.sessionStorage.setItem(this.workspaceHibernationNamespace, JSON.stringify([]));
+            return timers;
+        }
+        getAllApps(type) {
+            const namespace = type === "remote" ? this.appDefsNamespace : this.appDefsInmemoryNamespace;
+            const appsString = JSON.parse(this.sessionStorage.getItem(namespace));
             return appsString;
         }
-        overwriteApps(apps) {
-            this.sessionStorage.setItem(this.appDefsNamespace, JSON.stringify(apps));
+        overwriteApps(apps, type) {
+            const namespace = type === "remote" ? this.appDefsNamespace : this.appDefsInmemoryNamespace;
+            this.sessionStorage.setItem(namespace, JSON.stringify(apps));
         }
-        removeApp(name) {
-            const all = this.getAllApps();
+        removeApp(name, type) {
+            const namespace = type === "remote" ? this.appDefsNamespace : this.appDefsInmemoryNamespace;
+            const all = this.getAllApps(type);
             const app = all.find((app) => app.name === name);
             if (app) {
-                this.sessionStorage.setItem(this.appDefsNamespace, JSON.stringify(all.filter((a) => a.name !== name)));
+                this.sessionStorage.setItem(namespace, JSON.stringify(all.filter((a) => a.name !== name)));
             }
             return app;
         }
@@ -21025,6 +25607,9 @@
             }
             allData.push(frameData);
             this.sessionStorage.setItem(this.workspaceFramesNamespace, JSON.stringify(allData));
+        }
+        getPlatformFrame() {
+            return this.getAllFrames().find((frame) => frame.isPlatform);
         }
         getAllFrames() {
             const allData = JSON.parse(this.sessionStorage.getItem(this.workspaceFramesNamespace));
@@ -21190,10 +25775,10 @@
         }
     }
 
-    class StateController {
+    class WindowsStateController {
         constructor(sessionStorage) {
             this.sessionStorage = sessionStorage;
-            this.registry = lib$4();
+            this.registry = lib$5();
             this.checkIntervalMs = 500;
             this.childrenToCheck = [];
             this.checkerCancelled = false;
@@ -21253,7 +25838,7 @@
         }
     }
 
-    const appManagerOperationTypesDecoder$1 = oneOf$1(constant$1("appHello"), constant$1("applicationStart"), constant$1("instanceStop"), constant$1("registerWorkspaceApp"), constant$1("unregisterWorkspaceApp"), constant$1("export"), constant$1("import"), constant$1("remove"));
+    const appManagerOperationTypesDecoder$1 = oneOf$1(constant$1("appHello"), constant$1("applicationStart"), constant$1("instanceStop"), constant$1("registerWorkspaceApp"), constant$1("unregisterWorkspaceApp"), constant$1("export"), constant$1("import"), constant$1("remove"), constant$1("clear"), constant$1("registerRemoteApps"));
     const basicInstanceDataDecoder$1 = object$1({
         id: nonEmptyStringDecoder$1
     });
@@ -21263,6 +25848,7 @@
     });
     const applicationDataDecoder$1 = object$1({
         name: nonEmptyStringDecoder$1,
+        type: nonEmptyStringDecoder$1.where((s) => s === "window", "Expected a value of window"),
         createOptions: applicationDetailsDecoder$1,
         instances: array$1(instanceDataDecoder$1),
         userProperties: optional$1(anyJson$1()),
@@ -21273,6 +25859,7 @@
     });
     const baseApplicationDataDecoder$1 = object$1({
         name: nonEmptyStringDecoder$1,
+        type: nonEmptyStringDecoder$1.where((s) => s === "window", "Expected a value of window"),
         createOptions: applicationDetailsDecoder$1,
         userProperties: optional$1(anyJson$1()),
         title: optional$1(nonEmptyStringDecoder$1),
@@ -21288,6 +25875,7 @@
     });
     const applicationStartConfigDecoder$1 = object$1({
         name: nonEmptyStringDecoder$1,
+        id: optional$1(nonEmptyStringDecoder$1),
         context: optional$1(anyJson$1()),
         top: optional$1(number$1()),
         left: optional$1(number$1()),
@@ -21297,8 +25885,8 @@
         relativeDirection: optional$1(oneOf$1(constant$1("top"), constant$1("left"), constant$1("right"), constant$1("bottom"))),
         waitForAGMReady: optional$1(boolean$1())
     });
-    const appsImportOperationDecoder = object$1({
-        definitions: array$1(allApplicationDefinitionsDecoder),
+    const appsImportOperationDecoder$1 = object$1({
+        definitions: array$1(allApplicationDefinitionsDecoder$1),
         mode: oneOf$1(constant$1("replace"), constant$1("merge"))
     });
     const appRemoveConfigDecoder$1 = object$1({
@@ -21307,12 +25895,16 @@
     const appsExportOperationDecoder$1 = object$1({
         definitions: array$1(glueCoreAppDefinitionDecoder)
     });
+    const appsRemoteRegistrationDecoder = object$1({
+        definitions: array$1(allApplicationDefinitionsDecoder$1)
+    });
 
     class ApplicationsController {
-        constructor(glueController, sessionStorage, stateController, ioc) {
+        constructor(glueController, sessionStorage, stateController, appDirectory, ioc) {
             this.glueController = glueController;
             this.sessionStorage = sessionStorage;
             this.stateController = stateController;
+            this.appDirectory = appDirectory;
             this.ioc = ioc;
             this.applicationStartTimeoutMs = 15000;
             this.started = false;
@@ -21323,9 +25915,11 @@
                 instanceStop: { name: "instanceStop", dataDecoder: basicInstanceDataDecoder$1, execute: this.handleInstanceStop.bind(this) },
                 registerWorkspaceApp: { name: "registerWorkspaceApp", dataDecoder: workspaceWindowDataDecoder, execute: this.registerWorkspaceApp.bind(this) },
                 unregisterWorkspaceApp: { name: "unregisterWorkspaceApp", dataDecoder: simpleWindowDecoder$1, execute: this.unregisterWorkspaceApp.bind(this) },
-                import: { name: "import", dataDecoder: appsImportOperationDecoder, execute: this.handleImport.bind(this) },
+                import: { name: "import", dataDecoder: appsImportOperationDecoder$1, execute: this.handleImport.bind(this) },
                 remove: { name: "remove", dataDecoder: appRemoveConfigDecoder$1, execute: this.handleRemove.bind(this) },
-                export: { name: "export", resultDecoder: appsExportOperationDecoder$1, execute: this.handleExport.bind(this) }
+                export: { name: "export", resultDecoder: appsExportOperationDecoder$1, execute: this.handleExport.bind(this) },
+                clear: { name: "clear", execute: this.handleClear.bind(this) },
+                registerRemoteApps: { name: "registerRemoteApps", dataDecoder: appsRemoteRegistrationDecoder, execute: this.handleRegisterRemoteApps.bind(this) },
             };
         }
         get logger() {
@@ -21334,22 +25928,18 @@
         start(config) {
             var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
-                this.config = config.applications;
                 this.defaultBounds = config.windows.defaultWindowOpenBounds;
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace("initializing applications");
-                yield this.setupApps(this.config);
+                this.config = config.applications;
+                this.appDirectory.start({
+                    config: config.applications,
+                    onAdded: (data) => this.emitStreamData("applicationAdded", data),
+                    onChanged: (data) => this.emitStreamData("applicationChanged", data),
+                    onRemoved: (data) => this.emitStreamData("applicationRemoved", data),
+                });
                 this.started = true;
                 this.stateController.onWindowDisappeared(this.processInstanceClosed.bind(this));
                 (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace("initialization is completed");
-            });
-        }
-        setupApps(config) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (config.local && config.local.length) {
-                    const parsedDefinitions = config.local.map((def) => this.parseDefinition(def));
-                    const currentApps = this.sessionStorage.getAllApps();
-                    this.mergeImport(currentApps, parsedDefinitions);
-                }
             });
         }
         handleControl(args) {
@@ -21383,39 +25973,39 @@
             if (!windowId) {
                 return;
             }
-            if (win.closed) {
+            if (!win || win.closed) {
                 (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`${windowId} detected as closed, processing instance closed`);
                 return this.processInstanceClosed(windowId);
             }
-            (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`${windowId} detected as closed, skipping instance closed procedure`);
+            (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`${windowId} detected as not closed, skipping instance closed procedure`);
         }
         unregisterWorkspaceApp(config) {
             this.processInstanceClosed(config.windowId);
             this.ioc.windowsController.cleanUpWindow(config.windowId);
         }
         handleApplicationStart(config, commandId) {
-            var _a, _b, _c, _d, _e, _f, _g;
+            var _a, _b, _c, _d, _e, _f, _g, _h;
             return __awaiter(this, void 0, void 0, function* () {
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling application start command for application: ${config.name}`);
-                const appDefinition = this.sessionStorage.getAllApps().find((app) => app.name === config.name);
+                const appDefinition = this.appDirectory.getAll().find((app) => app.name === config.name);
                 if (!appDefinition) {
                     throw new Error(`Cannot start an instance of application: ${config.name}, because it is not found.`);
                 }
                 const instance = {
-                    id: shortid$1.generate(),
+                    id: (_b = config.id) !== null && _b !== void 0 ? _b : shortid$2.generate(),
                     applicationName: config.name
                 };
                 const openBounds = yield this.getStartingBounds(appDefinition.createOptions, config, commandId);
                 const options = `left=${openBounds.left},top=${openBounds.top},width=${openBounds.width},height=${openBounds.height}`;
-                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] open arguments are valid, opening to bounds: ${options}`);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] open arguments are valid, opening to bounds: ${options}`);
                 const childWindow = window.open(appDefinition.createOptions.url, instance.id, options);
                 if (!childWindow) {
                     throw new Error(`Cannot an instance with url: ${appDefinition.createOptions.url} for application: ${config.name}. The most likely reason is that the user has not approved popups or has a blocker.`);
                 }
                 this.sessionStorage.saveBridgeInstanceData({ windowId: instance.id, appName: instance.applicationName });
-                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] the new window has been opened successfully with id: ${instance.id}, checking for AGM ready and notifying windows`);
+                (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] the new window has been opened successfully with id: ${instance.id}, checking for AGM ready and notifying windows`);
                 if (config.waitForAGMReady) {
-                    (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] wait for AGM is set, configuring the lock`);
+                    (_e = this.logger) === null || _e === void 0 ? void 0 : _e.trace(`[${commandId}] wait for AGM is set, configuring the lock`);
                     this.setLock(instance.id);
                 }
                 yield this.notifyWindows(instance, config.context, childWindow);
@@ -21427,15 +26017,15 @@
                         throw new Error(`Application start for ${config.name} timed out waiting for client to initialize Glue`);
                     }
                 }
-                (_e = this.logger) === null || _e === void 0 ? void 0 : _e.trace(`[${commandId}] the windows controller has been successfully notified`);
+                (_f = this.logger) === null || _f === void 0 ? void 0 : _f.trace(`[${commandId}] the windows controller has been successfully notified`);
                 const processConfig = {
                     data: instance,
                     monitorState: config.waitForAGMReady ? undefined : { child: childWindow },
                     context: config.context
                 };
                 yield this.processNewInstance(processConfig);
-                (_f = this.logger) === null || _f === void 0 ? void 0 : _f.trace(`[${commandId}] the new instance with id ${instance.id} has been saved, announced and context set, lifting key two and responding to caller`);
-                (_g = this.locks[instance.id]) === null || _g === void 0 ? void 0 : _g.openKeyTwo();
+                (_g = this.logger) === null || _g === void 0 ? void 0 : _g.trace(`[${commandId}] the new instance with id ${instance.id} has been saved, announced and context set, lifting key two and responding to caller`);
+                (_h = this.locks[instance.id]) === null || _h === void 0 ? void 0 : _h.openKeyTwo();
                 return instance;
             });
         }
@@ -21470,7 +26060,7 @@
                     (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] the lock is lifted, proceeding`);
                 }
                 const allInstances = this.sessionStorage.getAllInstancesData();
-                const allAppsFull = this.sessionStorage.getAllApps().map((app) => {
+                const allAppsFull = this.appDirectory.getAll().map((app) => {
                     const appInstances = allInstances.filter((inst) => inst.applicationName === app.name);
                     return Object.assign({}, app, { instances: appInstances });
                 });
@@ -21517,19 +26107,24 @@
                 (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] instance ${inst.id} has been closed, removed from store, announced stopped and notified windows, responding to caller`);
             });
         }
+        handleRegisterRemoteApps(config, commandId) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling remote bypass command`);
+                if (this.config.remote) {
+                    throw new Error(`[${commandId}] cannot accept remote apps from the protocol, because there is an active remote configuration.`);
+                }
+                this.appDirectory.processAppDefinitions(config.definitions, { mode: "replace", type: "remote" });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] remote bypass command completed`);
+                return;
+            });
+        }
         handleImport(config, commandId) {
-            var _a, _b, _c;
+            var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling import command`);
-                const parsedDefinitions = config.definitions.map((def) => this.parseDefinition(def));
-                const currentApps = this.sessionStorage.getAllApps();
-                if (config.mode === "replace") {
-                    this.replaceImport(currentApps, parsedDefinitions);
-                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] replace import command completed`);
-                    return;
-                }
-                this.mergeImport(currentApps, parsedDefinitions);
-                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] merge import command completed`);
+                this.appDirectory.processAppDefinitions(config.definitions, { type: "inmemory", mode: config.mode });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] import command completed`);
                 return;
             });
         }
@@ -21537,7 +26132,7 @@
             var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling remove command for ${config.name}`);
-                const removed = this.sessionStorage.removeApp(config.name);
+                const removed = this.appDirectory.removeInMemory(config.name);
                 if (removed) {
                     (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`definition ${removed.name} removed successfully`);
                     this.emitStreamData("applicationRemoved", removed);
@@ -21545,53 +26140,21 @@
             });
         }
         handleExport(_, commandId) {
-            var _a;
+            var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling export command`);
-                const all = this.sessionStorage.getAllApps();
-                const reversed = all.map((def) => this.reverseParseDefinition(def));
-                return { definitions: reversed };
+                const definitions = this.appDirectory.exportInMemory();
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] export command successful`);
+                return { definitions };
             });
         }
-        mergeImport(currentApps, parsedDefinitions) {
+        handleClear(_, commandId) {
             var _a, _b;
-            for (const definition of parsedDefinitions) {
-                const defCurrentIdx = currentApps.findIndex((app) => app.name === definition.name);
-                if (defCurrentIdx > -1 && !objEqual(definition, currentApps[defCurrentIdx])) {
-                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`change detected at definition ${definition.name}`);
-                    this.emitStreamData("applicationChanged", definition);
-                    currentApps[defCurrentIdx] = definition;
-                    continue;
-                }
-                if (defCurrentIdx < 0) {
-                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`new definition: ${definition.name} detected, adding and announcing`);
-                    this.emitStreamData("applicationAdded", definition);
-                    currentApps.push(definition);
-                }
-            }
-            this.sessionStorage.overwriteApps(currentApps);
-        }
-        replaceImport(currentApps, parsedDefinitions) {
-            var _a, _b;
-            for (const definition of parsedDefinitions) {
-                const defCurrentIdx = currentApps.findIndex((app) => app.name === definition.name);
-                if (defCurrentIdx < 0) {
-                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`new definition: ${definition.name} detected, adding and announcing`);
-                    this.emitStreamData("applicationAdded", definition);
-                    continue;
-                }
-                if (!objEqual(definition, currentApps[defCurrentIdx])) {
-                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`change detected at definition ${definition.name}`);
-                    this.emitStreamData("applicationChanged", definition);
-                }
-                currentApps.splice(defCurrentIdx, 1);
-            }
-            currentApps.forEach((app) => {
-                var _a;
-                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`definition ${app.name} missing, removing and announcing`);
-                this.emitStreamData("applicationRemoved", app);
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling clear command`);
+                this.appDirectory.processAppDefinitions([], { type: "inmemory", mode: "replace" });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] all in-memory apps are cleared`);
             });
-            this.sessionStorage.overwriteApps(parsedDefinitions);
         }
         setLock(id) {
             const lock = {};
@@ -21611,7 +26174,7 @@
                 if (!data.appName) {
                     throw new Error(`Cannot register application with config: ${JSON.stringify(data)}, because no app name was found`);
                 }
-                if (!this.sessionStorage.getAllApps().some((app) => app.name === data.appName)) {
+                if (!this.appDirectory.getAll().some((app) => app.name === data.appName)) {
                     throw new Error(`Cannot register application with config: ${JSON.stringify(data)}, because no app with this name name was found`);
                 }
                 this.sessionStorage.saveBridgeInstanceData({ windowId: data.windowId, appName: data.appName });
@@ -21642,49 +26205,6 @@
             var _a;
             (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`sending notification of event: ${operation} with data: ${JSON.stringify(data)}`);
             this.glueController.pushSystemMessage("appManager", operation, data);
-        }
-        reverseParseDefinition(definition) {
-            const definitionDetails = definition.userProperties.details;
-            const _a = definition.userProperties, removedDetails = __rest(_a, ["details"]);
-            return {
-                name: definition.name,
-                title: definition.title,
-                version: definition.version,
-                icon: definition.icon,
-                caption: definition.caption,
-                details: definitionDetails,
-                customProperties: removedDetails
-            };
-        }
-        parseDefinition(definition) {
-            var _a;
-            const glue42CoreAppProps = ["name", "title", "version", "customProperties", "icon", "caption"];
-            const userProperties = Object.fromEntries(Object.entries(definition).filter(([key]) => !glue42CoreAppProps.includes(key)));
-            let createOptions = { url: "" };
-            if (definition.manifest) {
-                const parsedManifest = JSON.parse(definition.manifest);
-                const url = ((_a = parsedManifest.details) === null || _a === void 0 ? void 0 : _a.url) || parsedManifest.url;
-                if (!url || typeof url !== "string") {
-                    throw new Error(`The FDC3 definition: ${definition.name} is not valid, because there is not url defined in the manifest`);
-                }
-                createOptions.url = url;
-            }
-            else {
-                createOptions = definition.details;
-            }
-            const baseDefinition = {
-                createOptions,
-                name: definition.name,
-                title: definition.title,
-                version: definition.version,
-                icon: definition.icon,
-                caption: definition.caption,
-                userProperties: Object.assign(Object.assign({}, userProperties), definition.customProperties)
-            };
-            if (!baseDefinition.userProperties.details) {
-                baseDefinition.userProperties.details = createOptions;
-            }
-            return baseDefinition;
         }
         getStartingBounds(appDefOptions, openOptions, commandId) {
             var _a;
@@ -22280,11 +26800,22 @@
         }
     }
 
+    const defaultLoadingConfig = {
+        defaultStrategy: "direct",
+        delayed: {
+            batch: 1,
+            initialOffsetInterval: 1000,
+            interval: 5000
+        },
+        showDelayedIndicator: false
+    };
+
     class WorkspacesController {
-        constructor(framesController, glueController, stateController, ioc) {
+        constructor(framesController, glueController, stateController, hibernationWatcher, ioc) {
             this.framesController = framesController;
             this.glueController = glueController;
             this.stateController = stateController;
+            this.hibernationWatcher = hibernationWatcher;
             this.ioc = ioc;
             this.started = false;
             this.operations = {
@@ -22308,6 +26839,7 @@
                 resizeItem: { name: "resizeItem", dataDecoder: resizeItemConfigDecoder, resultDecoder: voidResultDecoder, execute: this.resizeItem.bind(this) },
                 changeFrameState: { name: "changeFrameState", dataDecoder: frameStateConfigDecoder, resultDecoder: voidResultDecoder, execute: this.changeFrameState.bind(this) },
                 getFrameState: { name: "getFrameState", dataDecoder: simpleItemConfigDecoder, resultDecoder: frameStateResultDecoder, execute: this.getFrameState.bind(this) },
+                getFrameBounds: { name: "getFrameBounds", dataDecoder: simpleItemConfigDecoder, resultDecoder: frameBoundsResultDecoder, execute: this.getFrameBounds.bind(this) },
                 moveFrame: { name: "moveFrame", dataDecoder: moveFrameConfigDecoder, resultDecoder: voidResultDecoder, execute: this.moveFrame.bind(this) },
                 getFrameSnapshot: { name: "getFrameSnapshot", dataDecoder: simpleItemConfigDecoder, resultDecoder: frameSnapshotResultDecoder, execute: this.getFrameSnapshot.bind(this) },
                 forceLoadWindow: { name: "forceLoadWindow", dataDecoder: simpleItemConfigDecoder, resultDecoder: simpleWindowOperationSuccessResultDecoder, execute: this.forceLoadWindow.bind(this) },
@@ -22317,6 +26849,12 @@
                 addWindow: { name: "addWindow", dataDecoder: addWindowConfigDecoder, resultDecoder: addItemResultDecoder, execute: this.addWindow.bind(this) },
                 addContainer: { name: "addContainer", dataDecoder: addContainerConfigDecoder, resultDecoder: addItemResultDecoder, execute: this.addContainer.bind(this) },
                 bundleWorkspace: { name: "bundleWorkspace", dataDecoder: bundleConfigDecoder, resultDecoder: voidResultDecoder, execute: this.bundleWorkspace.bind(this) },
+                hibernateWorkspace: { name: "hibernateWorkspace", dataDecoder: workspaceSelectorDecoder, resultDecoder: voidResultDecoder, execute: this.hibernateWorkspace.bind(this) },
+                resumeWorkspace: { name: "resumeWorkspace", dataDecoder: workspaceSelectorDecoder, resultDecoder: voidResultDecoder, execute: this.resumeWorkspace.bind(this) },
+                getWorkspacesConfig: { name: "getWorkspacesConfig", resultDecoder: workspacesConfigDecoder, execute: this.getWorkspacesConfiguration.bind(this) },
+                lockWorkspace: { name: "lockWorkspace", dataDecoder: lockWorkspaceDecoder, resultDecoder: voidResultDecoder, execute: this.lockWorkspace.bind(this) },
+                lockWindow: { name: "lockWindow", dataDecoder: lockWindowDecoder, resultDecoder: voidResultDecoder, execute: this.lockWindow.bind(this) },
+                lockContainer: { name: "lockContainer", dataDecoder: lockContainerDecoder, resultDecoder: voidResultDecoder, execute: this.lockContainer.bind(this) }
             };
         }
         start(config) {
@@ -22325,7 +26863,10 @@
                     this.started = false;
                     return;
                 }
-                this.settings = config.workspaces;
+                this.settings = this.applyDefaults(config.workspaces);
+                if (this.settings.hibernation) {
+                    this.hibernationWatcher.start(this, this.settings.hibernation);
+                }
                 yield Promise.all([
                     this.glueController.createWorkspacesStream(),
                     this.glueController.createWorkspacesEventsReceiver(this.handleWorkspaceEvent.bind(this))
@@ -22368,13 +26909,16 @@
         handleClientUnloaded(windowId, win) {
             var _a, _b;
             (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`handling unloading of ${windowId}`);
-            if (win.closed) {
+            if (!win || win.closed) {
                 (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`${windowId} detected as closed, checking if frame and processing close`);
                 this.framesController.handleFrameDisappeared(windowId);
             }
         }
         handleWorkspaceEvent(data) {
             this.glueController.pushWorkspacesMessage(data);
+            if (this.settings.hibernation) {
+                this.hibernationWatcher.notifyEvent(data);
+            }
         }
         closeItem(config, commandId) {
             var _a, _b, _c, _d, _e, _f;
@@ -22403,6 +26947,23 @@
                 (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
             });
         }
+        hibernateWorkspace(config, commandId) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling hibernateWorkspace request with config ${JSON.stringify(config)}`);
+                const frame = yield this.framesController.getFrameInstance({ itemId: config.workspaceId });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] targeting frame ${frame.windowId}`);
+                yield this.glueController.callFrame(this.operations.hibernateWorkspace, config, frame.windowId);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
+            });
+        }
+        getWorkspacesConfiguration(config, commandId) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling getWorkspacesConfiguration request`);
+                return this.settings;
+            });
+        }
         handleFrameHello(config, commandId) {
             var _a;
             return __awaiter(this, void 0, void 0, function* () {
@@ -22425,17 +26986,18 @@
             });
         }
         createWorkspace(config, commandId) {
-            var _a, _b, _c, _d, _e;
+            var _a, _b, _c, _d, _e, _f;
             return __awaiter(this, void 0, void 0, function* () {
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling createWorkspace command`);
                 const frameInstanceConfig = {
                     frameId: (_b = config.frame) === null || _b === void 0 ? void 0 : _b.reuseFrameId,
-                    newFrame: (_c = config.frame) === null || _c === void 0 ? void 0 : _c.newFrame
+                    newFrame: (_c = config.frame) === null || _c === void 0 ? void 0 : _c.newFrame,
+                    itemId: (_d = config.config) === null || _d === void 0 ? void 0 : _d.reuseWorkspaceId
                 };
                 const frame = yield this.framesController.getFrameInstance(frameInstanceConfig);
-                (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] calling frame: ${frame.windowId}, based on selection config: ${JSON.stringify(frameInstanceConfig)}`);
+                (_e = this.logger) === null || _e === void 0 ? void 0 : _e.trace(`[${commandId}] calling frame: ${frame.windowId}, based on selection config: ${JSON.stringify(frameInstanceConfig)}`);
                 const result = yield this.glueController.callFrame(this.operations.createWorkspace, config, frame.windowId);
-                (_e = this.logger) === null || _e === void 0 ? void 0 : _e.trace(`[${commandId}] frame ${frame.windowId} responded with a valid snapshot, returning to caller`);
+                (_f = this.logger) === null || _f === void 0 ? void 0 : _f.trace(`[${commandId}] frame ${frame.windowId} responded with a valid snapshot, returning to caller`);
                 return result;
             });
         }
@@ -22499,10 +27061,15 @@
             });
         }
         openWorkspace(config, commandId) {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             return __awaiter(this, void 0, void 0, function* () {
                 (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling openWorkspace command for name: ${config.name}`);
-                const frame = yield this.framesController.getFrameInstance({ frameId: (_b = config.restoreOptions) === null || _b === void 0 ? void 0 : _b.frameId, newFrame: (_c = config.restoreOptions) === null || _c === void 0 ? void 0 : _c.newFrame });
+                const frameQueryConfig = {
+                    frameId: (_b = config.restoreOptions) === null || _b === void 0 ? void 0 : _b.frameId,
+                    newFrame: (_c = config.restoreOptions) === null || _c === void 0 ? void 0 : _c.newFrame,
+                    itemId: (_d = config.restoreOptions) === null || _d === void 0 ? void 0 : _d.reuseWorkspaceId
+                };
+                const frame = yield this.framesController.getFrameInstance(frameQueryConfig);
                 const result = yield this.glueController.callFrame(this.operations.openWorkspace, config, frame.windowId);
                 return result;
             });
@@ -22676,6 +27243,46 @@
                 (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
             });
         }
+        resumeWorkspace(config, commandId) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling resumeWorkspace request with config ${JSON.stringify(config)}`);
+                const frame = yield this.framesController.getFrameInstance({ itemId: config.workspaceId });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] targeting frame ${frame.windowId}`);
+                yield this.glueController.callFrame(this.operations.resumeWorkspace, config, frame.windowId);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
+            });
+        }
+        lockWorkspace(config, commandId) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling lockWorkspace request with config ${JSON.stringify(config)}`);
+                const frame = yield this.framesController.getFrameInstance({ itemId: config.workspaceId });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] targeting frame ${frame.windowId}`);
+                yield this.glueController.callFrame(this.operations.lockWorkspace, config, frame.windowId);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
+            });
+        }
+        lockContainer(config, commandId) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling lockContainer request with config ${JSON.stringify(config)}`);
+                const frame = yield this.framesController.getFrameInstance({ itemId: config.itemId });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] targeting frame ${frame.windowId}`);
+                yield this.glueController.callFrame(this.operations.lockContainer, config, frame.windowId);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
+            });
+        }
+        lockWindow(config, commandId) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling lockWindow request with config ${JSON.stringify(config)}`);
+                const frame = yield this.framesController.getFrameInstance({ itemId: config.windowPlacementId });
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] targeting frame ${frame.windowId}`);
+                yield this.glueController.callFrame(this.operations.lockWindow, config, frame.windowId);
+                (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] frame ${frame.windowId} gave a success signal, responding to caller`);
+            });
+        }
         changeFrameState(config, commandId) {
             return __awaiter(this, void 0, void 0, function* () {
                 throw new Error("Frame states are not supported in Glue42 Core");
@@ -22684,6 +27291,16 @@
         getFrameState(config, commandId) {
             return __awaiter(this, void 0, void 0, function* () {
                 throw new Error("Frame states are not supported in Glue42 Core");
+            });
+        }
+        getFrameBounds(config, commandId) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling getFrameBounds request with config ${JSON.stringify(config)}`);
+                const frame = yield this.framesController.getFrameInstance({ frameId: config.itemId });
+                const frameWindowBounds = yield this.glueController.callWindow(this.ioc.windowsController.getFrameBoundsOperation, { windowId: frame.windowId }, frame.windowId);
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] getFrameBounds completed`);
+                return { bounds: frameWindowBounds.bounds };
             });
         }
         moveFrame(config, commandId) {
@@ -22700,6 +27317,12 @@
                 yield this.glueController.callWindow(this.ioc.windowsController.moveResizeOperation, moveConfig, frame.windowId);
                 (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] frame with id ${frame.windowId} was successfully moved, responding to caller`);
             });
+        }
+        applyDefaults(config) {
+            const providedHibernationConfig = (config === null || config === void 0 ? void 0 : config.hibernation) || {};
+            const providedLoadingConfig = (config === null || config === void 0 ? void 0 : config.loadingStrategy) || {};
+            const loadingConfig = cjs(defaultLoadingConfig, providedLoadingConfig);
+            return Object.assign(Object.assign({}, config), { loadingStrategy: loadingConfig, hibernation: providedHibernationConfig });
         }
     }
 
@@ -22750,9 +27373,9 @@
     });
 
     class IntentsController$1 {
-        constructor(glueController, sessionStorage, ioc) {
+        constructor(glueController, appDirectory, ioc) {
             this.glueController = glueController;
-            this.sessionStorage = sessionStorage;
+            this.appDirectory = appDirectory;
             this.ioc = ioc;
             this.operations = {
                 getIntents: { name: "getIntents", resultDecoder: wrappedIntentsDecoder$1, execute: this.getWrappedIntents.bind(this) },
@@ -22823,20 +27446,11 @@
                 for (const server of this.glueController.getServers()) {
                     const serverIntentsMethods = (((_a = server.getMethods) === null || _a === void 0 ? void 0 : _a.call(server)) || []).filter((method) => method.name.startsWith(GlueWebIntentsPrefix));
                     yield Promise.all(serverIntentsMethods.map((method) => __awaiter(this, void 0, void 0, function* () {
-                        var _b;
                         const intentName = method.name.replace(GlueWebIntentsPrefix, "");
                         if (!intents[intentName]) {
                             intents[intentName] = [];
                         }
-                        let info;
-                        if (method.description) {
-                            try {
-                                info = JSON.parse(method.description);
-                            }
-                            catch (_c) {
-                                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] Parsing method ${method.name}'s description failed!`);
-                            }
-                        }
+                        const info = method.flags.intent;
                         const app = apps.find((appDef) => appDef.name === server.application);
                         let appIntent;
                         if (app && app.intents) {
@@ -22849,11 +27463,11 @@
                         const handler = {
                             instanceId: server.windowId || server.instance,
                             applicationName: server.application || "",
-                            applicationIcon: (info === null || info === void 0 ? void 0 : info.icon) || (app === null || app === void 0 ? void 0 : app.icon),
+                            applicationIcon: info.icon || (app === null || app === void 0 ? void 0 : app.icon),
                             applicationTitle: (app === null || app === void 0 ? void 0 : app.title) || "",
-                            applicationDescription: (info === null || info === void 0 ? void 0 : info.description) || (app === null || app === void 0 ? void 0 : app.caption),
-                            displayName: (info === null || info === void 0 ? void 0 : info.displayName) || (appIntent === null || appIntent === void 0 ? void 0 : appIntent.displayName),
-                            contextTypes: (info === null || info === void 0 ? void 0 : info.contextTypes) || (appIntent === null || appIntent === void 0 ? void 0 : appIntent.contexts),
+                            applicationDescription: info.description || (app === null || app === void 0 ? void 0 : app.caption),
+                            displayName: info.displayName || (appIntent === null || appIntent === void 0 ? void 0 : appIntent.displayName),
+                            contextTypes: info.contextTypes || (appIntent === null || appIntent === void 0 ? void 0 : appIntent.contexts),
                             instanceTitle: title,
                             type: "instance"
                         };
@@ -22878,7 +27492,7 @@
         getIntents(commandId) {
             var _a, _b;
             return __awaiter(this, void 0, void 0, function* () {
-                const apps = this.sessionStorage.getAllApps().map((app) => {
+                const apps = this.appDirectory.getAll().map((app) => {
                     return {
                         name: app.name,
                         title: app.title || "",
@@ -23086,10 +27700,19 @@
             this.defaultFrameHelloTimeoutMs = 15000;
         }
         start(config, defaultBounds, frameSummaryOperation) {
+            var _a;
             return __awaiter(this, void 0, void 0, function* () {
                 this.config = config;
                 this.defaultBounds = defaultBounds;
                 this.frameSummaryOperation = frameSummaryOperation;
+                if (config.isFrame) {
+                    this.myFrameId = (_a = this.sessionController.getAllFrames().find((frame) => frame.isPlatform)) === null || _a === void 0 ? void 0 : _a.windowId;
+                    window.addEventListener("beforeunload", () => {
+                        if (this.myFrameId) {
+                            this.clearAllWorkspaceWindows(this.myFrameId);
+                        }
+                    });
+                }
             });
         }
         openFrame(newFrameConfig) {
@@ -23102,10 +27725,11 @@
                     width: (_d = providedBounds.width) !== null && _d !== void 0 ? _d : this.defaultBounds.width,
                     height: (_e = providedBounds.height) !== null && _e !== void 0 ? _e : this.defaultBounds.height
                 };
-                const frameWindowId = shortid$1.generate();
+                const frameWindowId = shortid$2.generate();
                 const frameData = {
                     windowId: frameWindowId,
-                    active: false
+                    active: false,
+                    isPlatform: false
                 };
                 const options = `left=${openBounds.left},top=${openBounds.top},width=${openBounds.width},height=${openBounds.height}`;
                 const frameUrl = `${this.config.src}?emptyFrame=true`;
@@ -23150,8 +27774,7 @@
                 return;
             }
             this.sessionController.removeFrameData(frameId);
-            const workspaceWindows = this.sessionController.pickWorkspaceClients((client) => client.frameId === frameId);
-            workspaceWindows.forEach((workspaceWindow) => this.ioc.applicationsController.unregisterWorkspaceApp({ windowId: workspaceWindow.windowId }));
+            this.clearAllWorkspaceWindows(frameId);
         }
         getAll() {
             const allFrames = this.sessionController.getAllFrames();
@@ -23188,6 +27811,10 @@
                 return allFrames.length ? this.getLastOpenedFrame() : this.openFrame();
             });
         }
+        clearAllWorkspaceWindows(frameId) {
+            const workspaceWindows = this.sessionController.pickWorkspaceClients((client) => client.frameId === frameId);
+            workspaceWindows.forEach((workspaceWindow) => this.ioc.applicationsController.unregisterWorkspaceApp({ windowId: workspaceWindow.windowId }));
+        }
         waitHello(windowId) {
             return __awaiter(this, void 0, void 0, function* () {
                 return PromisePlus$3((resolve) => {
@@ -23215,6 +27842,790 @@
         }
     }
 
+    class WorkspaceHibernationWatcher {
+        constructor(session) {
+            this.session = session;
+            this.maximumAmountCheckInProgress = false;
+        }
+        get logger() {
+            return logger.get("workspaces.hibernation");
+        }
+        start(workspacesController, settings) {
+            var _a, _b, _c, _d;
+            (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`starting the hibernation watcher with following settings: ${JSON.stringify(this.settings)}`);
+            this.workspacesController = workspacesController;
+            this.settings = settings;
+            const allTimeoutData = this.session.exportClearTimeouts();
+            if ((_c = (_b = this.settings) === null || _b === void 0 ? void 0 : _b.idleWorkspaces) === null || _c === void 0 ? void 0 : _c.idleMSThreshold) {
+                allTimeoutData.forEach((timeoutData) => this.buildTimer(timeoutData.workspaceId));
+            }
+            (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace("The hibernation watcher has started successfully");
+        }
+        notifyEvent(event) {
+            if (event.type === "window") {
+                this.handleWorkspaceWindowEvent(event);
+            }
+            if (event.type === "workspace") {
+                this.handleWorkspaceEvent(event);
+            }
+        }
+        handleWorkspaceWindowEvent(event) {
+            const isWindowOpened = event.action === "opened" || event.action === "added";
+            if (!isWindowOpened) {
+                return;
+            }
+            this.checkMaximumAmount();
+            this.addTimersForWorkspacesInFrame(event.payload.windowSummary.config.frameId);
+        }
+        handleWorkspaceEvent(event) {
+            const isWorkspaceSelected = event.action === "selected";
+            const workspaceData = event.payload;
+            if (event.action !== "selected" && event.action !== "opened") {
+                return;
+            }
+            this.checkMaximumAmount();
+            if (isWorkspaceSelected) {
+                const timeout = this.session.getTimeout(workspaceData.workspaceSummary.id);
+                if (timeout) {
+                    clearTimeout(timeout);
+                    this.session.removeTimeout(workspaceData.workspaceSummary.id);
+                }
+                this.addTimersForWorkspacesInFrame(workspaceData.frameSummary.id);
+            }
+        }
+        compare(ws1, ws2) {
+            if (ws1.config.lastActive > ws2.config.lastActive) {
+                return 1;
+            }
+            if (ws1.config.lastActive < ws2.config.lastActive) {
+                return -1;
+            }
+            return 0;
+        }
+        checkMaximumAmount() {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (this.maximumAmountCheckInProgress) {
+                    return;
+                }
+                if (!((_b = (_a = this.settings) === null || _a === void 0 ? void 0 : _a.maximumActiveWorkspaces) === null || _b === void 0 ? void 0 : _b.threshold)) {
+                    return;
+                }
+                this.maximumAmountCheckInProgress = true;
+                try {
+                    yield this.checkMaximumAmountCore(this.settings.maximumActiveWorkspaces.threshold);
+                }
+                finally {
+                    this.maximumAmountCheckInProgress = false;
+                }
+            });
+        }
+        checkMaximumAmountCore(threshold) {
+            var _a, _b, _c, _d;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`Checking for maximum active workspaces rule. The threshold is ${(_c = (_b = this.settings) === null || _b === void 0 ? void 0 : _b.maximumActiveWorkspaces) === null || _c === void 0 ? void 0 : _c.threshold}`);
+                const commandId = shortid$2.generate();
+                const result = yield this.workspacesController.getAllWorkspacesSummaries({}, commandId);
+                const snapshotsPromises = result.summaries.map(s => this.workspacesController.getWorkspaceSnapshot({ itemId: s.id }, commandId));
+                const snapshots = yield Promise.all(snapshotsPromises);
+                const eligibleForHibernation = snapshots.reduce((eligible, snapshot) => {
+                    if (!this.isWorkspaceHibernated(snapshot.config) && !this.isWorkspaceEmpty(snapshot)) {
+                        eligible.push(snapshot);
+                    }
+                    return eligible;
+                }, []);
+                if (eligibleForHibernation.length <= threshold) {
+                    return;
+                }
+                (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`Found ${eligibleForHibernation.length} eligible for hibernation workspaces`);
+                const hibernationPromises = eligibleForHibernation
+                    .sort(this.compare)
+                    .slice(0, eligibleForHibernation.length - threshold)
+                    .map((w) => this.tryHibernateWorkspace(w.id));
+                yield Promise.all(hibernationPromises);
+            });
+        }
+        tryHibernateWorkspace(workspaceId) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const snapshot = yield this.workspacesController.getWorkspaceSnapshot({ itemId: workspaceId }, shortid$2.generate());
+                    if (!this.canBeHibernated(snapshot)) {
+                        return;
+                    }
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`trying to hibernate workspace ${workspaceId}`);
+                    yield this.workspacesController.hibernateWorkspace({ workspaceId }, shortid$2.generate());
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`workspace ${workspaceId} was hibernated successfully`);
+                }
+                catch (error) {
+                    (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(error);
+                }
+            });
+        }
+        canBeHibernated(snapshot) {
+            const isWorkspaceHibernated = this.isWorkspaceHibernated(snapshot.config);
+            const isWorkspaceSelected = this.isWorkspaceSelected(snapshot.config);
+            const isWorkspaceEmpty = this.isWorkspaceEmpty(snapshot);
+            return !isWorkspaceHibernated && !isWorkspaceSelected && !isWorkspaceEmpty;
+        }
+        isWorkspaceHibernated(workspaceSnapshot) {
+            return workspaceSnapshot.isHibernated;
+        }
+        isWorkspaceSelected(workspaceSnapshot) {
+            return workspaceSnapshot.isSelected;
+        }
+        isWorkspaceEmpty(workspaceSnapshot) {
+            return !workspaceSnapshot.children.length;
+        }
+        getWorkspacesInFrame(frameId) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const result = yield this.workspacesController.getAllWorkspacesSummaries({}, shortid$2.generate());
+                const snapshotPromises = result.summaries.reduce((promises, summary) => {
+                    if (summary.config.frameId === frameId) {
+                        promises.push(this.workspacesController.getWorkspaceSnapshot({ itemId: summary.id }, shortid$2.generate()));
+                    }
+                    return promises;
+                }, []);
+                return yield Promise.all(snapshotPromises);
+            });
+        }
+        addTimersForWorkspacesInFrame(frameId) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!((_b = (_a = this.settings) === null || _a === void 0 ? void 0 : _a.idleWorkspaces) === null || _b === void 0 ? void 0 : _b.idleMSThreshold)) {
+                    return;
+                }
+                const workspacesInFrame = yield this.getWorkspacesInFrame(frameId);
+                workspacesInFrame.map((w) => {
+                    var _a, _b, _c;
+                    if (!this.canBeHibernated(w) || this.session.getTimeout(w.id)) {
+                        return;
+                    }
+                    this.buildTimer(w.id);
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`Starting workspace idle timer ( ${(_c = (_b = this.settings) === null || _b === void 0 ? void 0 : _b.idleWorkspaces) === null || _c === void 0 ? void 0 : _c.idleMSThreshold}ms ) for workspace ${w.id}`);
+                });
+            });
+        }
+        buildTimer(workspaceId) {
+            var _a, _b;
+            const timeout = setTimeout(() => {
+                var _a;
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`Timer triggered will try to hibernated ${workspaceId}`);
+                this.tryHibernateWorkspace(workspaceId);
+                this.session.removeTimeout(workspaceId);
+            }, (_b = (_a = this.settings) === null || _a === void 0 ? void 0 : _a.idleWorkspaces) === null || _b === void 0 ? void 0 : _b.idleMSThreshold);
+            this.session.saveTimeout(workspaceId, timeout);
+        }
+    }
+
+    class SystemController$1 {
+        constructor() {
+            this.base = {};
+            this.started = false;
+            this.operations = {
+                getEnvironment: { name: "getEnvironment", resultDecoder: anyDecoder$1, execute: this.handleGetEnvironment.bind(this) },
+                getBase: { name: "getBase", resultDecoder: anyDecoder$1, execute: this.handleGetBase.bind(this) }
+            };
+        }
+        get logger() {
+            return logger.get("applications.controller");
+        }
+        start(config) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                this.environment = config.environment;
+                this.base = {
+                    workspacesFrameCache: typeof ((_a = config.workspaces) === null || _a === void 0 ? void 0 : _a.frameCache) === "boolean" ? (_b = config.workspaces) === null || _b === void 0 ? void 0 : _b.frameCache : true
+                };
+            });
+        }
+        handleControl(args) {
+            var _a, _b, _c, _d;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!this.started) ;
+                const applicationData = args.data;
+                const commandId = args.commandId;
+                const operationValidation = systemOperationTypesDecoder.run(args.operation);
+                if (!operationValidation.ok) {
+                    throw new Error(`This system request cannot be completed, because the operation name did not pass validation: ${JSON.stringify(operationValidation.error)}`);
+                }
+                const operationName = operationValidation.result;
+                const incomingValidation = (_a = this.operations[operationName].dataDecoder) === null || _a === void 0 ? void 0 : _a.run(applicationData);
+                if (incomingValidation && !incomingValidation.ok) {
+                    throw new Error(`System request for ${operationName} rejected, because the provided arguments did not pass the validation: ${JSON.stringify(incomingValidation.error)}`);
+                }
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.debug(`[${commandId}] ${operationName} command is valid with data: ${JSON.stringify(applicationData)}`);
+                const result = yield this.operations[operationName].execute(applicationData, commandId);
+                const resultValidation = (_c = this.operations[operationName].resultDecoder) === null || _c === void 0 ? void 0 : _c.run(result);
+                if (resultValidation && !resultValidation.ok) {
+                    throw new Error(`System request for ${operationName} could not be completed, because the operation result did not pass the validation: ${JSON.stringify(resultValidation.error)}`);
+                }
+                (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] ${operationName} command was executed successfully`);
+                return result;
+            });
+        }
+        handleGetEnvironment() {
+            return __awaiter(this, void 0, void 0, function* () {
+                return this.environment;
+            });
+        }
+        handleGetBase() {
+            return __awaiter(this, void 0, void 0, function* () {
+                return this.base;
+            });
+        }
+    }
+
+    class AppDirectory {
+        constructor(sessionStorage, remoteWatcher) {
+            this.sessionStorage = sessionStorage;
+            this.remoteWatcher = remoteWatcher;
+        }
+        start(setup) {
+            var _a, _b, _c;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace("Starting the application directory");
+                this.onAdded = setup.onAdded;
+                this.onChanged = setup.onChanged;
+                this.onRemoved = setup.onRemoved;
+                if (setup.config.local && setup.config.local.length) {
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace("Detected local applications, parsing...");
+                    const parsedDefinitions = setup.config.local.map((def) => this.parseDefinition(def));
+                    const currentApps = this.sessionStorage.getAllApps("inmemory");
+                    const merged = this.merge(currentApps, parsedDefinitions);
+                    this.sessionStorage.overwriteApps(merged, "inmemory");
+                }
+                if (setup.config.remote) {
+                    (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace("Detected remote app store configuration, starting the watcher...");
+                    this.remoteWatcher.start(setup.config.remote, (apps) => this.processAppDefinitions(apps, { type: "remote", mode: "replace" }));
+                }
+            });
+        }
+        processAppDefinitions(definitions, config) {
+            const parsedDefinitions = definitions.map((def) => this.parseDefinition(def));
+            const currentApps = this.sessionStorage.getAllApps(config.type);
+            const updatedApps = this[config.mode](currentApps, parsedDefinitions);
+            this.sessionStorage.overwriteApps(updatedApps, config.type);
+        }
+        getAll() {
+            const inMemory = this.sessionStorage.getAllApps("inmemory");
+            const remote = this.sessionStorage.getAllApps("remote");
+            return inMemory.concat(remote);
+        }
+        exportInMemory() {
+            const allBaseApps = this.sessionStorage.getAllApps("inmemory");
+            return allBaseApps.map(this.reverseParseDefinition);
+        }
+        removeInMemory(name) {
+            return this.sessionStorage.removeApp(name, "inmemory");
+        }
+        merge(currentApps, parsedDefinitions) {
+            var _a, _b;
+            for (const definition of parsedDefinitions) {
+                const defCurrentIdx = currentApps.findIndex((app) => app.name === definition.name);
+                if (defCurrentIdx > -1 && !objEqual(definition, currentApps[defCurrentIdx])) {
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`change detected at definition ${definition.name}`);
+                    this.onChanged(definition);
+                    currentApps[defCurrentIdx] = definition;
+                    continue;
+                }
+                if (defCurrentIdx < 0) {
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`new definition: ${definition.name} detected, adding and announcing`);
+                    this.onAdded(definition);
+                    currentApps.push(definition);
+                }
+            }
+            return currentApps;
+        }
+        replace(currentApps, parsedDefinitions) {
+            var _a, _b;
+            for (const definition of parsedDefinitions) {
+                const defCurrentIdx = currentApps.findIndex((app) => app.name === definition.name);
+                if (defCurrentIdx < 0) {
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`new definition: ${definition.name} detected, adding and announcing`);
+                    this.onAdded(definition);
+                    continue;
+                }
+                if (!objEqual(definition, currentApps[defCurrentIdx])) {
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`change detected at definition ${definition.name}`);
+                    this.onChanged(definition);
+                }
+                currentApps.splice(defCurrentIdx, 1);
+            }
+            currentApps.forEach((app) => {
+                var _a;
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`definition ${app.name} missing, removing and announcing`);
+                this.onRemoved(app);
+            });
+            return parsedDefinitions;
+        }
+        reverseParseDefinition(definition) {
+            const definitionDetails = definition.userProperties.details;
+            const _a = definition.userProperties, removedDetails = __rest(_a, ["details"]);
+            return {
+                name: definition.name,
+                type: definition.type || "window",
+                title: definition.title,
+                version: definition.version,
+                icon: definition.icon,
+                caption: definition.caption,
+                details: definitionDetails,
+                customProperties: removedDetails
+            };
+        }
+        parseDefinition(definition) {
+            var _a;
+            const glue42CoreAppProps = ["name", "title", "version", "customProperties", "icon", "caption", "type"];
+            const userProperties = Object.fromEntries(Object.entries(definition).filter(([key]) => !glue42CoreAppProps.includes(key)));
+            let createOptions = { url: "" };
+            if (definition.manifest) {
+                const parsedManifest = JSON.parse(definition.manifest);
+                const url = ((_a = parsedManifest.details) === null || _a === void 0 ? void 0 : _a.url) || parsedManifest.url;
+                if (!url || typeof url !== "string") {
+                    throw new Error(`The FDC3 definition: ${definition.name} is not valid, because there is not url defined in the manifest`);
+                }
+                createOptions.url = url;
+            }
+            else {
+                createOptions = definition.details;
+            }
+            const baseDefinition = {
+                createOptions,
+                type: definition.type || "window",
+                name: definition.name,
+                title: definition.title,
+                version: definition.version,
+                icon: definition.icon,
+                caption: definition.caption,
+                userProperties: Object.assign(Object.assign({}, userProperties), definition.customProperties)
+            };
+            if (!baseDefinition.userProperties.details) {
+                baseDefinition.userProperties.details = createOptions;
+            }
+            return baseDefinition;
+        }
+        get logger() {
+            return logger.get("applications.remote.directory");
+        }
+    }
+
+    const fetchTimeout = (request, timeoutMilliseconds = defaultFetchTimeoutMs) => {
+        return new Promise((resolve, reject) => {
+            let timeoutHit = false;
+            const timeout = setTimeout(() => {
+                timeoutHit = true;
+                reject(new Error(`Fetch request for: ${JSON.stringify(request)} timed out at: ${timeoutMilliseconds} milliseconds`));
+            }, timeoutMilliseconds);
+            fetch(request)
+                .then((response) => {
+                if (!timeoutHit) {
+                    clearTimeout(timeout);
+                    resolve(response);
+                }
+            })
+                .catch((err) => {
+                if (!timeoutHit) {
+                    clearTimeout(timeout);
+                    reject(err);
+                }
+            });
+        });
+    };
+
+    const defaultRemoteWatcherHeaders = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    };
+    const defaultRemoteWatcherRequestTimeoutMS = 3000;
+
+    class RemoteWatcher {
+        start(config, handleApps) {
+            var _a;
+            this.url = config.url;
+            this.handleApps = handleApps;
+            this.requestTimeout = config.requestTimeout || defaultRemoteWatcherRequestTimeoutMS;
+            this.pollingInterval = config.pollingInterval;
+            this.setRequest(config.customHeaders);
+            (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`Remote watcher configured with timeout: ${this.requestTimeout} and interval: ${this.pollingInterval}`);
+            this.poll();
+        }
+        poll() {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const response = yield fetchTimeout(this.request, this.requestTimeout);
+                    const responseJson = yield response.json();
+                    if (!responseJson || !Array.isArray(responseJson.applications)) {
+                        throw new Error("The remote response was either empty or did not contain an applications collection");
+                    }
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace("There is a valid response from the app store, processing definitions...");
+                    const validatedApps = responseJson.applications.reduce((soFar, app) => {
+                        var _a;
+                        const result = allApplicationDefinitionsDecoder$1.run(app);
+                        if (result.ok) {
+                            soFar.push(app);
+                        }
+                        else {
+                            (_a = this.logger) === null || _a === void 0 ? void 0 : _a.warn(`Removing applications definition with name: ${app.name} from the remote response, because of validation error: ${JSON.stringify(result.error)}`);
+                        }
+                        return soFar;
+                    }, []);
+                    this.handleApps(validatedApps);
+                }
+                catch (error) {
+                    const stringError = typeof error === "string" ? error : JSON.stringify(error.message);
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.warn(stringError);
+                }
+                finally {
+                    if (this.pollingInterval) {
+                        yield this.waitInterval();
+                        this.poll();
+                    }
+                }
+            });
+        }
+        setRequest(customHeaders = {}) {
+            var _a;
+            const requestHeaders = new Headers();
+            for (const key in defaultRemoteWatcherHeaders) {
+                requestHeaders.append(key, defaultRemoteWatcherHeaders[key]);
+            }
+            for (const key in customHeaders) {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace("Custom headers detected and set");
+                requestHeaders.append(key, customHeaders[key]);
+            }
+            this.request = new Request(this.url, {
+                method: "GET",
+                headers: requestHeaders,
+                mode: "cors",
+                cache: "default"
+            });
+        }
+        waitInterval() {
+            return new Promise((resolve) => setTimeout(resolve, this.pollingInterval));
+        }
+        get logger() {
+            return logger.get("applications.remote.directory");
+        }
+    }
+
+    class ServiceWorkerController {
+        constructor() {
+            this.registry = lib$5();
+        }
+        get logger() {
+            return logger.get("service.worker.web.platform");
+        }
+        get serviceWorkerRegistration() {
+            if (!this._serviceWorkerRegistration) {
+                throw new Error("Accessing missing service worker registration object. This is caused because the application is trying to raise a persistent notification, which requires a service worker. Please provide a service worker config when initializing GlueWebPlatform.");
+            }
+            return this._serviceWorkerRegistration;
+        }
+        connect(config) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!config.serviceWorker) {
+                    return;
+                }
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.info("Detected service worker definition, connecting...");
+                if (!config.serviceWorker.url && !config.serviceWorker.registrationPromise) {
+                    throw new Error("The service worker config is defined, but it is missing a url or a registration promise, please provide one or the other");
+                }
+                if (config.serviceWorker.url && config.serviceWorker.registrationPromise) {
+                    throw new Error("The service worker is over-specified, there is both defined url and a registration promise, please provide one or the other");
+                }
+                this._serviceWorkerRegistration = config.serviceWorker.url ?
+                    yield this.registerWorker(config.serviceWorker.url) :
+                    yield this.waitRegistration(config.serviceWorker.registrationPromise);
+                if (this._serviceWorkerRegistration) {
+                    this.setUpBroadcastChannelConnection();
+                }
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.info("Service worker connection completed.");
+            });
+        }
+        showNotification(settings, id) {
+            var _a;
+            return __awaiter(this, void 0, void 0, function* () {
+                const options = Object.assign({}, settings, { title: undefined, clickInterop: undefined, actions: undefined });
+                options.actions = (_a = settings.actions) === null || _a === void 0 ? void 0 : _a.map((action) => {
+                    return {
+                        action: action.action,
+                        title: action.title,
+                        icon: action.icon
+                    };
+                });
+                const glueData = {
+                    focusPlatformOnDefaultClick: settings.focusPlatformOnDefaultClick,
+                    clickInterop: settings.clickInterop,
+                    actions: settings.actions,
+                    id
+                };
+                if (options.data) {
+                    options.data.glueData = glueData;
+                }
+                else {
+                    options.data = { glueData };
+                }
+                yield this.serviceWorkerRegistration.showNotification(settings.title, options);
+            });
+        }
+        notifyReady() {
+            if (this._serviceWorkerRegistration) {
+                this.channel.postMessage({ platformStarted: true });
+            }
+        }
+        onNotificationClick(callback) {
+            return this.registry.add("notification-click", callback);
+        }
+        setUpBroadcastChannelConnection() {
+            this.channel = new BroadcastChannel(serviceWorkerBroadcastChannelName);
+            this.channel.addEventListener("message", (event) => __awaiter(this, void 0, void 0, function* () {
+                var _a;
+                const eventData = event.data;
+                const messageType = eventData === null || eventData === void 0 ? void 0 : eventData.messageType;
+                if (!messageType) {
+                    return;
+                }
+                if (messageType === "ping") {
+                    this.channel.postMessage({ pong: true });
+                    return;
+                }
+                if (messageType === "notificationClick") {
+                    const action = eventData.action;
+                    const glueData = eventData.glueData;
+                    const definition = eventData.definition;
+                    this.registry.execute("notification-click", { action, glueData, definition });
+                    return;
+                }
+                if (messageType === "notificationError") {
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.error(`Service worker error when raising notification: ${eventData.error}`);
+                    return;
+                }
+            }));
+        }
+        registerWorker(workerUrl) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!("serviceWorker" in navigator)) {
+                    (_a = this.logger) === null || _a === void 0 ? void 0 : _a.warn(`A defined service worker has not been registered at ${workerUrl} because this browser does not support it.`);
+                    return;
+                }
+                try {
+                    const registration = yield navigator.serviceWorker.register(workerUrl);
+                    return registration;
+                }
+                catch (error) {
+                    const stringError = typeof error === "string" ? error : JSON.stringify(error.message);
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.warn(stringError);
+                }
+            });
+        }
+        waitRegistration(registrationPromise) {
+            return __awaiter(this, void 0, void 0, function* () {
+                if (typeof registrationPromise.then !== "function" || typeof registrationPromise.catch !== "function") {
+                    throw new Error("The provided service worker registration promise is not a promise");
+                }
+                const registration = yield registrationPromise;
+                if (typeof registration.showNotification !== "function") {
+                    throw new Error("The provided registration promise is a promise, but it resolved with an object which does not appear to be a ServiceWorkerRegistration");
+                }
+                return registration;
+            });
+        }
+    }
+
+    const notificationsOperationDecoder = oneOf$1(constant$1("raiseNotification"), constant$1("requestPermission"), constant$1("getPermission"));
+    const interopActionSettingsDecoder$1 = object$1({
+        method: nonEmptyStringDecoder$1,
+        arguments: optional$1(anyJson$1()),
+        target: optional$1(oneOf$1(constant$1("all"), constant$1("best")))
+    });
+    const glue42NotificationActionDecoder$1 = object$1({
+        action: string$1(),
+        title: nonEmptyStringDecoder$1,
+        icon: optional$1(string$1()),
+        interop: optional$1(interopActionSettingsDecoder$1)
+    });
+    const glue42NotificationOptionsDecoder$1 = object$1({
+        title: nonEmptyStringDecoder$1,
+        clickInterop: optional$1(interopActionSettingsDecoder$1),
+        actions: optional$1(array$1(glue42NotificationActionDecoder$1)),
+        focusPlatformOnDefaultClick: optional$1(boolean$1()),
+        badge: optional$1(string$1()),
+        body: optional$1(string$1()),
+        data: optional$1(anyJson$1()),
+        dir: optional$1(oneOf$1(constant$1("auto"), constant$1("ltr"), constant$1("rtl"))),
+        icon: optional$1(string$1()),
+        image: optional$1(string$1()),
+        lang: optional$1(string$1()),
+        renotify: optional$1(boolean$1()),
+        requireInteraction: optional$1(boolean$1()),
+        silent: optional$1(boolean$1()),
+        tag: optional$1(string$1()),
+        timestamp: optional$1(nonNegativeNumberDecoder$1),
+        vibrate: optional$1(array$1(number$1()))
+    });
+    const raiseNotificationDecoder$1 = object$1({
+        settings: glue42NotificationOptionsDecoder$1,
+        id: nonEmptyStringDecoder$1
+    });
+    const permissionRequestResultDecoder$1 = object$1({
+        permissionGranted: boolean$1()
+    });
+    const permissionQueryResultDecoder$1 = object$1({
+        permission: oneOf$1(constant$1("default"), constant$1("granted"), constant$1("denied"))
+    });
+
+    class NotificationsController$1 {
+        constructor(glueController, serviceWorkerController) {
+            this.glueController = glueController;
+            this.serviceWorkerController = serviceWorkerController;
+            this.started = false;
+            this.operations = {
+                raiseNotification: { name: "raiseNotification", execute: this.handleRaiseNotification.bind(this), dataDecoder: raiseNotificationDecoder$1 },
+                requestPermission: { name: "requestPermission", resultDecoder: permissionRequestResultDecoder$1, execute: this.handleRequestPermission.bind(this) },
+                getPermission: { name: "getPermission", resultDecoder: permissionQueryResultDecoder$1, execute: this.handleGetPermission.bind(this) }
+            };
+        }
+        get logger() {
+            return logger.get("notifications.controller");
+        }
+        start() {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.started = true;
+                this.serviceWorkerController.onNotificationClick(this.handleNotificationClick.bind(this));
+            });
+        }
+        handleNotificationClick(clickData) {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
+            if (!clickData.action && ((_a = clickData.glueData) === null || _a === void 0 ? void 0 : _a.clickInterop)) {
+                this.callDefinedInterop((_b = clickData.glueData) === null || _b === void 0 ? void 0 : _b.clickInterop);
+            }
+            if (clickData.action && ((_d = (_c = clickData.glueData) === null || _c === void 0 ? void 0 : _c.actions) === null || _d === void 0 ? void 0 : _d.some((actionDef) => actionDef.action === clickData.action))) {
+                const notificationInteropAction = (_f = (_e = clickData.glueData) === null || _e === void 0 ? void 0 : _e.actions) === null || _f === void 0 ? void 0 : _f.find((action) => action.action === clickData.action);
+                if (notificationInteropAction.interop) {
+                    this.callDefinedInterop(notificationInteropAction.interop);
+                }
+            }
+            if ((_g = clickData.definition.data) === null || _g === void 0 ? void 0 : _g.glueData) {
+                delete clickData.definition.data.glueData;
+            }
+            const notificationEventPayload = {
+                definition: clickData.definition,
+                action: clickData.action,
+                id: (_h = clickData.glueData) === null || _h === void 0 ? void 0 : _h.id
+            };
+            this.glueController.pushSystemMessage("notifications", "notificationClick", notificationEventPayload);
+        }
+        handleControl(args) {
+            var _a, _b, _c, _d;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (!this.started) ;
+                const notificationsData = args.data;
+                const commandId = args.commandId;
+                const operationValidation = notificationsOperationDecoder.run(args.operation);
+                if (!operationValidation.ok) {
+                    throw new Error(`This notifications request cannot be completed, because the operation name did not pass validation: ${JSON.stringify(operationValidation.error)}`);
+                }
+                const operationName = operationValidation.result;
+                const incomingValidation = (_a = this.operations[operationName].dataDecoder) === null || _a === void 0 ? void 0 : _a.run(notificationsData);
+                if (incomingValidation && !incomingValidation.ok) {
+                    throw new Error(`Notifications request for ${operationName} rejected, because the provided arguments did not pass the validation: ${JSON.stringify(incomingValidation.error)}`);
+                }
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.debug(`[${commandId}] ${operationName} command is valid with data: ${JSON.stringify(notificationsData)}`);
+                const result = yield this.operations[operationName].execute(notificationsData, commandId);
+                const resultValidation = (_c = this.operations[operationName].resultDecoder) === null || _c === void 0 ? void 0 : _c.run(result);
+                if (resultValidation && !resultValidation.ok) {
+                    throw new Error(`Notifications request for ${operationName} could not be completed, because the operation result did not pass the validation: ${JSON.stringify(resultValidation.error)}`);
+                }
+                (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] ${operationName} command was executed successfully`);
+                return result;
+            });
+        }
+        handleRaiseNotification({ settings, id }, commandId) {
+            var _a, _b, _c, _d;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling a raise notification message with a title: ${settings.title}`);
+                const hasDefinedActions = settings.actions && settings.actions.length;
+                if (hasDefinedActions) {
+                    (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] notification with a title: ${settings.title} was found to be persistent and therefore the service worker will be instructed to raise it.`);
+                    yield this.serviceWorkerController.showNotification(settings, id);
+                }
+                else {
+                    (_c = this.logger) === null || _c === void 0 ? void 0 : _c.trace(`[${commandId}] notification with a title: ${settings.title} was found to be non-persistent and therefore will be raised with the native notifications API`);
+                    this.raiseSimpleNotification(settings, id);
+                }
+                const definition = Object.assign({}, settings, { title: undefined, clickInterop: undefined, actions: undefined });
+                const notificationEventPayload = { definition, id };
+                setTimeout(() => this.glueController.pushSystemMessage("notifications", "notificationShow", notificationEventPayload), 0);
+                (_d = this.logger) === null || _d === void 0 ? void 0 : _d.trace(`[${commandId}] notification with a title: ${settings.title} was successfully raised`);
+            });
+        }
+        handleGetPermission(_, commandId) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling a get permission message`);
+                const permissionValue = Notification.permission;
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] permission for raising notifications is: ${permissionValue}`);
+                return { permission: permissionValue };
+            });
+        }
+        handleRequestPermission(_, commandId) {
+            var _a, _b;
+            return __awaiter(this, void 0, void 0, function* () {
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.trace(`[${commandId}] handling a request permission message`);
+                let permissionValue = Notification.permission;
+                if (permissionValue !== "granted") {
+                    permissionValue = yield Notification.requestPermission();
+                }
+                const permissionGranted = permissionValue === "granted";
+                (_b = this.logger) === null || _b === void 0 ? void 0 : _b.trace(`[${commandId}] permission for raising notifications is: ${permissionValue}`);
+                return { permissionGranted };
+            });
+        }
+        callDefinedInterop(interopConfig) {
+            const method = interopConfig.method;
+            const args = interopConfig.arguments;
+            const target = interopConfig.target;
+            this.glueController.invokeMethod(method, args, target)
+                .catch((err) => {
+                var _a;
+                const stringError = typeof err === "string" ? err : JSON.stringify(err.message);
+                (_a = this.logger) === null || _a === void 0 ? void 0 : _a.warn(`The interop invocation defined in the clickInterop was rejected, reason: ${stringError}`);
+            });
+        }
+        raiseSimpleNotification(settings, id) {
+            const options = Object.assign({}, settings, { title: undefined, clickInterop: undefined });
+            const notification = new Notification(settings.title, options);
+            notification.onclick = (event) => {
+                const glueData = {
+                    id,
+                    clickInterop: settings.clickInterop
+                };
+                const definition = {
+                    badge: event.target.badge,
+                    body: event.target.body,
+                    data: event.target.data,
+                    dir: event.target.dir,
+                    icon: event.target.icon,
+                    image: event.target.image,
+                    lang: event.target.lang,
+                    renotify: event.target.renotify,
+                    requireInteraction: event.target.requireInteraction,
+                    silent: event.target.silent,
+                    tag: event.target.tag,
+                    timestamp: event.target.timestamp,
+                    vibrate: event.target.vibrate
+                };
+                if (settings.focusPlatformOnDefaultClick) {
+                    window.focus();
+                }
+                this.handleNotificationClick({ action: "", glueData, definition });
+            };
+        }
+    }
+
     class IoC$1 {
         constructor(config) {
             this.config = config;
@@ -23233,7 +28644,7 @@
         }
         get controller() {
             if (!this._mainController) {
-                this._mainController = new PlatformController(this.glueController, this.windowsController, this.applicationsController, this.layoutsController, this.workspacesController, this.intentsController, this.channelsController, this.portsBridge, this.stateController);
+                this._mainController = new PlatformController(this.systemController, this.glueController, this.windowsController, this.applicationsController, this.layoutsController, this.workspacesController, this.intentsController, this.channelsController, this.notificationsController, this.portsBridge, this.stateController, this.serviceWorkerController);
             }
             return this._mainController;
         }
@@ -23243,6 +28654,12 @@
             }
             return this._glueController;
         }
+        get systemController() {
+            if (!this._systemController) {
+                this._systemController = new SystemController$1();
+            }
+            return this._systemController;
+        }
         get sessionController() {
             if (!this._sessionController) {
                 this._sessionController = new SessionStorageController();
@@ -23251,7 +28668,7 @@
         }
         get stateController() {
             if (!this._stateChecker) {
-                this._stateChecker = new StateController(this.sessionController);
+                this._stateChecker = new WindowsStateController(this.sessionController);
             }
             return this._stateChecker;
         }
@@ -23263,9 +28680,21 @@
         }
         get applicationsController() {
             if (!this._applicationsController) {
-                this._applicationsController = new ApplicationsController(this.glueController, this.sessionController, this.stateController, this);
+                this._applicationsController = new ApplicationsController(this.glueController, this.sessionController, this.stateController, this.appDirectory, this);
             }
             return this._applicationsController;
+        }
+        get appDirectory() {
+            if (!this._appDirectory) {
+                this._appDirectory = new AppDirectory(this.sessionController, this.remoteWatcher);
+            }
+            return this._appDirectory;
+        }
+        get remoteWatcher() {
+            if (!this._remoteWatcher) {
+                this._remoteWatcher = new RemoteWatcher();
+            }
+            return this._remoteWatcher;
         }
         get layoutsController() {
             if (!this._layoutsController) {
@@ -23275,13 +28704,19 @@
         }
         get workspacesController() {
             if (!this._workspacesController) {
-                this._workspacesController = new WorkspacesController(this.framesController, this.glueController, this.stateController, this);
+                this._workspacesController = new WorkspacesController(this.framesController, this.glueController, this.stateController, this.hibernationWatcher, this);
             }
             return this._workspacesController;
         }
+        get hibernationWatcher() {
+            if (!this._hibernationWatcher) {
+                this._hibernationWatcher = new WorkspaceHibernationWatcher(this.sessionController);
+            }
+            return this._hibernationWatcher;
+        }
         get intentsController() {
             if (!this._intentsController) {
-                this._intentsController = new IntentsController$1(this.glueController, this.sessionController, this);
+                this._intentsController = new IntentsController$1(this.glueController, this.appDirectory, this);
             }
             return this._intentsController;
         }
@@ -23290,6 +28725,12 @@
                 this._channelsController = new ChannelsController$1(this.glueController);
             }
             return this._channelsController;
+        }
+        get notificationsController() {
+            if (!this._notificationsController) {
+                this._notificationsController = new NotificationsController$1(this.glueController, this.serviceWorkerController);
+            }
+            return this._notificationsController;
         }
         get framesController() {
             if (!this._framesController) {
@@ -23309,6 +28750,12 @@
             }
             return this._portsBridge;
         }
+        get serviceWorkerController() {
+            if (!this._serviceWorkerController) {
+                this._serviceWorkerController = new ServiceWorkerController();
+            }
+            return this._serviceWorkerController;
+        }
         createMessageChannel() {
             return new MessageChannel();
         }
@@ -23316,6 +28763,10 @@
 
     const glueWebPlatformFactory = (config) => __awaiter(void 0, void 0, void 0, function* () {
         if (window.glue42gd) {
+            return fallbackToEnterprise(config);
+        }
+        const isOpenerGlue = yield checkIsOpenerGlue();
+        if ((config === null || config === void 0 ? void 0 : config.clientOnly) || isOpenerGlue) {
             const glue = (config === null || config === void 0 ? void 0 : config.glueFactory) ?
                 yield (config === null || config === void 0 ? void 0 : config.glueFactory(config === null || config === void 0 ? void 0 : config.glue)) :
                 yield glueWebFactory(config === null || config === void 0 ? void 0 : config.glue);
@@ -23329,6 +28780,9 @@
 
     if (typeof window !== "undefined") {
         window.GlueWebPlatform = glueWebPlatformFactory;
+    }
+    if (!window.glue42gd && !window.glue42core) {
+        window.glue42core = { webStarted: false };
     }
 
     return glueWebPlatformFactory;

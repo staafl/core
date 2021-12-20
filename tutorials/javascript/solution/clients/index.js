@@ -171,12 +171,14 @@ const start = async () => {
         local: [
             {
                 name: "Clients",
+                type: "window",
                 details: {
                     url: "http://localhost:9000/"
                 }
             },
             {
                 name: "Stocks",
+                type: "window",
                 details: {
                     url: "http://localhost:9100/",
                     left: 0,
@@ -190,6 +192,7 @@ const start = async () => {
             },
             {
                 name: "Stock Details",
+                type: "window",
                 details: {
                     url: "http://localhost:9100/details",
                     left: 100,
@@ -203,6 +206,7 @@ const start = async () => {
             },
             {
                 name: "Client Details",
+                type: "window",
                 details: {
                     url: "http://localhost:9200/"
                 },

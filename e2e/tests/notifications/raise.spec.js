@@ -1,6 +1,9 @@
 describe("raise ", () => {
 
     before(() => coreReady);
+
+    beforeEach(() => window.notificationsFakePermission = "granted");
+
     afterEach(() => {
         window.sinonSandbox.reset();
         window.notificationsFakeTriggerClick = false;

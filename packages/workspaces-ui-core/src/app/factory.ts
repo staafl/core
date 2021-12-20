@@ -7,8 +7,8 @@ import { IFrameController } from "../iframeController";
 import { LayoutStateResolver } from "../state/resolver";
 import store from "../state/store";
 import { getElementBounds, idAsString } from "../utils";
-import createRegistry from "callback-registry";
-import { Window, WindowSummary, Workspace, WorkspacesLoadingConfig, WorkspacesSystemConfig } from "../types/internal";
+import createRegistry, { UnsubscribeFunction } from "callback-registry";
+import { LoadingStrategy, Window, WindowSummary, Workspace, WorkspacesSystemConfig } from "../types/internal";
 import { DelayedExecutor } from "../utils/delayedExecutor";
 import systemSettings from "../config/system";
 import { RestoreWorkspaceConfig } from "../interop/types";
@@ -26,7 +26,7 @@ export class ApplicationFactory {
         private readonly _delayedExecutor: DelayedExecutor<void>
     ) { }
 
-    public async start(component: GoldenLayout.Component, workspaceId: string) {
+    public async start(component: GoldenLayout.Component, workspaceId: string): Promise<void> {
         if (component.config.componentName === EmptyVisibleWindowName) {
             return;
         }
@@ -55,7 +55,7 @@ export class ApplicationFactory {
         return startPromise;
     }
 
-    public getLoadingStrategy(systemSettings: WorkspacesSystemConfig, contentConfig: GoldenLayout.Config, restoreConfig?: RestoreWorkspaceConfig) {
+    public getLoadingStrategy(systemSettings: WorkspacesSystemConfig, contentConfig: GoldenLayout.Config, restoreConfig?: RestoreWorkspaceConfig): LoadingStrategy {
         if (restoreConfig?.loadingStrategy) {
             return restoreConfig.loadingStrategy;
         } else if ((contentConfig?.workspacesOptions as any)?.loadingStrategy) {
@@ -65,7 +65,7 @@ export class ApplicationFactory {
         }
     }
 
-    public async startLazy(workspaceId: string) {
+    public async startLazy(workspaceId: string): Promise<void[]> {
         const workspace = store.getById(workspaceId);
         if (!workspace?.layout) {
             return;
@@ -75,7 +75,7 @@ export class ApplicationFactory {
         return Promise.all(result.visibleComponents.map((c) => this.start(c, workspaceId)));
     }
 
-    public async startDelayed(workspaceId: string) {
+    public async startDelayed(workspaceId: string): Promise<void> {
         const workspace = store.getById(workspaceId);
         if (!workspace?.layout) {
             return;
@@ -104,7 +104,7 @@ export class ApplicationFactory {
         return loadPromises;
     }
 
-    public async startDirect(workspaceId: string) {
+    public async startDirect(workspaceId: string): Promise<void> {
         const workspace = store.getById(workspaceId);
         if (!workspace?.layout) {
             return;
@@ -115,7 +115,7 @@ export class ApplicationFactory {
         }));
     }
 
-    public notifyFrameWillClose(windowId: string, appName?: string) {
+    public notifyFrameWillClose(windowId: string, appName?: string): Promise<any> {
         return this._glue.interop.invoke(PlatformControlMethod, {
             domain: appName ? "appManager" : "windows",
             operation: appName ? "unregisterWorkspaceApp" : "unregisterWorkspaceWindow",
@@ -125,19 +125,19 @@ export class ApplicationFactory {
         });
     }
 
-    public onStarted(callback: (args: { summary: WindowSummary }) => void) {
+    public onStarted(callback: (args: { summary: WindowSummary }) => void): UnsubscribeFunction {
         return this.registry.add("on-started", callback);
     }
 
-    public onLoaded(callback: (args: { summary: WindowSummary }) => void) {
+    public onLoaded(callback: (args: { summary: WindowSummary }) => void): UnsubscribeFunction {
         return this.registry.add("on-loaded", callback);
     }
 
-    public onFailed(callback: (args: { component: GoldenLayout.Component, workspaceId: string }) => void) {
+    public onFailed(callback: (args: { component: GoldenLayout.Component, workspaceId: string }) => void): UnsubscribeFunction {
         return this.registry.add("on-failed", callback);
     }
 
-    public waitForWindows(workspaceId: string, windowComponentIds: string[]) {
+    public waitForWindows(workspaceId: string, windowComponentIds: string[]): Promise<void> {
         return new Promise<void>((res, rej) => {
             let loadedUnsub = () => { };
             let failedUnsub = () => { };
@@ -176,15 +176,7 @@ export class ApplicationFactory {
         return this._glue.appManager?.application(appName)?.userProperties?.details?.url;
     }
 
-    private raiseStarted(summary: WindowSummary) {
-        this.registry.execute("on-started", { summary });
-    }
-
-    private raiseLoaded(summary: WindowSummary) {
-        this.registry.execute("on-loaded", { summary });
-    }
-
-    private raiseFailed(component: GoldenLayout.Component, workspaceId: string) {
+    private raiseFailed(component: GoldenLayout.Component, workspaceId: string): void {
         this.registry.execute("on-failed", { component, workspaceId });
     }
 
@@ -215,7 +207,7 @@ export class ApplicationFactory {
     }
 
     private waitFor(numberOfTriggers: number, callback: () => void): [(x: any) => void, () => void] {
-        let triggersActivated = [] as any[];
+        const triggersActivated = [] as any[];
 
         return [
             (x: any) => {
@@ -225,10 +217,10 @@ export class ApplicationFactory {
                 }
             },
             () => triggersActivated
-        ]
+        ];
     }
 
-    private vaidateTitle(title: string) {
+    private vaidateTitle(title: string): string {
         if (!title?.length) {
             return undefined;
         }
@@ -243,10 +235,10 @@ export class ApplicationFactory {
         return {
             visibleComponents,
             notImmediatelyVisibleComponents
-        }
+        };
     }
 
-    private async startCore(component: GoldenLayout.Component, workspace: Workspace) {
+    private async startCore(component: GoldenLayout.Component, workspace: Workspace): Promise<void> {
         const newWindowBounds = getElementBounds(component.element);
         const { componentState } = component.config;
         const { title, appName } = componentState;
@@ -289,7 +281,7 @@ export class ApplicationFactory {
             component.setTitle(windowTitle);
         }
         if (isNewWindow && !isHibernatedWindow) {
-            const windowSummary = this._stateResolver.getWindowSummarySync(componentId, component);
+            const windowSummary = this._stateResolver.getWindowSummarySync(component.config.id, component);
             this._manager.workspacesEventEmitter.raiseWindowEvent({
                 action: "added",
                 payload: {

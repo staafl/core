@@ -38,5 +38,5 @@ function useWorkspacePopup(element: RefObject<HTMLElement>) {
     }, () => setShouldRemove(true)]
 }
 
-export default useWorkspacePopup
+export default useWorkspacePopup;
 

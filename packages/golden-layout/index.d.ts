@@ -287,6 +287,11 @@ declare module '@glue42/golden-layout' {
              *  default mode - behaves like workspaceContent 
              */
             mode: "workspace" | "default" | "workspaceContent";
+
+            /**
+             * controls whether the workspace tab item should have dragging behavior
+             */
+            workspaceInnerDrag?: boolean;
         }
 
         export interface Dimensions {
@@ -410,7 +415,7 @@ declare module '@glue42/golden-layout' {
          * Controls the visibility of the close button in the window tabs
          */
             showCloseButton?: boolean;
-
+          allowDropHeader?:boolean;
             /**
           * Enables or disables the abilitiy to drop windows in the left area of the workspace
           */

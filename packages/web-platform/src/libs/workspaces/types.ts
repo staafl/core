@@ -330,6 +330,7 @@ export interface LockRowConfig {
     type: "row";
     config?: {
         allowDrop?: boolean;
+        allowSplitters?: boolean;
     };
 }
 
@@ -338,6 +339,7 @@ export interface LockColumnConfig {
     type: "column";
     config?: {
         allowDrop?: boolean;
+        allowSplitters?: boolean;
     };
 }
 
@@ -347,6 +349,11 @@ export interface LockGroupConfig {
     config?: {
         allowExtract?: boolean;
         allowDrop?: boolean;
+        allowDropHeader?: boolean;
+        allowDropLeft?: boolean;
+        allowDropTop?: boolean;
+        allowDropRight?: boolean;
+        allowDropBottom?: boolean;
         showMaximizeButton?: boolean;
         showEjectButton?: boolean;
         showAddWindowButton?: boolean;
@@ -382,6 +389,11 @@ export interface GroupDefinitionConfig {
     showMaximizeButton?: boolean;
     showEjectButton?: boolean;
     allowDrop?: boolean;
+    allowDropHeader?: boolean;
+    allowDropLeft?: boolean;
+    allowDropTop?: boolean;
+    allowDropRight?: boolean;
+    allowDropBottom?: boolean;
     showAddWindowButton?: boolean;
 }
 
@@ -389,6 +401,7 @@ export interface RowDefinitionConfig {
     minHeight?: number;
     maxHeight?: number;
     allowDrop?: boolean;
+    allowSplitters?: boolean;
     isPinned?: boolean;
 }
 
@@ -396,5 +409,6 @@ export interface ColumnDefinitionConfig {
     minWidth?: number;
     maxWidth?: number;
     allowDrop?: boolean;
+    allowSplitters?: boolean;
     isPinned?: boolean;
 }

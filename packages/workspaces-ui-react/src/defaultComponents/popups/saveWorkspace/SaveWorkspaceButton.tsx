@@ -19,8 +19,8 @@ const SaveWorkspaceButton: React.FC<SaveWorkspaceButtonProps> = ({ workspaceId,
         let shouldUpdate = true;
         let workspace: any;
         const workspaceName = inputValue;
-        glue.workspaces.getAllWorkspaces().then((allWorkspaces: any) => {
-            workspace = allWorkspaces.find((w: any) => w.id === workspaceId);
+        glue.workspaces.getWorkspaceById(workspaceId).then((myWorkspace: any) => {
+            workspace = myWorkspace;
 
             return glue.workspaces.layouts.save({
                 name: workspaceName,

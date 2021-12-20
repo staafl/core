@@ -1,62 +1,62 @@
-lm.utils.F = function() {
+lm.utils.F = function () {
 };
 
-lm.utils.extend = function( subClass, superClass ) {
-	subClass.prototype = lm.utils.createObject( superClass.prototype );
+lm.utils.extend = function (subClass, superClass) {
+	subClass.prototype = lm.utils.createObject(superClass.prototype);
 	subClass.prototype.contructor = subClass;
 };
 
-lm.utils.createObject = function( prototype ) {
-	if( typeof Object.create === 'function' ) {
-		return Object.create( prototype );
+lm.utils.createObject = function (prototype) {
+	if (typeof Object.create === 'function') {
+		return Object.create(prototype);
 	} else {
 		lm.utils.F.prototype = prototype;
 		return new lm.utils.F();
 	}
 };
 
-lm.utils.objectKeys = function( object ) {
+lm.utils.objectKeys = function (object) {
 	var keys, key;
 
-	if( typeof Object.keys === 'function' ) {
-		return Object.keys( object );
+	if (typeof Object.keys === 'function') {
+		return Object.keys(object);
 	} else {
 		keys = [];
-		for( key in object ) {
-			keys.push( key );
+		for (key in object) {
+			keys.push(key);
 		}
 		return keys;
 	}
 };
 
-lm.utils.getHashValue = function( key ) {
-	var matches = location.hash.match( new RegExp( key + '=([^&]*)' ) );
-	return matches ? matches[ 1 ] : null;
+lm.utils.getHashValue = function (key) {
+	var matches = location.hash.match(new RegExp(key + '=([^&]*)'));
+	return matches ? matches[1] : null;
 };
 
-lm.utils.getQueryStringParam = function( param ) {
-	if( window.location.hash ) {
-		return lm.utils.getHashValue( param );
-	} else if( !window.location.search ) {
+lm.utils.getQueryStringParam = function (param) {
+	if (window.location.hash) {
+		return lm.utils.getHashValue(param);
+	} else if (!window.location.search) {
 		return null;
 	}
 
-	var keyValuePairs = window.location.search.substr( 1 ).split( '&' ),
+	var keyValuePairs = window.location.search.substr(1).split('&'),
 		params = {},
 		pair,
 		i;
 
-	for( i = 0; i < keyValuePairs.length; i++ ) {
-		pair = keyValuePairs[ i ].split( '=' );
-		params[ pair[ 0 ] ] = pair[ 1 ];
+	for (i = 0; i < keyValuePairs.length; i++) {
+		pair = keyValuePairs[i].split('=');
+		params[pair[0]] = pair[1];
 	}
 
-	return params[ param ] || null;
+	return params[param] || null;
 };
 
-lm.utils.copy = function( target, source ) {
-	for( var key in source ) {
-		target[ key ] = source[ key ];
+lm.utils.copy = function (target, source) {
+	for (var key in source) {
+		target[key] = source[key];
 	}
 	return target;
 };
@@ -71,27 +71,27 @@ lm.utils.copy = function( target, source ) {
  *
  * @returns {void}
  */
-lm.utils.animFrame = function( fn ) {
-	return ( window.requestAnimationFrame ||
-	window.webkitRequestAnimationFrame ||
-	window.mozRequestAnimationFrame ||
-	function( callback ) {
-		window.setTimeout( callback, 1000 / 60 );
-	})( function() {
-		fn();
-	} );
+lm.utils.animFrame = function (fn) {
+	return (window.requestAnimationFrame ||
+		window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		function (callback) {
+			window.setTimeout(callback, 1000 / 60);
+		})(function () {
+			fn();
+		});
 };
 
-lm.utils.indexOf = function( needle, haystack ) {
-	if( !( haystack instanceof Array ) ) {
-		throw new Error( 'Haystack is not an Array' );
+lm.utils.indexOf = function (needle, haystack) {
+	if (!(haystack instanceof Array)) {
+		throw new Error('Haystack is not an Array');
 	}
 
-	if( haystack.indexOf ) {
-		return haystack.indexOf( needle );
+	if (haystack.indexOf) {
+		return haystack.indexOf(needle);
 	} else {
-		for( var i = 0; i < haystack.length; i++ ) {
-			if( haystack[ i ] === needle ) {
+		for (var i = 0; i < haystack.length; i++) {
+			if (haystack[i] === needle) {
 				return i;
 			}
 		}
@@ -99,62 +99,75 @@ lm.utils.indexOf = function( needle, haystack ) {
 	}
 };
 
-if( typeof /./ != 'function' && typeof Int8Array != 'object' ) {
-	lm.utils.isFunction = function( obj ) {
+if (typeof /./ != 'function' && typeof Int8Array != 'object') {
+	lm.utils.isFunction = function (obj) {
 		return typeof obj == 'function' || false;
 	};
 } else {
-	lm.utils.isFunction = function( obj ) {
-		return toString.call( obj ) === '[object Function]';
+	lm.utils.isFunction = function (obj) {
+		return toString.call(obj) === '[object Function]';
 	};
 }
 
-lm.utils.fnBind = function( fn, context, boundArgs ) {
+lm.utils.fnBind = function (fn, context, boundArgs) {
 
-	if( Function.prototype.bind !== undefined ) {
-		return Function.prototype.bind.apply( fn, [ context ].concat( boundArgs || [] ) );
+	if (Function.prototype.bind !== undefined) {
+		return Function.prototype.bind.apply(fn, [context].concat(boundArgs || []));
 	}
 
-	var bound = function() {
+	var bound = function () {
 
 		// Join the already applied arguments to the now called ones (after converting to an array again).
-		var args = ( boundArgs || [] ).concat( Array.prototype.slice.call( arguments, 0 ) );
+		var args = (boundArgs || []).concat(Array.prototype.slice.call(arguments, 0));
 
 		// If not being called as a constructor
-		if( !(this instanceof bound) ) {
+		if (!(this instanceof bound)) {
 			// return the result of the function called bound to target and partially applied.
-			return fn.apply( context, args );
+			return fn.apply(context, args);
 		}
 		// If being called as a constructor, apply the function bound to self.
-		fn.apply( this, args );
+		fn.apply(this, args);
 	};
 	// Attach the prototype of the function to our newly created function.
 	bound.prototype = fn.prototype;
 	return bound;
 };
 
-lm.utils.removeFromArray = function( item, array ) {
-	var index = lm.utils.indexOf( item, array );
+lm.utils.removeFromArray = function (item, array) {
+	var index = lm.utils.indexOf(item, array);
 
-	if( index === -1 ) {
-		throw new Error( 'Can\'t remove item from array. Item is not in the array' );
+	if (index === -1) {
+		throw new Error('Can\'t remove item from array. Item is not in the array');
 	}
 
-	array.splice( index, 1 );
+	array.splice(index, 1);
 };
 
-lm.utils.now = function() {
-	if( typeof Date.now === 'function' ) {
+lm.utils.moveInArray = function (arr, fromIndex, toIndex) {
+	var element = arr[fromIndex];
+	arr.splice(fromIndex, 1);
+	arr.splice(toIndex, 0, element);
+};
+
+lm.utils.getBounds = function (element) {
+	if (!element[0]) {
+		throw new Error("Cannot get bounds of invalid element");
+	}
+	return element[0].getBoundingClientRect();
+}
+
+lm.utils.now = function () {
+	if (typeof Date.now === 'function') {
 		return Date.now();
 	} else {
-		return ( new Date() ).getTime();
+		return (new Date()).getTime();
 	}
 };
 
-lm.utils.getUniqueId = function() {
-	return ( Math.random() * 1000000000000000 )
-		.toString( 36 )
-		.replace( '.', '' );
+lm.utils.getUniqueId = function () {
+	return (Math.random() * 1000000000000000)
+		.toString(36)
+		.replace('.', '');
 };
 
 /**
@@ -167,21 +180,21 @@ lm.utils.getUniqueId = function() {
  *
  * @returns {String} filtered input
  */
-lm.utils.filterXss = function( input, keepTags ) {
+lm.utils.filterXss = function (input, keepTags) {
 
 	var output = input
-		.replace( /javascript/gi, 'j&#97;vascript' )
-		.replace( /expression/gi, 'expr&#101;ssion' )
-		.replace( /onload/gi, 'onlo&#97;d' )
-		.replace( /script/gi, '&#115;cript' )
-		.replace( /onerror/gi, 'on&#101;rror' );
+		.replace(/javascript/gi, 'j&#97;vascript')
+		.replace(/expression/gi, 'expr&#101;ssion')
+		.replace(/onload/gi, 'onlo&#97;d')
+		.replace(/script/gi, '&#115;cript')
+		.replace(/onerror/gi, 'on&#101;rror');
 
-	if( keepTags === true ) {
+	if (keepTags === true) {
 		return output;
 	} else {
 		return output
-			.replace( />/g, '&gt;' )
-			.replace( /</g, '&lt;' );
+			.replace(/>/g, '&gt;')
+			.replace(/</g, '&lt;');
 	}
 };
 
@@ -192,6 +205,6 @@ lm.utils.filterXss = function( input, keepTags ) {
  *
  * @returns {String} input without tags
  */
-lm.utils.stripTags = function( input ) {
-	return $.trim( input.replace( /(<([^>]+)>)/ig, '' ) );
+lm.utils.stripTags = function (input) {
+	return $.trim(input.replace(/(<([^>]+)>)/ig, ''));
 };

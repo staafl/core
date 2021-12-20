@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Workspace } from "../models/workspace";
-import { WorkspaceSnapshotResult, WorkspaceCreateConfigProtocol, FrameSummaryResult, AddItemResult, WorkspaceSummariesResult, WorkspaceSummaryResult, SimpleWindowOperationSuccessResult, FrameSnapshotResult } from "../types/protocol";
+import { WorkspaceSnapshotResult, WorkspaceCreateConfigProtocol, FrameSummaryResult, AddItemResult, WorkspaceSummariesResult, WorkspaceSummaryResult, SimpleWindowOperationSuccessResult, FrameSnapshotResult, WorkspaceStreamData } from "../types/protocol";
 import { OPERATIONS } from "../communication/constants";
 import { FrameCreateConfig, WorkspaceIoCCreateConfig, WindowCreateConfig, ParentCreateConfig } from "../types/ioc";
 import { IoC } from "../shared/ioc";
@@ -13,7 +13,6 @@ import { AllParentTypes, Child, ContainerLockConfig, SubParentTypes } from "../t
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { Window } from "../models/window";
 import { UnsubscribeFunction } from "callback-registry";
-import { WorkspaceLockConfig, WorkspaceWindowLockConfig } from "../types/temp";
 
 export class BaseController {
 
@@ -114,13 +113,12 @@ export class BaseController {
         }, []);
 
         return allSummaries.map<Glue42Workspaces.WorkspaceSummary>((summary) => {
-            return {
-                id: summary.id,
-                frameId: summary.config.frameId,
-                positionIndex: summary.config.positionIndex,
-                title: summary.config.title,
-                layoutName: summary.config.layoutName
-            };
+
+            return Object.assign(
+                {},
+                { id: summary.id, width: summary.config.widthInPx, height: summary.config.heightInPx },
+                summary.config
+            );
         });
     }
 
@@ -152,6 +150,21 @@ export class BaseController {
         };
 
         return this.layouts.onRemoved(wrappedCallback);
+    }
+
+    public async transformStreamPayloadToWorkspace(payload: WorkspaceStreamData): Promise<Workspace> {
+        const frameConfig: FrameCreateConfig = {
+            summary: payload.frameSummary
+        };
+        const frame = this.ioc.getModel<"frame">("frame", frameConfig);
+
+        const snapshot = payload.workspaceSnapshot || (await this.bridge.send<WorkspaceSnapshotResult>(OPERATIONS.getWorkspaceSnapshot.name, { itemId: payload.workspaceSummary.id }));
+
+        const workspaceConfig: WorkspaceIoCCreateConfig = { frame, snapshot };
+
+        const workspace = this.ioc.getModel<"workspace">("workspace", workspaceConfig);
+
+        return workspace;
     }
 
     public async fetchWorkspace(workspaceId: string): Promise<Workspace> {
@@ -384,11 +397,11 @@ export class BaseController {
         await this.bridge.send<void>(OPERATIONS.resumeWorkspace.name, { workspaceId });
     }
 
-    public async lockWorkspace(workspaceId: string, config?: WorkspaceLockConfig): Promise<void> {
+    public async lockWorkspace(workspaceId: string, config?: Glue42Workspaces.WorkspaceLockConfig): Promise<void> {
         await this.bridge.send<void>(OPERATIONS.lockWorkspace.name, { workspaceId, config });
     }
 
-    public async lockWindow(windowPlacementId: string, config?: WorkspaceWindowLockConfig): Promise<void> {
+    public async lockWindow(windowPlacementId: string, config?: Glue42Workspaces.WorkspaceWindowLockConfig): Promise<void> {
         await this.bridge.send<void>(OPERATIONS.lockWindow.name, { windowPlacementId, config });
     }
 

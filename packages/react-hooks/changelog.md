@@ -1,3 +1,15 @@
+2.3.2
+chore: bump due to dependencies update
+2.3.1
+chore: bump due to dependencies update
+2.3.0
+chore: bump due to dependencies update inline with 3.12 Enterprise release
+2.2.6
+chore: bump due to dependencies update
+2.2.5
+chore: Resolved dependency vulnerabilities
+2.2.4
+chore: bump due to dependencies update
 2.2.3
 chore: bump due to dependencies update
 2.2.2

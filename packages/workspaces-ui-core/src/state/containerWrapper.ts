@@ -81,6 +81,46 @@ export class WorkspaceContainerWrapper {
         this.populateChildrenAllowDrop(value);
     }
 
+    public get allowDropHeader(): boolean {
+        return this.containerContentItem.config.workspacesConfig.allowDropHeader ?? true;
+    }
+
+    public set allowDropHeader(value: boolean | undefined) {
+        this.containerContentItem.config.workspacesConfig.allowDropHeader = value;
+    }
+
+    public get allowDropLeft(): boolean {
+        return this.containerContentItem.config.workspacesConfig.allowDropLeft ?? true;
+    }
+
+    public set allowDropLeft(value: boolean | undefined) {
+        this.containerContentItem.config.workspacesConfig.allowDropLeft = value;
+    }
+
+    public get allowDropRight(): boolean {
+        return this.containerContentItem.config.workspacesConfig.allowDropRight ?? true;
+    }
+
+    public set allowDropRight(value: boolean | undefined) {
+        this.containerContentItem.config.workspacesConfig.allowDropRight = value;
+    }
+
+    public get allowDropTop(): boolean {
+        return this.containerContentItem.config.workspacesConfig.allowDropTop ?? true;
+    }
+
+    public set allowDropTop(value: boolean | undefined) {
+        this.containerContentItem.config.workspacesConfig.allowDropTop = value;
+    }
+
+    public get allowDropBottom(): boolean {
+        return this.containerContentItem.config.workspacesConfig.allowDropBottom ?? true;
+    }
+
+    public set allowDropBottom(value: boolean | undefined) {
+        this.containerContentItem.config.workspacesConfig.allowDropBottom = value;
+    }
+
     public get allowExtract(): boolean {
         return (this.containerContentItem.config.workspacesConfig as any).allowExtract ?? true;
     }
@@ -89,6 +129,22 @@ export class WorkspaceContainerWrapper {
         (this.containerContentItem.config.workspacesConfig as any).allowExtract = value;
 
         this.populateChildrenAllowExtact(value);
+    }
+
+    public get allowSplitters(): boolean {
+        if (this.containerContentItem.config.type === "stack") {
+            throw new Error(`Accessing allowSplitters of container ${this.containerContentItem.type} ${this.containerContentItem.config.id} the property is available only for rows and columns`);
+        }
+        return this.containerContentItem.config.workspacesConfig.allowSplitters ?? true;
+    }
+
+    public set allowSplitters(value: boolean | undefined) {
+        if (this.containerContentItem.config.type === "stack") {
+            throw new Error(`Setting allowSplitters of container ${this.containerContentItem.type} ${this.containerContentItem.config.id} the property is available only for rows and columns`);
+        }
+        this.containerContentItem.config.workspacesConfig.allowSplitters = value;
+
+        this.populateChildrenAllowSplitters(value);
     }
 
     public get showMaximizeButton(): boolean {
@@ -182,7 +238,8 @@ export class WorkspaceContainerWrapper {
             maxHeight: this.maxHeight,
             widthInPx: this.bounds.width,
             heightInPx: this.bounds.height,
-            isPinned: this.isPinned
+            isPinned: this.isPinned,
+            isMaximized: this.isMaximized
         };
 
         const type = userFriendlyType === "window" ? undefined : userFriendlyType;
@@ -192,7 +249,18 @@ export class WorkspaceContainerWrapper {
                 allowExtract: this.allowExtract,
                 showMaximizeButton: this.showMaximizeButton,
                 showEjectButton: this.showEjectButton,
-                showAddWindowButton: this.showAddWindowButton
+                showAddWindowButton: this.showAddWindowButton,
+                allowDropHeader: this.allowDropHeader,
+                allowDropLeft: this.allowDropLeft,
+                allowDropRight: this.allowDropRight,
+                allowDropTop: this.allowDropTop,
+                allowDropBottom: this.allowDropBottom
+            };
+        }
+        if (type !== "group") {
+            config = {
+                ...config,
+                allowSplitters: this.allowSplitters
             };
         }
         return {
@@ -212,6 +280,10 @@ export class WorkspaceContainerWrapper {
         containerConfig.workspacesConfig.isPinned = containerConfig.workspacesConfig.isPinned ?? false;
 
         return containerConfig;
+    }
+
+    public get isMaximized(): boolean {
+        return this.containerContentItem.hasId("__glMaximised");
     }
 
     private populateChildrenAllowDrop(value: boolean | undefined): void {
@@ -236,7 +308,7 @@ export class WorkspaceContainerWrapper {
         const lockChildren = (children: ContentItem[]): void => {
             children.forEach((c) => {
                 if (c.type === "component") {
-                    const windowWrapper = new WorkspaceWindowWrapper(this.stateResolver,c, this.frameId);
+                    const windowWrapper = new WorkspaceWindowWrapper(this.stateResolver, c, this.frameId);
 
                     windowWrapper.allowExtract = value;
                     return;
@@ -246,6 +318,23 @@ export class WorkspaceContainerWrapper {
                     const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, c, this.frameId);
                     containerWrapper.allowExtract = value;
                 }
+
+                lockChildren(c.contentItems);
+            });
+        };
+
+        lockChildren(this.containerContentItem.contentItems);
+    }
+
+    private populateChildrenAllowSplitters(value: boolean | undefined): void {
+        const lockChildren = (children: ContentItem[]): void => {
+            children.forEach((c) => {
+                if (c.type === "component" || c.type === "stack") {
+                    return;
+                }
+
+                const containerWrapper = new WorkspaceContainerWrapper(this.stateResolver, c, this.frameId);
+                containerWrapper.allowSplitters = value;
 
                 lockChildren(c.contentItems);
             });

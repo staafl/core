@@ -3,26 +3,26 @@ import GoldenLayout from "@glue42/golden-layout";
 import { idAsString } from "../utils";
 
 class WorkspaceStore {
-    private readonly _idToLayout: { [k: string]: Workspace } = {};
+    private _idToLayout: { [k: string]: Workspace } = {};
     private _workspaceLayout: GoldenLayout;
 
-    public get layouts() {
+    public get layouts(): Workspace[] {
         return Object.values(this._idToLayout);
     }
 
-    public get workspaceIds() {
+    public get workspaceIds(): string[] {
         return Object.keys(this._idToLayout);
     }
 
-    public get workspaceTitles() {
-        return this.workspaceIds.map(wid => this.getWorkspaceTitle(wid));
+    public get workspaceTitles(): string[] {
+        return this.workspaceIds.map((wid) => this.getWorkspaceTitle(wid));
     }
 
     public set workspaceLayout(layout) {
         this._workspaceLayout = layout;
     }
 
-    public get workspaceLayout() {
+    public get workspaceLayout(): GoldenLayout {
         return this._workspaceLayout;
     }
 
@@ -30,16 +30,16 @@ class WorkspaceStore {
         return (this._workspaceLayout.root.contentItems[0] as GoldenLayout.Stack).header;
     }
 
-    public getWorkspaceLayoutItemById(itemId: string) {
+    public getWorkspaceLayoutItemById(itemId: string): GoldenLayout.ContentItem {
         return this.workspaceLayout.root.getItemsById(itemId)[0];
     }
 
-    public getById(id: string | string[]) {
+    public getById(id: string | string[]): Workspace {
         id = idAsString(id);
         return this._idToLayout[id];
     }
 
-    public getByContainerId(id: string | string[]) {
+    public getByContainerId(id: string | string[]): Workspace {
         id = idAsString(id);
         return this._idToLayout[id] || this.getByContainerIdCore(id);
     }
@@ -49,16 +49,16 @@ class WorkspaceStore {
         return workspacesContentItem?.tab.titleElement[0].innerText || workspacesContentItem?.config.title;
     }
 
-    public removeById(id: string) {
+    public removeById(id: string): void {
         delete this._idToLayout[id];
     }
 
-    public removeLayout(id: string) {
+    public removeLayout(id: string): void {
         this._idToLayout[id].layout?.destroy();
         this._idToLayout[id].layout = undefined;
     }
 
-    public addOrUpdate(id: string, windows: Window[], layout?: GoldenLayout) {
+    public addOrUpdate(id: string, windows: Window[], layout?: GoldenLayout): void {
         const workspace = this.getById(id);
         if (workspace) {
             workspace.layout = layout;
@@ -75,7 +75,7 @@ class WorkspaceStore {
         };
     }
 
-    public getWindow(id: string | string[]) {
+    public getWindow(id: string | string[]): Window {
         const winId = idAsString(id);
         return this.layouts.reduce<Window>((acc, l) => acc || l.windows.find((w) => w.id === winId || w.windowId === winId), undefined);
     }
@@ -86,14 +86,14 @@ class WorkspaceStore {
         return this.getById(activeWorkspaceId);
     }
 
-    public addWindow(window: Window, workspaceId: string) {
+    public addWindow(window: Window, workspaceId: string): void {
         const workspace = this.getById(workspaceId);
 
         workspace.windows = workspace.windows.filter(w => w.id !== window.id);
         workspace.windows.push(window);
     }
 
-    public removeWindow(window: Window, workspaceId: string) {
+    public removeWindow(window: Window, workspaceId: string): void {
         const workspace = this.getById(workspaceId);
 
         workspace.windows = workspace.windows.filter(w => w.id !== window.id);
@@ -158,9 +158,26 @@ class WorkspaceStore {
         return result;
     }
 
-    public getWorkspaceContext(workspaceId: string) {
+    public getWorkspaceContext(workspaceId: string): object {
         const workspace = this.getById(workspaceId);
         return workspace?.layout?.config?.workspacesOptions?.context;
+    }
+
+    public syncWorkspaceOrder(): void {
+        const workspaceStack = this.workspaceLayout.root.getItemsByType("stack")[0];
+        if (workspaceStack.type !== "stack") {
+            return;
+        }
+        const idsInNewOrder = workspaceStack.contentItems.map((ci) => idAsString(ci.config.id));
+        const newIdToLayout = {} as { [id: string]: Workspace };
+
+        idsInNewOrder.forEach((id) => {
+            newIdToLayout[id] = this._idToLayout[id];
+        });
+
+        if (Object.keys(newIdToLayout).length === Object.keys(this._idToLayout).length) {
+            this._idToLayout = newIdToLayout;
+        }
     }
 
     public getWorkspaceContentItem(workspaceId: string): GoldenLayout.Component {
@@ -184,17 +201,18 @@ class WorkspaceStore {
         return result;
     }
 
-    private mergeWindows(oldWindows: Window[], newWindows: Window[]) {
+    private mergeWindows(oldWindows: Window[], newWindows: Window[]): Window[] {
         return newWindows.map(w => {
             let windowId = w.windowId;
             if (!windowId) {
                 const sameWindowInOldWindows = oldWindows.find((oldWin) => oldWin.id === w.id);
                 windowId = sameWindowInOldWindows?.windowId;
             }
+
             return {
                 ...w,
                 windowId
-            }
+            };
         });
     }
 }

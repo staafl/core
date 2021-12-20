@@ -1,6 +1,8 @@
 import { Glue42Web } from "@glue42/web";
 
-export type NotificationsOperationsTypes = "raiseNotification" | "requestPermission";
+export type NotificationsOperationsTypes = "raiseNotification" | "requestPermission" | "getPermission";
+
+export type NotificationPermissionTypes = "default" | "granted" | "denied";
 
 export interface RaiseNotificationConfig {
     settings: Glue42Web.Notifications.RaiseOptions;
@@ -10,11 +12,16 @@ export interface RaiseNotificationConfig {
 export interface GlueNotificationData {
     clickInterop?: Glue42Web.Notifications.InteropActionSettings;
     actions?: Glue42Web.Notifications.NotificationAction[];
+    focusPlatformOnDefaultClick?: boolean;
     id: string;
 }
 
 export interface PermissionRequestResult {
     permissionGranted: boolean;
+}
+
+export interface PermissionQueryResult {
+    permission: NotificationPermissionTypes;
 }
 
 export interface NotificationEventPayload {

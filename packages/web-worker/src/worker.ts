@@ -10,7 +10,7 @@ const checkPlatformOpen = (): Promise<boolean> => {
 
         const existenceHandler = function (event: any): void {
             const data = event.data;
-
+            // check to see if somehow I have reference to the client that answers
             if (data.pong) {
                 channel.removeEventListener("message", existenceHandler);
                 resolve(true);
@@ -140,6 +140,12 @@ export const setupCore: Glue42WebWorkerFactoryFunction = (config?: WebWorkerConf
                 };
 
                 channel.postMessage({ messageType, action, glueData, definition });
+            })
+            .then(() => {
+                const focusOnClick = (event as any).notification.data?.glueData?.focusPlatformOnDefaultClick;
+                if (isPlatformOpen && focusOnClick) {
+                    // focus the platform
+                }
             })
             .catch((error) => {
                 const stringError = typeof error === "string" ? error : JSON.stringify(error.message);

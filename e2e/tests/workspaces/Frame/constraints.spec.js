@@ -76,13 +76,13 @@ describe("constraints() Should", () => {
     it("resolve", async () => {
         const workspace = await glue.workspaces.createWorkspace(basicConfig);
         const frame = workspace.frame;
-        await frame.constraints();
+        await frame.getConstraints();
     });
 
     it("resolve with default constraints when no constraints have been set", async () => {
         const workspace = await glue.workspaces.createWorkspace(basicConfig);
         const frame = workspace.frame;
-        const constraints = await frame.constraints();
+        const constraints = await frame.getConstraints();
 
         expect(constraints.minWidth).to.eql(60);
         expect(constraints.maxWidth).to.eql(32767);
@@ -100,7 +100,7 @@ describe("constraints() Should", () => {
 
         const workspace = await glue.workspaces.createWorkspace(singleWindwoConfig);
         const frame = workspace.frame;
-        const constraints = await frame.constraints();
+        const constraints = await frame.getConstraints();
 
         expect(constraints.minWidth).to.eql(workspace.minWidth);
         expect(constraints.maxWidth).to.eql(workspace.maxWidth);
@@ -135,7 +135,7 @@ describe("constraints() Should", () => {
         const secondWorkspace = await frame.createWorkspace(singleWindwoConfig2);
         await frame.createWorkspace(singleWindwoConfig3);
 
-        const constraints = await frame.constraints();
+        const constraints = await frame.getConstraints();
         expect(constraints.minWidth).to.eql(420);
         expect(constraints.maxWidth).to.eql(600);
         expect(constraints.minHeight).to.eql(450 + verticalDecorations * 2); // workspace size + workspace tab decorations + group header decorations
@@ -161,7 +161,7 @@ describe("constraints() Should", () => {
 
         await workspace.frame.createWorkspace(singleWindowConfig2);
 
-        const constraints = await workspace.frame.constraints();
+        const constraints = await workspace.frame.getConstraints();
 
         expect(constraints.minWidth).to.eql(420);
         expect(constraints.minHeight).to.eql(400 + verticalDecorations * 2);// workspace size + workspace tab decorations + group header decorations
@@ -178,7 +178,7 @@ describe("constraints() Should", () => {
         });
 
         const workspace = await glue.workspaces.createWorkspace(singleWindowConfig);
-        const constraints = await workspace.frame.constraints();
+        const constraints = await workspace.frame.getConstraints();
 
         expect(constraints.minWidth).to.eql(20);
         expect(constraints.maxWidth).to.eql(32767);
@@ -195,7 +195,7 @@ describe("constraints() Should", () => {
         });
 
         const workspace = await glue.workspaces.createWorkspace(singleWindowConfig);
-        const constraints = await workspace.frame.constraints();
+        const constraints = await workspace.frame.getConstraints();
 
         expect(constraints.minWidth).to.eql(20);
         expect(constraints.maxWidth).to.eql(32767);

@@ -114,7 +114,7 @@ describe("setSize() Should", () => {
     it("enlarge the width of the window when the parent is a group", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "group");
         const newWidth = window.width + 10;
-        await window.setSize(newWidth);
+        await window.setSize({ width: newWidth });
 
         expect(window.width).to.eql(newWidth);
     });
@@ -122,7 +122,7 @@ describe("setSize() Should", () => {
     it("enlarge the height of the window when the parent is a group", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "group");
         const newHeight = window.height + 10;
-        await window.setSize(undefined, newHeight);
+        await window.setSize({ height: newHeight });
 
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
     });
@@ -132,7 +132,7 @@ describe("setSize() Should", () => {
         const newHeight = window.height + 10;
         const newWidth = window.width + 10;
 
-        await window.setSize(newWidth, newHeight);
+        await window.setSize({ width: newWidth, height: newHeight });
 
         expect(window.width).to.eql(newWidth);
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
@@ -141,7 +141,7 @@ describe("setSize() Should", () => {
     it("reduce the width of the window when the parent is a group", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "group");
         const newWidth = window.width - 10;
-        await window.setSize(newWidth);
+        await window.setSize({ width: newWidth });
 
         expect(window.width).to.eql(newWidth);
     });
@@ -149,7 +149,7 @@ describe("setSize() Should", () => {
     it("reduce the height of the window when the parent is a group", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "group");
         const newHeight = window.height - 10;
-        await window.setSize(undefined, newHeight);
+        await window.setSize({ height: newHeight });
 
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
     });
@@ -158,7 +158,7 @@ describe("setSize() Should", () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "group");
         const newWidth = window.width - 10;
         const newHeight = window.height - 10;
-        await window.setSize(newWidth, newHeight);
+        await window.setSize({ width: newWidth, height: newHeight });
 
         expect(window.width).to.eql(newWidth);
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
@@ -168,7 +168,7 @@ describe("setSize() Should", () => {
     it("enlarge the width of the window when the parent is a column", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "column");
         const newWidth = window.width + 10;
-        await window.setSize(newWidth);
+        await window.setSize({ width: newWidth });
 
         expect(window.width).to.eql(newWidth);
     });
@@ -176,7 +176,7 @@ describe("setSize() Should", () => {
     it("enlarge the height of the window when the parent is a column", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "column");
         const newHeight = window.height + 10;
-        await window.setSize(undefined, newHeight);
+        await window.setSize({ height: newHeight });
 
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
     });
@@ -186,7 +186,7 @@ describe("setSize() Should", () => {
         const newHeight = window.height + 10;
         const newWidth = window.width + 10;
 
-        await window.setSize(newWidth, newHeight);
+        await window.setSize({ width: newWidth, height: newHeight });
 
         expect(window.width).to.eql(newWidth);
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
@@ -195,7 +195,7 @@ describe("setSize() Should", () => {
     it("reduce the width of the window when the parent is a column", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "column");
         const newWidth = window.width - 10;
-        await window.setSize(newWidth);
+        await window.setSize({ width: newWidth });
 
         expect(window.width).to.eql(newWidth);
     });
@@ -203,7 +203,7 @@ describe("setSize() Should", () => {
     it("reduce the height of the window when the parent is a column", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "column");
         const newHeight = window.height - 10;
-        await window.setSize(undefined, newHeight);
+        await window.setSize({ height: newHeight });
 
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
     });
@@ -212,7 +212,7 @@ describe("setSize() Should", () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "column");
         const newWidth = window.width - 10;
         const newHeight = window.height - 10;
-        await window.setSize(newWidth, newHeight);
+        await window.setSize({ width: newWidth, height: newHeight });
 
         expect(window.width).to.eql(newWidth);
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
@@ -222,7 +222,7 @@ describe("setSize() Should", () => {
     it("enlarge the width of the window when the parent is a row", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "row");
         const newWidth = window.width + 10;
-        await window.setSize(newWidth);
+        await window.setSize({ width: newWidth });
 
         expect(window.width).to.eql(newWidth);
     });
@@ -230,7 +230,7 @@ describe("setSize() Should", () => {
     it("enlarge the height of the window when the parent is a row", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "row");
         const newHeight = window.height + 10;
-        await window.setSize(undefined, newHeight);
+        await window.setSize({ height: newHeight });
 
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
     });
@@ -240,7 +240,7 @@ describe("setSize() Should", () => {
         const newHeight = window.height + 10;
         const newWidth = window.width + 10;
 
-        await window.setSize(newWidth, newHeight);
+        await window.setSize({ width: newWidth, height: newHeight });
 
         expect(window.width).to.eql(newWidth);
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
@@ -249,7 +249,7 @@ describe("setSize() Should", () => {
     it("reduce the width of the window when the parent is a row", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "row");
         const newWidth = window.width - 10;
-        await window.setSize(newWidth);
+        await window.setSize({ width: newWidth });
 
         expect(window.width).to.eql(newWidth);
     });
@@ -257,7 +257,7 @@ describe("setSize() Should", () => {
     it("reduce the height of the window when the parent is a row", async () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "row");
         const newHeight = window.height - 10;
-        await window.setSize(undefined, newHeight);
+        await window.setSize({ height: newHeight });
 
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
     });
@@ -266,7 +266,7 @@ describe("setSize() Should", () => {
         const window = workspace.getAllWindows().find(w => w.parent.type === "row");
         const newWidth = window.width - 10;
         const newHeight = window.height - 10;
-        await window.setSize(newWidth, newHeight);
+        await window.setSize({ width: newWidth, height: newHeight });
 
         expect(window.width).to.eql(newWidth);
         expect(Math.abs(window.height - newHeight) <= 1).to.be.true;
@@ -276,7 +276,7 @@ describe("setSize() Should", () => {
     Array.from([undefined, null, () => { }, {}, "42", true, -1, 0]).forEach((arg) => {
         it(`reject when the passed arguments are ${typeof arg}`, (done) => {
             const window = workspace.getAllWindows()[0];
-            window.setSize(arg, arg).then(() => {
+            window.setSize({ width: arg, height: arg }).then(() => {
                 done("Should not resolve");
             }).catch(() => done());
         });

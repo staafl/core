@@ -30,11 +30,16 @@ describe("lock()", () => {
                                 type: "row",
                                 children: [
                                     {
-                                        type: "group",
-                                        children: [
+                                        type:"column",
+                                        children:[
                                             {
-                                                type: "window",
-                                                appName: "noGlueApp"
+                                                type: "group",
+                                                children: [
+                                                    {
+                                                        type: "window",
+                                                        appName: "noGlueApp"
+                                                    }
+                                                ]
                                             }
                                         ]
                                     }
@@ -145,6 +150,103 @@ describe("lock()", () => {
 
             expect(row.allowDrop).to.eql(true);
         });
+        //allowSplitters
+        it("Should set allowSplitters to false when invoked without arguments and the container is a row", async () => {
+            const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+            await row.lock();
+
+            await workspace.refreshReference();
+
+            expect(row.allowSplitters).to.eql(false);
+        });
+
+        it("Should set allowSplitters to false of all its children when invoked without arguments and the container is a row", async () => {
+            const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+            await row.lock();
+
+            await workspace.refreshReference();
+            const immediateChildren = row.children;
+            const childrenOfChildren = row.children.reduce((acc, c) => [...acc, ...c.children], []);
+
+            immediateChildren.forEach((ic) => {
+                expect(ic.allowSplitters).to.eql(false);
+            });
+
+            childrenOfChildren.forEach((coc) => {
+                expect(coc.allowSplitters).to.eql(false);
+            });
+        });
+
+        it("Should set allowSplitters to true when invoked with an empty object and the container is a row", async () => {
+            const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+            await row.lock({});
+
+            await workspace.refreshReference();
+
+            expect(row.allowSplitters).to.eql(true);
+        });
+
+        [true, false].forEach((value) => {
+            it(`Should set allowSplitters to ${value} when invoked with an allowSplitters:${value} and the container is a row`, async () => {
+                const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+                await row.lock({
+                    allowSplitters: value
+                });
+
+                await workspace.refreshReference();
+                expect(row.allowSplitters).to.eql(value);
+            });
+
+            it(`Should set allowSplitters to ${value} when invoked with a function which returns an object with allowSplitters:${value} and the container is a row`, async () => {
+                const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+                await row.lock(() => ({
+                    allowSplitters: value
+                }));
+
+                await workspace.refreshReference();
+                expect(row.allowSplitters).to.eql(value);
+            });
+
+            it(`Should invoke the builder function with allowSplitters: ${value} when invoked with a function and the container is a row`, async () => {
+                const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+                await row.lock(() => ({
+                    allowSplitters: value
+                }));
+
+                await row.lock((config) => {
+                    expect(config.allowSplitters).to.eql(value)
+                });
+            });
+        });
+
+        it("Should be able to override the parent allowSplitters when the parent is disabled and the the container is explicitly set to to true", async () => {
+            const row = workspace.getAllRows().find(r => r.children.length === 2);
+            const parent = row.parent;
+
+            await parent.lock();
+            await row.lock({ allowSplitters: true });
+
+            await workspace.refreshReference();
+
+            expect(row.allowSplitters).to.eql(true);
+        });
+
+        it("Should be able to override the workspace allowSplitters when the parent is disabled and the the container is explicitly set to to true", async () => {
+            const row = workspace.getAllRows().find(r => r.children.length === 2);
+
+            await workspace.lock();
+            await row.lock({ allowSplitters: true });
+
+            await workspace.refreshReference();
+
+            expect(row.allowSplitters).to.eql(true);
+        });
     });
 
     describe("column", () => {
@@ -232,17 +334,111 @@ describe("lock()", () => {
 
             expect(column.allowDrop).to.eql(true);
         });
+        //allowSplitters
+        it("Should set allowSplitters to false when invoked without arguments and the container is a column", async () => {
+            const column = workspace.getAllColumns()[0];
+
+            await column.lock();
+            await workspace.refreshReference();
+
+            expect(column.allowSplitters).to.eql(false);
+        });
+
+        it("Should set allowSplitters to false of all its children when invoked without arguments and the container is a column", async () => {
+            const column = workspace.getAllColumns()[0];
+
+            await column.lock();
+
+            await workspace.refreshReference();
+            const immediateChildren = column.children;
+            const childrenOfChildren = column.children.reduce((acc, c) => [...acc, ...c.children], []);
+
+            immediateChildren.filter((ic) => ic.type === "row" || ic.type === "column").forEach((ic) => {
+                console.log(ic.type);
+                expect(ic.allowSplitters).to.eql(false);
+            });
+
+            childrenOfChildren.filter((ic) => ic.type === "row" || ic.type === "column").forEach((coc) => {
+                console.log(coc.type);
+                expect(coc.allowSplitters).to.eql(false);
+            });
+        });
+
+        it("Should set allowSplitters to true when invoked with an empty object and the container is a column", async () => {
+            const column = workspace.getAllColumns()[0];
+
+            await column.lock({});
+
+            await workspace.refreshReference();
+            expect(column.allowSplitters).to.eql(true);
+        });
+
+        [true, false].forEach((value) => {
+            it(`Should set allowSplitters to ${value} when invoked with an allowSplitters:${value} and the container is a column`, async () => {
+                const column = workspace.getAllColumns()[0];
+
+                await column.lock({
+                    allowSplitters: value
+                });
+
+                await workspace.refreshReference();
+                expect(column.allowSplitters).to.eql(value);
+            });
+
+            it(`Should set allowSplitters to ${value} when invoked with a function which returns and object with allowSplitters:${value} and the container is a column`, async () => {
+                const column = workspace.getAllColumns()[0];
+
+                await column.lock(() => ({
+                    allowSplitters: value
+                }));
+
+                await workspace.refreshReference();
+                expect(column.allowSplitters).to.eql(value);
+            });
+
+            it(`Should invoke the builder function with allowSplitters: ${value} when invoked with a function and the container is a column`, async () => {
+                const column = workspace.getAllColumns()[0];
+
+                await column.lock(() => ({
+                    allowSplitters: value
+                }));
+
+                await column.lock((config) => {
+                    expect(config.allowSplitters).to.eql(value)
+                });
+            });
+        });
+
+        it("Should be able to override the parent allowSplitters when the parent is disabled and the the container is explicitly set to to true", async () => {
+            const column = workspace.getAllColumns()[0];
+            const parent = column.parent;
+
+            await parent.lock();
+            await column.lock({ allowSplitters: true });
+
+            await workspace.refreshReference();
+
+            expect(column.allowSplitters).to.eql(true);
+        });
     });
 
-    describe("group", () => {
+    describe("group Should ", () => {
         // allowExtract?: boolean;
         // allowDrop?: boolean;
         // showMaximizeButton?: boolean;
         // showEjectButton?: boolean;
         // showAddWindowButton?: boolean;
+        //allowDropLeft:false,
+        //allowDropRight:false,
+        //allowDropTop:false,
+        //allowDropBottom:false,
+        //allowDropHeader:true
 
-        ["allowExtract", "allowDrop", "showMaximizeButton", "showAddWindowButton", "showEjectButton"].forEach((propertyUnderTest) => {
-            it(`Should set ${propertyUnderTest} to false when invoked without arguments and the container is a group`, async () => {
+        ["allowExtract", "allowDrop", "showMaximizeButton",
+            "showAddWindowButton", "showEjectButton", "allowDropLeft",
+            "allowDropRight", "allowDropTop", "allowDropBottom", "allowDropHeader"
+        ].forEach((propertyUnderTest) => {
+            it(`set ${propertyUnderTest} to false when invoked without arguments and the container is a group`, async () => {
                 const group = workspace.getAllGroups()[0];
 
                 await group.lock();
@@ -251,7 +447,7 @@ describe("lock()", () => {
                 expect(group[propertyUnderTest]).to.eql(false);
             });
 
-            it(`Should set ${propertyUnderTest} to true when invoked with an empty object and the container is a group`, async () => {
+            it(`set ${propertyUnderTest} to true when invoked with an empty object and the container is a group`, async () => {
                 const group = workspace.getAllGroups()[0];
 
                 await group.lock({});
@@ -261,7 +457,7 @@ describe("lock()", () => {
             });
 
             [true, false].forEach((value) => {
-                it(`Should set ${propertyUnderTest} to ${value} when invoked with an ${propertyUnderTest}:${value} and the container is a group`, async () => {
+                it(`set ${propertyUnderTest} to ${value} when invoked with an ${propertyUnderTest}:${value} and the container is a group`, async () => {
                     const group = workspace.getAllGroups()[0];
 
                     await group.lock({
@@ -272,7 +468,7 @@ describe("lock()", () => {
                     expect(group[propertyUnderTest]).to.eql(value);
                 });
 
-                it(`Should set ${propertyUnderTest} to ${value} when invoked with a function which returns an object with ${propertyUnderTest}:${value} and the container is a group`, async () => {
+                it(`set ${propertyUnderTest} to ${value} when invoked with a function which returns an object with ${propertyUnderTest}:${value} and the container is a group`, async () => {
                     const group = workspace.getAllGroups()[0];
 
                     await group.lock(() => ({
@@ -283,7 +479,7 @@ describe("lock()", () => {
                     expect(group[propertyUnderTest]).to.eql(value);
                 });
 
-                it(`Should invoke the builder function with ${propertyUnderTest}: ${value} when invoked with a function and the container is a group`, async () => {
+                it(`invoke the builder function with ${propertyUnderTest}: ${value} when invoked with a function and the container is a group`, async () => {
                     const group = workspace.getAllGroups()[0];
 
                     await group.lock(() => ({
@@ -297,7 +493,7 @@ describe("lock()", () => {
             });
         });
 
-        it("Should set allowExtract to false of all its children when invoked without arguments and the container is a group", async () => {
+        it("set allowExtract to false of all its children when invoked without arguments and the container is a group", async () => {
             const group = workspace.getAllGroups()[0];
 
             await group.lock();
@@ -310,7 +506,7 @@ describe("lock()", () => {
             });
         });
 
-        it("Should be able to override the parent allowDrop when the parent is disabled and the the container is explicitly set to to true", async () => {
+        it("be able to override the parent allowDrop when the parent is disabled and the the container is explicitly set to to true", async () => {
             const group = workspace.getAllGroups()[0];
             const parent = group.parent;
 
@@ -320,6 +516,30 @@ describe("lock()", () => {
             await workspace.refreshReference();
 
             expect(group.allowDrop).to.eql(true);
+        });
+
+        ["allowDropLeft", "allowDropRight", "allowDropTop", "allowDropBottom", "allowDropHeader"].forEach((propertyUnderTest) => {
+            [true, false].forEach((value) => {
+                it(`be able to override allowDrop:${!value} when ${propertyUnderTest} is ${value}`, async () => {
+                    const group = workspace.getAllGroups()[0];
+
+                    await group.lock({ allowDrop: !value, [propertyUnderTest]: value });
+
+                    await workspace.refreshReference();
+
+                    expect(group[propertyUnderTest]).to.eql(value);
+                });
+
+                it(`set ${propertyUnderTest} to ${value} when allowDrop is ${value}`, async () => {
+                    const group = workspace.getAllGroups()[0];
+
+                    await group.lock({ allowDrop: value });
+
+                    await workspace.refreshReference();
+
+                    expect(group[propertyUnderTest]).to.eql(value);
+                });
+            });
         });
     });
 });

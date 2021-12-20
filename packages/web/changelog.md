@@ -1,3 +1,15 @@
+2.3.2
+chore: bump due to dependencies update
+2.3.1
+feat: added getPermission method to the api
+2.3.0
+chore: bump due to dependencies update inline with 3.12 Enterprise release
+2.2.5
+feat: added an option to focus the platform when a notification receives a default click
+2.2.4
+chore: bump due to dependencies update
+2.2.3
+docs: improved the d.ts for better reference documentation
 2.2.2
 chore: bump due to dependencies update
 2.2.1
