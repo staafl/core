@@ -272,7 +272,8 @@ export class GW3Bridge implements ContextBridge {
                 contextData.isAnnounced = true;
                 contextData.name = name;
                 contextData.contextId = createContextMsg.context_id;
-                contextData.context = data;
+                contextData.context = createContextMsg.data || data;
+                contextData.hasReceivedSnapshot = true;
                 this._contextNameToData[name] = contextData;
                 return createContextMsg.context_id;
             });
@@ -479,8 +480,10 @@ export class GW3Bridge implements ContextBridge {
                 // if we've created the context ourselves using
                 // createContext
                 if (contextData.context && contextData.sentExplicitSubscription) {
-                    const clone = deepClone(contextData.context);
-                    callback(clone, clone, [], thisCallbackSubscriptionNumber);
+                    if (contextData.hasReceivedSnapshot) {
+                        const clone = deepClone(contextData.context);
+                        callback(clone, clone, [], thisCallbackSubscriptionNumber);
+                    }
                     return Promise.resolve(thisCallbackSubscriptionNumber);
                 }
 
@@ -502,16 +505,20 @@ export class GW3Bridge implements ContextBridge {
                 // our activity, which we're tracking anyway
                 // no need to gw-subscribe, just push the snapshot to the new subscriber
 
-                const clone = deepClone(contextData.context);
-                callback(clone, clone, [], thisCallbackSubscriptionNumber);
+                if (contextData.hasReceivedSnapshot) {
+                    const clone = deepClone(contextData.context);
+                    callback(clone, clone, [], thisCallbackSubscriptionNumber);
+                }
                 return Promise.resolve(thisCallbackSubscriptionNumber);
             }
         } else {
             // not first subscriber; no need to gw-subscribe, just push snapshot
             // (3) -> (3)
 
-            const clone = deepClone(contextData.context);
-            callback(clone, clone, [], thisCallbackSubscriptionNumber);
+            if (contextData.hasReceivedSnapshot) {
+                const clone = deepClone(contextData.context);
+                callback(clone, clone, [], thisCallbackSubscriptionNumber);
+            }
             return Promise.resolve(thisCallbackSubscriptionNumber);
         }
     }
@@ -565,6 +572,7 @@ export class GW3Bridge implements ContextBridge {
 
         const oldContext = contextData.context;
         contextData.context = applyContextDelta(contextData.context, delta, this._logger);
+        contextData.hasReceivedSnapshot = true;
 
         if (this._contextNameToData[contextData.name] === contextData &&
             !deepEqual(oldContext, contextData.context)) {
@@ -774,6 +782,7 @@ export class GW3Bridge implements ContextBridge {
 
         const oldContext = contextData.context;
 
+        contextData.hasReceivedSnapshot = true;
         if (updatedMessageType === msg.GW_MESSAGE_SUBSCRIBED_CONTEXT) {
             contextData.context = contextUpdatedMsg.data || {};
         } else if (updatedMessageType === msg.GW_MESSAGE_JOINED_ACTIVITY) {
