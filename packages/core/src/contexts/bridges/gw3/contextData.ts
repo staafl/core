@@ -46,6 +46,8 @@ export class GW3ContextData {
 
     public sentExplicitSubscription: boolean | undefined;
 
+    public hasReceivedSnapshot: boolean | undefined;
+
     constructor(contextId: string | undefined, name: string, isAnnounced: boolean, activityId?: string) {
         this.contextId = contextId;
         this.name = name;
