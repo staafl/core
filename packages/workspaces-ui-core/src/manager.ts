@@ -29,6 +29,7 @@ import { DelayedExecutor } from "./utils/delayedExecutor";
 import systemSettings from "./config/system";
 import { ConstraintsValidator } from "./config/constraintsValidator";
 import { WorkspaceWrapper } from "./state/workspaceWrapper";
+import uiExecutor from "./uiExecutor";
 
 export class WorkspacesManager {
     private _controller: LayoutController;
@@ -143,6 +144,7 @@ export class WorkspacesManager {
         }
 
         (savedConfig.workspacesOptions as WorkspaceOptionsWithTitle).title = options?.title || name;
+        savedConfig.workspacesOptions.icon = options?.icon ?? savedConfig.workspacesOptions.icon;
 
         if (savedConfig && savedConfig.workspacesOptions && !savedConfig.workspacesOptions.name) {
             savedConfig.workspacesOptions.name = name;
@@ -151,17 +153,26 @@ export class WorkspacesManager {
         if (savedConfig) {
             savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
 
-            (savedConfig.workspacesOptions as WorkspaceOptionsWithLayoutName).layoutName = savedConfigWithData.layoutData.name;
+            savedConfig.workspacesOptions.layoutName = savedConfigWithData.layoutData.name;
         }
 
         if (savedConfig && options) {
             (savedConfig.workspacesOptions as any).loadingStrategy = options.loadingStrategy;
         }
 
-
         if (savedConfig && options?.noTabHeader !== undefined) {
             savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
             savedConfig.workspacesOptions.noTabHeader = options?.noTabHeader;
+        }
+
+        if (savedConfig && options?.isPinned !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.isPinned = options?.isPinned;
+        }
+
+        if (savedConfig && options?.isSelected !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.selected = options?.isSelected;
         }
 
         if (!this._isLayoutInitialized) {
@@ -182,10 +193,10 @@ export class WorkspacesManager {
                     .filter((w) => w)
                     .map((w) => this.closeTab(w, false));
 
-                await this.reinitializeWorkspace(savedConfig.id, savedConfig);
+                await this.reinitializeWorkspace(idAsString(savedConfig.id), savedConfig);
 
                 if (savedConfig.workspacesOptions?.context) {
-                    await this._glue.contexts.set(getWorkspaceContextName(savedConfig.id), savedConfig.workspacesOptions.context);
+                    await this._glue.contexts.set(getWorkspaceContextName(idAsString(savedConfig.id)), savedConfig.workspacesOptions.context);
                 }
             } else {
                 await this.addWorkspace(idAsString(savedConfig.id), savedConfig);
@@ -519,7 +530,16 @@ export class WorkspacesManager {
         await this.createWorkspace(hibernatedConfig);
 
         workspace.hibernateConfig = undefined;
-        this._controller.showSaveIcon(workspaceId);
+
+        const workspaceContentItem = store.getWorkspaceContentItem(workspace.id);
+        const wrapper = new WorkspaceWrapper(this.stateResolver, workspace, workspaceContentItem, this.frameId);
+        if (!wrapper.isPinned) {
+            uiExecutor.showSaveIcon({ workspaceTab: workspaceContentItem.tab, workspaceId: workspace.id });
+        } else {
+            uiExecutor.hideHibernatedIcon({ workspaceTab: workspaceContentItem.tab });
+            uiExecutor.hideWorkspaceSaveButton({ workspaceTab: workspaceContentItem.tab });
+            uiExecutor.showWorkspaceIconButton({ workspaceTab: workspaceContentItem.tab, icon: wrapper.icon });
+        }
     }
 
     public lockWorkspace(lockConfig: LockWorkspaceArguments): void {
@@ -768,6 +788,25 @@ export class WorkspacesManager {
         } catch (error) {
             // tslint:disable-next-line: no-console
             console.warn(error);
+        }
+    }
+
+    public pinWorkspace(workspaceId: string, icon?: string): void {
+        this._controller.pinWorkspace(workspaceId, icon);
+    }
+
+    public unpinWorkspace(workspaceId: string): void {
+        this._controller.unpinWorkspace(workspaceId);
+    }
+
+    public setWorkspaceIcon(workspaceId: string, icon?: string): void {
+        const workspaceContentItem = store.getWorkspaceContentItem(workspaceId);
+        const wrapper = new WorkspaceWrapper(this.stateResolver, store.getById(workspaceId), workspaceContentItem, this.frameId);
+
+        wrapper.icon = icon;
+
+        if (wrapper.isPinned) {
+            uiExecutor.showWorkspaceIconButton({ workspaceTab: workspaceContentItem.tab, icon });
         }
     }
 

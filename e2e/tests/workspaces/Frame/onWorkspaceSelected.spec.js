@@ -118,7 +118,7 @@ describe('frame.onWorkspaceSelected() Should ', () => {
         }).then(unsub => {
             unSubFuncs.push(unsub);
             gtf.wait(3000, ready);
-            return defaultFrame.createWorkspace(Object.assign(basicConfig, { config: { noTabHeader: true } }));
+            return defaultFrame.createWorkspace(Object.assign({}, basicConfig, { config: { noTabHeader: true } }));
         }).then(ready).catch(done);
     });
 

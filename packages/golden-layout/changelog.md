@@ -1,3 +1,6 @@
+2.3.0
+feat: Added additional typings for isSelected
+feat: Pinned tabs
 2.2.1
 fix: Internal constraints logic improvement
 2.2.0

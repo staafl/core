@@ -3,7 +3,7 @@
 import { Glue42Workspaces } from "@glue42/workspaces-api";
 import { anyJson, array, boolean, constant, Decoder, intersection, lazy, number, object, oneOf, optional, string } from "decoder-validate";
 import { nonEmptyStringDecoder, nonNegativeNumberDecoder, windowLayoutItemDecoder } from "../../shared/decoders";
-import { AddContainerConfig, AddItemResult, AddWindowConfig, BaseChildSnapshotConfig, BundleConfig, ChildSnapshotResult, ColumnDefinitionConfig, ContainerStreamData, ContainerSummaryResult, DeleteLayoutConfig, ExportedLayoutsResult, FrameBoundsResult, FrameHello, FrameSnapshotResult, FrameStateConfig, FrameStateResult, FrameStreamData, FrameSummariesResult, FrameSummaryResult, GetFrameSummaryConfig, GroupDefinitionConfig, IsWindowInSwimlaneResult, LayoutSummariesResult, LayoutSummary, LockColumnConfig, LockContainerConfig, LockGroupConfig, LockRowConfig, LockWindowConfig, LockWorkspaceConfig, MoveFrameConfig, MoveWindowConfig, OpenWorkspaceConfig, ParentSnapshotConfig, PingResult, ResizeItemConfig, RowDefinitionConfig, SetItemTitleConfig, SimpleItemConfig, SimpleWindowOperationSuccessResult, SwimlaneWindowSnapshotConfig, WindowStreamData, WorkspaceConfigResult, WorkspaceCreateConfigProtocol, WorkspaceEventAction, WorkspaceEventType, WorkspaceSelector, WorkspacesLayoutImportConfig, WorkspaceSnapshotResult, WorkspacesOperationsTypes, WorkspaceStreamData, WorkspaceSummariesResult, WorkspaceSummaryResult, WorkspaceWindowData } from "./types";
+import { AddContainerConfig, AddItemResult, AddWindowConfig, BaseChildSnapshotConfig, BundleConfig, ChildSnapshotResult, ColumnDefinitionConfig, ContainerStreamData, ContainerSummaryResult, DeleteLayoutConfig, ExportedLayoutsResult, FrameBoundsResult, FrameHello, FrameSnapshotResult, FrameStateConfig, FrameStateResult, FrameStreamData, FrameSummariesResult, FrameSummaryResult, GetFrameSummaryConfig, GroupDefinitionConfig, IsWindowInSwimlaneResult, LayoutSummariesResult, LayoutSummary, LockColumnConfig, LockContainerConfig, LockGroupConfig, LockRowConfig, LockWindowConfig, LockWorkspaceConfig, MoveFrameConfig, MoveWindowConfig, OpenWorkspaceConfig, ParentSnapshotConfig, PingResult, PinWorkspaceConfig, ResizeItemConfig, RowDefinitionConfig, SetItemTitleConfig, SetWorkspaceIconConfig, SimpleItemConfig, SimpleWindowOperationSuccessResult, SwimlaneWindowSnapshotConfig, WindowStreamData, WorkspaceConfigResult, WorkspaceCreateConfigProtocol, WorkspaceEventAction, WorkspaceEventType, WorkspaceIconResult, WorkspaceSelector, WorkspacesLayoutImportConfig, WorkspaceSnapshotResult, WorkspacesOperationsTypes, WorkspaceStreamData, WorkspaceSummariesResult, WorkspaceSummaryResult, WorkspaceWindowData } from "./types";
 
 export const workspacesOperationDecoder: Decoder<WorkspacesOperationsTypes> = oneOf<
     "isWindowInWorkspace" | "createWorkspace" | "getAllFramesSummaries" | "getFrameSummary" |
@@ -12,7 +12,7 @@ export const workspacesOperationDecoder: Decoder<WorkspacesOperationsTypes> = on
     "focusItem" | "closeItem" | "resizeItem" | "moveFrame" | "getFrameSnapshot" | "forceLoadWindow" |
     "ejectWindow" | "setItemTitle" | "moveWindowTo" | "addWindow" | "addContainer" |
     "bundleWorkspace" | "changeFrameState" | "getFrameState" | "getFrameBounds" | "frameHello" | "hibernateWorkspace" | "resumeWorkspace" | "getWorkspacesConfig" |
-    "lockWorkspace" | "lockContainer" | "lockWindow"
+    "lockWorkspace" | "lockContainer" | "lockWindow" | "pinWorkspace" | "unpinWorkspace" | "getWorkspaceIcon" | "setWorkspaceIcon"
 >(
     constant("isWindowInWorkspace"),
     constant("createWorkspace"),
@@ -50,6 +50,10 @@ export const workspacesOperationDecoder: Decoder<WorkspacesOperationsTypes> = on
     constant("lockWorkspace"),
     constant("lockContainer"),
     constant("lockWindow"),
+    constant("pinWorkspace"),
+    constant("unpinWorkspace"),
+    constant("getWorkspaceIcon"),
+    constant("setWorkspaceIcon"),
 );
 
 export const frameHelloDecoder: Decoder<FrameHello> = object({
@@ -244,7 +248,10 @@ export const restoreWorkspaceConfigDecoder: Decoder<Glue42Workspaces.RestoreWork
         boolean()
     )),
     noTabHeader: optional(boolean()),
-    inMemoryLayout: optional(boolean())
+    inMemoryLayout: optional(boolean()),
+    isPinned: optional(boolean()),
+    icon: optional(nonEmptyStringDecoder),
+    isSelected:optional(boolean())
 });
 
 export const openWorkspaceConfigDecoder: Decoder<OpenWorkspaceConfig> = object({
@@ -737,3 +744,17 @@ export const lockGroupDecoder: Decoder<LockGroupConfig> = object({
 });
 
 export const lockContainerDecoder: Decoder<LockContainerConfig> = oneOf<LockColumnConfig | LockGroupConfig | LockRowConfig>(lockColumnDecoder, lockGroupDecoder, lockRowDecoder);
+
+export const pinWorkspaceDecoder: Decoder<PinWorkspaceConfig> = object({
+    workspaceId: nonEmptyStringDecoder,
+    icon: optional(nonEmptyStringDecoder)
+});
+
+export const setWorkspaceIconDecoder: Decoder<SetWorkspaceIconConfig> = object({
+    workspaceId: nonEmptyStringDecoder,
+    icon: optional(nonEmptyStringDecoder)
+});
+
+export const workspaceIconDecoder: Decoder<WorkspaceIconResult> = object({
+    icon: optional(nonEmptyStringDecoder)
+});

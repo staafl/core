@@ -16,6 +16,7 @@ lm.controls.Tab = function (header, contentItem) {
 	this.closeElement = this.element.find('.lm_close_tab');
 	this.closeElement[contentItem.config.isClosable ? 'show' : 'hide']();
 	this.isActive = false;
+	this.isPinned = false;
 
 	this.setTitle(contentItem.config.title);
 	this.contentItem.on('titleChanged', this.setTitle, this);
@@ -83,6 +84,36 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 	},
 
 	onCloseClick: undefined,
+	pin: function () {
+		if (this.isPinned) {
+			return;
+		}
+		this.titleElement.hide();
+		this.closeElement.hide();
+
+		const currentIndex = this.header.tabs.indexOf(this);
+		const lastPinnedTabIndex = this._getLastIndexOfPinnedTab();
+		this.header.moveTab(currentIndex, lastPinnedTabIndex + 1);
+		this.element.addClass('lm_pinned');
+		this.isPinned = true;
+	},
+	unpin: function () {
+		if (!this.isPinned) {
+			return;
+		}
+		this.titleElement.show();
+		this.closeElement.show();
+
+		const currentIndex = this.header.tabs.indexOf(this);
+		const lastPinnedTabIndex = this._getLastIndexOfPinnedTab();
+		if (currentIndex != lastPinnedTabIndex) {
+			this.header.moveTab(currentIndex, lastPinnedTabIndex);
+		}
+
+		this.element.removeClass('lm_pinned');
+
+		this.isPinned = false;
+	},
 
 	/**
 	 * Sets this tab's active state. To programmatically
@@ -213,6 +244,13 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 		this.element.css("z-index", `42`);
 	},
 	_onReorderStop: function (x, y) {
+		const tabIndex = this.header.tabs.indexOf(this);
+		const lastPinnedTabIndex = this._getLastIndexOfPinnedTab((t) => t != this);
+
+		if (this.isPinned && lastPinnedTabIndex + 1 < tabIndex) {
+			this.header.moveTab(tabIndex, lastPinnedTabIndex + 1);
+		}
+
 		this.element.css("left", "");
 		this.element.css("width", "");
 		this.element.css("position", "");
@@ -271,5 +309,19 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 	 */
 	_onCloseMousedown: function (event) {
 		event.stopPropagation();
+	},
+	_getLastIndexOfPinnedTab(filter) {
+		const lastPinnedTab = this.header.tabs.reduce((acc, t) => {
+			if (t.isPinned && (typeof filter != "function" || filter(t))) {
+				return t;
+			}
+			return acc;
+		}, undefined);
+
+		if (!lastPinnedTab) {
+			return -1;
+		}
+
+		return this.header.tabs.indexOf(lastPinnedTab);
 	}
 });

@@ -211,9 +211,6 @@ export namespace Glue42Workspaces {
         /** Position of the workspace in relation to it's siblings in the frame. */
         position?: number;
 
-        /** States whether or not the workspace should have focus when opened. */
-        isFocused?: boolean;
-
         /** Provides the opportunity to open a workspace with no tab header */
         noTabHeader?: boolean;
 

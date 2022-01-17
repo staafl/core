@@ -44,6 +44,7 @@ export interface WorkspaceConfigResult {
     widthInPx?: number;
     heightInPx?: number;
     isSelected?: boolean;
+    isPinned?: boolean;
 }
 
 export interface BaseChildSnapshotConfig {
@@ -192,6 +193,10 @@ export interface FrameBoundsResult {
         width: number;
         height: number;
     };
+}
+
+export interface GetWorkspaceIconResult {
+    icon: string;
 }
 
 // #endregion
@@ -363,4 +368,15 @@ export interface LockWorkspaceConfig {
         showSaveButton?: boolean;
     };
 }
+
+export interface PinWorkspaceConfig {
+    workspaceId: string;
+    icon?: string;
+}
+
+export interface SetWorkspaceIconConfig {
+    workspaceId: string;
+    icon?: string;
+}
+
 // #endregion

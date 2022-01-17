@@ -235,6 +235,12 @@ export class LayoutStateResolver {
         return result;
     }
 
+    public getWorkspaceIcon(workspaceId: string): string {
+        const wrapper = new WorkspaceWrapper(this, store.getById(workspaceId), store.getWorkspaceContentItem(workspaceId), this._frameId);
+
+        return wrapper.icon;
+    }
+
     private waitForWindowContentItem(windowId: string): Promise<void> {
         return new Promise<void>((res) => {
             const unsub = this._layoutEventEmitter.onContentComponentCreated((component) => {

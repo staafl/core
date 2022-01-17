@@ -352,6 +352,22 @@ export class MainController implements WorkspacesController {
         return this.base.lockContainer(itemId, type, config);
     }
 
+    public pinWorkspace(workspaceId: string, icon?: string): Promise<void> {
+        return this.base.pinWorkspace(workspaceId, icon);
+    }
+
+    public unpinWorkspace(workspaceId: string): Promise<void> {
+        return this.base.unpinWorkspace(workspaceId);
+    }
+
+    public getWorkspaceIcon(workspaceId: string): Promise<string> {
+        return this.base.getWorkspaceIcon(workspaceId);
+    }
+
+    public setWorkspaceIcon(workspaceId: string, icon: string): Promise<void> {
+        return this.base.setWorkspaceIcon(workspaceId, icon);
+    }
+
     public async getFrameConstraints(frameId: string): Promise<Glue42Workspaces.FrameConstraints> {
         const frameSnapshot = await this.getSnapshot(frameId, "frame");
 

@@ -27,6 +27,8 @@ import {
     LockWindowArguments,
     LockWorkspaceArguments,
     ResizeItemArguments,
+    PinWorkspaceArguments,
+    SetWorkspaceIconArguments,
 } from "./types";
 import manager from "../manager";
 import store from "../state/store";
@@ -215,6 +217,21 @@ export class GlueFacade {
                     break;
                 case "resizeItem":
                     this.handleResizeItem(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "pinWorkspace":
+                    this.handlePinWorkspace(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "unpinWorkspace":
+                    this.handleUnpinWorkspace(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "getWorkspaceIcon":
+                    successCallback(this.handleGetWorkspaceIcon(args.operationArguments));
+                    break;
+                case "setWorkspaceIcon":
+                    this.handleSetWorkspaceIcon(args.operationArguments);
                     successCallback(undefined);
                     break;
                 default:
@@ -409,16 +426,21 @@ export class GlueFacade {
         if (!operationArguments.config) {
             operationArguments.config = {};
         }
-        operationArguments.config.context = operationArguments.config.context || operationArguments.context;
-        operationArguments.config.allowDrop = undefined; // The property isn't supported in core
+        const workspaceItem: WorkspaceItem = { ...operationArguments };
+        if (typeof operationArguments.config?.isSelected === "boolean") {
+            // The API friendly flag name is isSelected and to preserve backwards compatibility (the global layouts will use selected) the mapping is being made
+            workspaceItem.config.selected = operationArguments.config.isSelected;
+        }
+        workspaceItem.config.context = operationArguments.config.context || operationArguments.context;
+        workspaceItem.config.allowDrop = undefined; // The property isn't supported in core
 
-        this._constraintValidator.fixWorkspace(operationArguments);
+        this._constraintValidator.fixWorkspace(workspaceItem);
 
-        const config = this._converter.convertToRendererConfig(operationArguments);
+        const config = this._converter.convertToRendererConfig(workspaceItem);
         const workspaceId = await manager.createWorkspace(config as GoldenLayout.Config);
         const apiConfig = this._converter.convertToAPIConfig(manager.stateResolver.getWorkspaceConfig(workspaceId)) as WorkspaceItem;
 
-        this._locker.applyLockConfiguration(operationArguments, apiConfig);
+        this._locker.applyLockConfiguration(workspaceItem, apiConfig);
 
         return {
             id: apiConfig.id,
@@ -499,6 +521,27 @@ export class GlueFacade {
 
     private handleResizeItem(operationArguments: ResizeItemArguments): void {
         return manager.resizeItem(operationArguments);
+    }
+
+    private handlePinWorkspace(operationArguments: PinWorkspaceArguments): void {
+        return manager.pinWorkspace(operationArguments.workspaceId, operationArguments.icon);
+    }
+
+    private handleUnpinWorkspace(operationArguments: WorkspaceSelector): void {
+        return manager.unpinWorkspace(operationArguments.workspaceId);
+    }
+
+    private handleGetWorkspaceIcon(operationArguments: WorkspaceSelector): { icon?: string } {
+        const icon = manager.stateResolver.getWorkspaceIcon(operationArguments.workspaceId);
+        if (icon) {
+            return { icon };
+        } else {
+            return {};
+        }
+    }
+
+    private handleSetWorkspaceIcon(operationArguments: SetWorkspaceIconArguments): void {
+        manager.setWorkspaceIcon(operationArguments.workspaceId, operationArguments.icon);
     }
 
     private publishEventData(action: EventActionType, payload: EventPayload, type: "workspace" | "frame" | "box" | "window"): void {

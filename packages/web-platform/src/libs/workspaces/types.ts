@@ -54,7 +54,11 @@ export type WorkspacesOperationsTypes = "isWindowInWorkspace" |
     "getWorkspacesConfig" |
     "lockWorkspace" |
     "lockContainer" |
-    "lockWindow";
+    "lockWindow" |
+    "pinWorkspace" |
+    "unpinWorkspace" |
+    "getWorkspaceIcon" |
+    "setWorkspaceIcon";
 
 export interface FrameQueryConfig {
     frameId?: string;
@@ -217,6 +221,10 @@ export interface FrameBoundsResult {
     };
 }
 
+export interface WorkspaceIconResult {
+    icon?: string;
+}
+
 // #endregion
 
 // #region outgoing
@@ -290,6 +298,14 @@ export interface BundleConfig {
 
 export interface WorkspaceSelector {
     workspaceId: string;
+}
+
+export interface PinWorkspaceConfig extends WorkspaceSelector {
+    icon?: string;
+}
+
+export interface SetWorkspaceIconConfig extends WorkspaceSelector {
+    icon?: string;
 }
 
 // #endregion

@@ -62,4 +62,8 @@ export interface WorkspacesController {
     lockWindow(windowPlacementId: string, config?: Glue42Workspaces.WorkspaceWindowLockConfig): Promise<void>;
     lockContainer(itemId: string, type: SubParentTypes["type"], config?: ContainerLockConfig): Promise<void>;
     getFrameConstraints(frameId: string): Promise<Glue42Workspaces.FrameConstraints>;
+    pinWorkspace(workspaceId: string, icon?: string): Promise<void>;
+    unpinWorkspace(workspaceId: string): Promise<void>;
+    getWorkspaceIcon(workspaceId: string): Promise<string>;
+    setWorkspaceIcon(workspaceId: string, icon: string): Promise<void>;
 }

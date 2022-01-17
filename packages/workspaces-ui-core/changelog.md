@@ -1,3 +1,6 @@
+1.8.0
+feat: added isSelected to control how the workspace is being opened
+feat: pinned tabs support and workspace icons
 1.7.1
 chore: bump due to dependencies update
 1.7.0

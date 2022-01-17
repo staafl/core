@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import GoldenLayout from "@glue42/golden-layout";
+import GoldenLayout, { WorkspacesOptions } from "@glue42/golden-layout";
 import store from "./store";
 import { LayoutStateResolver } from "./resolver";
 import { getElementBounds, idAsString } from "../utils";
@@ -68,10 +68,15 @@ export class WorkspaceWrapper {
         return workspaceIndex;
     }
 
+    public get isPinned(): boolean {
+        return !!this.workspaceContentItem.tab.isPinned;
+    }
+
     public get config(): any {
         const workspace = this.workspace;
 
         if (this.isHibernated) {
+            workspace.hibernateConfig.workspacesOptions.isPinned = this.isPinned;
             return workspace.hibernateConfig;
         }
 
@@ -98,7 +103,8 @@ export class WorkspaceWrapper {
         glConfig.workspacesOptions.maxHeight = Math.min(this.maxHeight, DefaultMaxSize);
         glConfig.workspacesOptions.widthInPx = this.bounds.width;
         glConfig.workspacesOptions.heightInPx = this.bounds.height;
-
+        glConfig.workspacesOptions.isPinned = this.isPinned;
+        glConfig.workspacesOptions.icon = this.icon;
 
         glConfig.workspacesOptions.lastActive = workspace.lastActive;
 
@@ -143,7 +149,9 @@ export class WorkspaceWrapper {
             minHeight: this.minHeight,
             maxHeight: this.maxHeight,
             widthInPx: this.bounds.width,
-            heightInPx: this.bounds.height
+            heightInPx: this.bounds.height,
+            isPinned: this.isPinned,
+            icon: this.icon
         };
 
         if ((config.workspacesOptions as WorkspaceOptionsWithLayoutName).layoutName) {
@@ -157,230 +165,146 @@ export class WorkspaceWrapper {
     }
 
     public get allowDrop(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowDrop;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowDrop;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowDrop") ?? true;
     }
 
     public set allowDrop(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowDrop = value;
+            this.workspace.layout.config.workspacesOptions.allowDrop = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).allowDrop = value;
+        this.workspaceContentItem.config.workspacesConfig.allowDrop = value;
 
         this.populateChildrenAllowDrop(value);
     }
 
     public get allowDropLeft(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowDropLeft;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowDropLeft;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowDropLeft") ?? true;
     }
 
     public set allowDropLeft(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowDropLeft = value;
+            this.workspace.layout.config.workspacesOptions.allowDropLeft = value;
         }
 
-        (this.workspaceContentItem.config.workspacesConfig as any).allowDropLeft = value;
+        this.workspaceContentItem.config.workspacesConfig.allowDropLeft = value;
     }
 
     public get allowDropTop(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowDropTop;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowDropTop;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowDropTop") ?? true;
     }
 
     public set allowDropTop(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowDropTop = value;
+            this.workspace.layout.config.workspacesOptions.allowDropTop = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).allowDropTop = value;
+        this.workspaceContentItem.config.workspacesConfig.allowDropTop = value;
     }
 
     public get allowDropRight(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowDropRight;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowDropRight;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowDropRight") ?? true;
     }
 
     public set allowDropRight(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowDropRight = value;
+            this.workspace.layout.config.workspacesOptions.allowDropRight = value;
         }
 
-        (this.workspaceContentItem.config.workspacesConfig as any).allowDropRight = value;
+        this.workspaceContentItem.config.workspacesConfig.allowDropRight = value;
     }
 
     public get allowDropBottom(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowDropBottom;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowDropBottom;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowDropBottom") ?? true;
     }
 
     public set allowDropBottom(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowDropBottom = value;
+            this.workspace.layout.config.workspacesOptions.allowDropBottom = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).allowDropBottom = value;
+        this.workspaceContentItem.config.workspacesConfig.allowDropBottom = value;
     }
 
     public get allowExtract(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowExtract;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowExtract;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowExtract") ?? true;
     }
 
     public set allowExtract(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowExtract = value;
+            this.workspace.layout.config.workspacesOptions.allowExtract = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).allowExtract = value;
+        this.workspaceContentItem.config.workspacesConfig.allowExtract = value;
 
         this.populateChildrenAllowExtract(value);
     }
 
     public get allowSplitters(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).allowSplitters;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).allowSplitters;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("allowSplitters") ?? true;
     }
 
     public set allowSplitters(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).allowSplitters = value;
+            this.workspace.layout.config.workspacesOptions.allowSplitters = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).allowSplitters = value;
+        this.workspaceContentItem.config.workspacesConfig.allowSplitters = value;
         this.populateChildrenAllowSplitters(value);
     }
 
     public get showSaveButton(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).showSaveButton;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).showSaveButton;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("showSaveButton") ?? true;
     }
 
     public set showSaveButton(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).showSaveButton = value;
+            this.workspace.layout.config.workspacesOptions.showSaveButton = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).showSaveButton = value;
+        this.workspaceContentItem.config.workspacesConfig.showSaveButton = value;
     }
 
     public get showCloseButton(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).showCloseButton;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).showCloseButton;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("showCloseButton") ?? true;
     }
 
     public set showCloseButton(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).showCloseButton = value;
+            this.workspace.layout.config.workspacesOptions.showCloseButton = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).showCloseButton = value;
+        this.workspaceContentItem.config.workspacesConfig.showCloseButton = value;
     }
 
     public get showAddWindowButtons(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).showAddWindowButtons;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).showAddWindowButtons;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("showAddWindowButtons") ?? true;
     }
 
     public set showAddWindowButtons(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).showAddWindowButtons = value;
+            this.workspace.layout.config.workspacesOptions.showAddWindowButtons = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).showAddWindowButtons = value;
+        this.workspaceContentItem.config.workspacesConfig.showAddWindowButtons = value;
 
         this.populateChildrenShowAddWindowButtons(value);
     }
 
     public get showEjectButtons(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).showEjectButtons;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).showEjectButtons;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("showEjectButtons") ?? true;
     }
 
     public set showEjectButtons(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).showEjectButtons = value;
+            this.workspace.layout.config.workspacesOptions.showEjectButtons = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).showEjectButtons = value;
+        this.workspaceContentItem.config.workspacesConfig.showEjectButtons = value;
 
         this.populateChildrenShowEjectButtons(value);
     }
 
     public get showWindowCloseButtons(): boolean {
-        let result;
-        if (this.workspace?.layout) {
-            result = (this.workspace.layout.config.workspacesOptions as any).showWindowCloseButtons;
-        } else {
-            result = (this.workspaceContentItem.config.workspacesConfig as any).showWindowCloseButtons;
-        }
-
-        return result ?? true;
+        return this.getPropertyFromConfig("showWindowCloseButtons") ?? true;
     }
 
     public set showWindowCloseButtons(value: boolean) {
         if (this.workspace?.layout) {
-            (this.workspace.layout.config.workspacesOptions as any).showWindowCloseButtons = value;
+            this.workspace.layout.config.workspacesOptions.showWindowCloseButtons = value;
         }
-        (this.workspaceContentItem.config.workspacesConfig as any).showWindowCloseButtons = value;
+        this.workspaceContentItem.config.workspacesConfig.showWindowCloseButtons = value;
 
         this.populateChildrenShowWindowCloseButtons(value);
     }
@@ -435,6 +359,17 @@ export class WorkspaceWrapper {
         const items = layout.root.getItemsById("__glMaximised");
 
         return items.length > 0;
+    }
+
+    public get icon(): string {
+        return this.getPropertyFromConfig<string>("icon");
+    }
+
+    public set icon(value: string) {
+        if (this.workspace?.layout) {
+            this.workspace.layout.config.workspacesOptions.icon = value;
+        }
+        this.workspaceContentItem.config.workspacesConfig.icon = value;
     }
 
     private transformComponentsToWindowSummary(glConfig: GoldenLayout.ItemConfig): void {
@@ -623,5 +558,16 @@ export class WorkspaceWrapper {
         layout.root.contentItems.forEach((ci) => {
             populateRecursive(ci);
         });
+    }
+
+    private getPropertyFromConfig<T>(propertyName: keyof WorkspacesOptions): T { // TODO fix typings
+        let result;
+        if (this.workspace?.layout) {
+            result = this.workspace.layout.config.workspacesOptions[propertyName];
+        } else {
+            result = (this.workspaceContentItem.config.workspacesConfig as WorkspacesOptions)[propertyName];
+        }
+
+        return result as T;
     }
 }

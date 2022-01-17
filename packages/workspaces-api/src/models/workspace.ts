@@ -138,6 +138,10 @@ export class Workspace implements Glue42Workspaces.Workspace {
         return getData(this).config.showAddWindowButtons;
     }
 
+    public get isPinned(): boolean {
+        return getData(this).config.isPinned;
+    }
+
     public async removeChild(predicate: (child: Glue42Workspaces.WorkspaceElement) => boolean): Promise<void> {
         checkThrowCallback(predicate);
         const child = this.children.find(predicate);
@@ -246,6 +250,16 @@ export class Workspace implements Glue42Workspaces.Workspace {
             children: newChildren,
             frame: actualFrame
         });
+    }
+
+    public async getIcon(): Promise<string> {
+        const controller = getData(this).controller;
+        return controller.getWorkspaceIcon(this.id);
+    }
+
+    public async setIcon(icon: string): Promise<void> {
+        const controller = getData(this).controller;
+        return controller.setWorkspaceIcon(this.id, icon);
     }
 
     public getBox(predicate: (box: Glue42Workspaces.WorkspaceBox) => boolean): Glue42Workspaces.WorkspaceBox {
@@ -394,6 +408,16 @@ export class Workspace implements Glue42Workspaces.Workspace {
         const verifiedConfig = lockConfigResult === undefined ? undefined : workspaceLockConfigDecoder.runWithException(lockConfigResult);
 
         await getData(this).controller.lockWorkspace(this.id, verifiedConfig);
+        await this.refreshReference();
+    }
+
+    public async pin(icon?: string): Promise<void> {
+        await getData(this).controller.pinWorkspace(this.id, icon);
+        await this.refreshReference();
+    }
+
+    public async unpin(): Promise<void> {
+        await getData(this).controller.unpinWorkspace(this.id);
         await this.refreshReference();
     }
 

@@ -45,19 +45,19 @@ export class WorkspaceWindowWrapper {
     }
 
     public get allowExtract(): boolean | undefined {
-        return (this.windowContentItem.config.workspacesConfig as any).allowExtract ?? true;
+        return this.windowContentItem.config.workspacesConfig.allowExtract ?? true;
     }
 
     public set allowExtract(value: boolean | undefined) {
-        (this.windowContentItem.config.workspacesConfig as any).allowExtract = value;
+        this.windowContentItem.config.workspacesConfig.allowExtract = value;
     }
 
     public get showCloseButton(): boolean | undefined {
-        return (this.windowContentItem.config.workspacesConfig as any).showCloseButton ?? true;
+        return this.windowContentItem.config.workspacesConfig.showCloseButton ?? true;
     }
 
     public set showCloseButton(value: boolean | undefined) {
-        (this.windowContentItem.config.workspacesConfig as any).showCloseButton = value;
+        this.windowContentItem.config.workspacesConfig.showCloseButton = value;
     }
 
     public get isMaximized(): boolean {

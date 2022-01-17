@@ -157,7 +157,7 @@ export class WorkspacesConfigurationFactory {
                     content: workspaceContentConfigs.map((wcc) => {
                         const defaultId = shortId.generate();
                         return {
-                            workspacesConfig: {},
+                            workspacesConfig: { ...wcc.workspacesOptions },
                             type: "component",
                             id: wcc?.id || defaultId,
                             componentName: this.getWorkspaceLayoutComponentName(idAsString(wcc?.id) || defaultId),

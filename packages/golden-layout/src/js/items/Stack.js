@@ -123,7 +123,7 @@ lm.utils.copy(lm.items.Stack.prototype, {
 		if (heightWithoutClone > 0) {
 			return heightWithoutClone;
 		}
-		
+
 		var clone = obj.clone();
 		clone.css("visibility", "hidden");
 		$('body').append(clone);
@@ -151,6 +151,12 @@ lm.utils.copy(lm.items.Stack.prototype, {
 			}
 
 			this.setActiveContentItem(initialItem);
+
+			const pinnedItems = this.contentItems.filter(t => t.config.workspacesConfig.isPinned);
+
+			pinnedItems.forEach((pi)=>{
+				pi.tab.pin();
+			});
 		}
 	},
 
@@ -184,6 +190,11 @@ lm.utils.copy(lm.items.Stack.prototype, {
 		lm.items.AbstractContentItem.prototype.addChild.call(this, contentItem, index);
 		this.childElementContainer.append(contentItem.element);
 		this.header.createTab(contentItem, index);
+
+		if (contentItem.config.workspacesConfig.isPinned) {
+			contentItem.tab.pin();
+		}
+
 		if ($(this.layoutManager.container).is(":visible") && activate) {
 			this.setActiveContentItem(contentItem);
 		} else {
@@ -200,7 +211,8 @@ lm.utils.copy(lm.items.Stack.prototype, {
 		this.header.removeTab(contentItem);
 		if (this.header.activeContentItem === contentItem) {
 			if (this.contentItems.length > 0) {
-				this.setActiveContentItem(this.contentItems[Math.max(index - 1, 0)]);
+				const itemToFocus = this._getItemToFocusAfterRemove.call(this, index);
+				this.setActiveContentItem(itemToFocus);
 			} else {
 				this._activeContentItem = null;
 			}
@@ -646,5 +658,24 @@ lm.utils.copy(lm.items.Stack.prototype, {
 		if (this.contentItems.length === newContentOrder.length) {
 			this.contentItems = newContentOrder;
 		}
+	},
+	_getItemToFocusAfterRemove: function (index) {
+		for (let i = index - 1; i >= 0; i--) {
+			const currentItem = this.contentItems[i];
+
+			if (!currentItem.config.noTabHeader) {
+				return currentItem;
+			}
+		}
+
+		for (let i = index + 1; i < this.contentItems.length; i++) {
+			const currentItem = this.contentItems[i];
+
+			if (!currentItem.config.noTabHeader) {
+				return currentItem;
+			}
+		}
+
+		return this.contentItems[Math.max(index - 1, 0)];
 	}
 });
