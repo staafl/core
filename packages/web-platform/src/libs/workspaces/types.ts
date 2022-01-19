@@ -58,7 +58,9 @@ export type WorkspacesOperationsTypes = "isWindowInWorkspace" |
     "pinWorkspace" |
     "unpinWorkspace" |
     "getWorkspaceIcon" |
-    "setWorkspaceIcon";
+    "setWorkspaceIcon" |
+    "createFrame" |
+    "initFrame";
 
 export interface FrameQueryConfig {
     frameId?: string;
@@ -156,6 +158,10 @@ export interface FrameSnapshotResult {
 
 export interface FrameSummaryResult {
     id: string;
+    isInitialized?: boolean;
+    initializationContext?: {
+        context?: object;
+    };
 }
 
 export interface FrameSummariesResult {
@@ -231,6 +237,10 @@ export interface WorkspaceIconResult {
 
 export interface WorkspaceCreateConfigProtocol extends Glue42Workspaces.WorkspaceDefinition {
     saveConfig?: Glue42Workspaces.WorkspaceCreateConfig;
+}
+
+export interface FrameInitializationConfigProtocol extends Glue42Workspaces.FrameInitializationConfig {
+    frameId: string;
 }
 
 export interface GetFrameSummaryConfig {

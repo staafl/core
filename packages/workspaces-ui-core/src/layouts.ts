@@ -12,7 +12,7 @@ import { ConstraintsValidator } from "./config/constraintsValidator";
 declare const window: Window & { glue42core: { workspacesFrameCache?: boolean } };
 
 export class LayoutsManager {
-    private _initialWorkspaceConfig: GoldenLayout.Config;
+    private _initialWorkspaceConfig: GoldenLayout.Config[];
     private readonly _layoutsType = "Workspace";
     private readonly _layoutComponentType = "Workspace";
 
@@ -26,7 +26,7 @@ export class LayoutsManager {
     public async getInitialConfig(): Promise<FrameLayoutConfig> {
         // Preset initial config
         if (this._initialWorkspaceConfig) {
-            return this._configFactory.generateInitialConfig([this._initialWorkspaceConfig]);
+            return this._configFactory.generateInitialConfig(this._initialWorkspaceConfig);
         }
 
         const startupConfig = scReader.config;
@@ -127,11 +127,8 @@ export class LayoutsManager {
         if (!workspace.layout && !workspace.hibernateConfig) {
             throw new Error("An empty layout cannot be saved");
         }
-
         (workspace.layout?.config || workspace.hibernateConfig).workspacesOptions.name = name;
-
         const workspaceConfig = await this.saveWorkspaceCore(workspace);
-
         // Its superfluous to add the title to the layout since its never used
         if (workspaceConfig.config.title) {
             delete workspaceConfig.config.title;
@@ -161,7 +158,12 @@ export class LayoutsManager {
             }]
         };
 
-        await this._glue.layouts.import([layoutToImport as Glue42Web.Layouts.Layout], "merge");
+        try {
+            await this._glue.layouts.import([layoutToImport as Glue42Web.Layouts.Layout], "merge");
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
 
         return layoutToImport;
     }
@@ -204,7 +206,7 @@ export class LayoutsManager {
         storage.set(storage.LAST_SESSION_KEY, configs);
     }
 
-    public setInitialWorkspaceConfig(config: GoldenLayout.Config) {
+    public setInitialWorkspaceConfig(config: GoldenLayout.Config[]): void {
         this._initialWorkspaceConfig = config;
     }
 
@@ -212,12 +214,12 @@ export class LayoutsManager {
         if (!workspace.layout && !workspace.hibernateConfig) {
             return undefined;
         }
+
         const workspaceConfig = this.resolver.getWorkspaceConfig(workspace.id);
-        if ((workspaceConfig.workspacesOptions as any).layoutName) {
-            delete (workspaceConfig.workspacesOptions as any).layoutName;
+        if (workspaceConfig.workspacesOptions.layoutName) {
+            delete workspaceConfig.workspacesOptions.layoutName;
         }
 
-        this.removeWorkspaceIds(workspaceConfig);
         await this.applyWindowLayoutState(workspaceConfig);
 
         const workspaceItem = this._configConverter.convertToAPIConfig(workspaceConfig) as WorkspaceItem;
@@ -236,7 +238,6 @@ export class LayoutsManager {
             return undefined;
         }
         const workspaceConfig = this.resolver.getWorkspaceConfig(workspace.id);
-        this.removeWorkspaceIds(workspaceConfig);
 
         const workspaceItem = this._configConverter.convertToAPIConfig(workspaceConfig) as WorkspaceItem;
         this.removeWorkspaceItemIds(workspaceItem);

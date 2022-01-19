@@ -521,6 +521,7 @@ declare module '@glue42/golden-layout' {
         }
 
         export interface StackConfig extends BaseItemConfig {
+            activeItemIndex?: number;
             /**
             * The type of the item. Possible values are 'row', 'column', 'stack', 'component' and 'react-component'.
             */

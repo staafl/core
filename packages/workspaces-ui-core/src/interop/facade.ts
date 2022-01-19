@@ -29,10 +29,12 @@ import {
     ResizeItemArguments,
     PinWorkspaceArguments,
     SetWorkspaceIconArguments,
+    InitFrameArguments,
+    CreateFrameArguments,
 } from "./types";
 import manager from "../manager";
 import store from "../state/store";
-import { WorkspaceSummary, ColumnItem, RowItem, WorkspaceLayout, WorkspaceItem } from "../types/internal";
+import { WorkspaceSummary, ColumnItem, RowItem, WorkspaceLayout, WorkspaceItem, FrameSummary } from "../types/internal";
 import GoldenLayout, { RowConfig, ColumnConfig } from "@glue42/golden-layout";
 import { idAsString } from "../utils";
 import { Glue42Web } from "@glue42/web";
@@ -234,6 +236,13 @@ export class GlueFacade {
                     this.handleSetWorkspaceIcon(args.operationArguments);
                     successCallback(undefined);
                     break;
+                case "initFrame":
+                    await this.handleInitFrame(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "createFrame":
+                    successCallback(this.handleCreateFrame(args.operationArguments));
+                    break;
                 default:
                     errorCallback(`Invalid operation - ${((args as unknown) as { operation: string }).operation}`);
             }
@@ -259,9 +268,7 @@ export class GlueFacade {
             id: workspaceItem.id,
             children: workspaceItem.children,
             config: workspaceItem.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -292,9 +299,7 @@ export class GlueFacade {
             id: workspaceItem.id,
             children: workspaceItem.children,
             config: workspaceItem.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -426,13 +431,7 @@ export class GlueFacade {
         if (!operationArguments.config) {
             operationArguments.config = {};
         }
-        const workspaceItem: WorkspaceItem = { ...operationArguments };
-        if (typeof operationArguments.config?.isSelected === "boolean") {
-            // The API friendly flag name is isSelected and to preserve backwards compatibility (the global layouts will use selected) the mapping is being made
-            workspaceItem.config.selected = operationArguments.config.isSelected;
-        }
-        workspaceItem.config.context = operationArguments.config.context || operationArguments.context;
-        workspaceItem.config.allowDrop = undefined; // The property isn't supported in core
+        const workspaceItem = this.convertCreateWorkspaceArgumentsToWorkspaceItem(operationArguments);
 
         this._constraintValidator.fixWorkspace(workspaceItem);
 
@@ -446,9 +445,7 @@ export class GlueFacade {
             id: apiConfig.id,
             children: apiConfig.children,
             config: apiConfig.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -479,11 +476,11 @@ export class GlueFacade {
     }
 
     private handleGetFrameSnapshot() {
-        return manager.stateResolver.getFrameSnapshot();
+        return manager.stateResolver.getFrameSnapshot(manager);
     }
 
     private async handleGetSnapshot(operationArguments: ItemSelector) {
-        const snapshot = manager.stateResolver.getSnapshot(operationArguments.itemId);
+        const snapshot = manager.stateResolver.getSnapshot(operationArguments.itemId, manager);
         return snapshot;
     }
 
@@ -544,6 +541,37 @@ export class GlueFacade {
         manager.setWorkspaceIcon(operationArguments.workspaceId, operationArguments.icon);
     }
 
+    private async handleInitFrame(operationArguments: InitFrameArguments): Promise<void> {
+        const contentConfigs = await Promise.all(operationArguments.workspaces.map(async (def) => {
+            const defAsLayout = def as OpenWorkspaceArguments;
+            const defAsWorkspace = def as CreateWorkspaceArguments;
+
+            if (defAsLayout.name) {
+                return this._configFactory.convertLayoutOptionsToWorkspaceItem(defAsLayout.name, defAsLayout.restoreOptions, manager.layoutsManager);
+            }
+
+            return this._converter.convertToRendererConfig(this.convertCreateWorkspaceArgumentsToWorkspaceItem(defAsWorkspace)) as GoldenLayout.Config;
+        }));
+        const workspaceIds = await manager.initFrameLayout(contentConfigs);
+
+        workspaceIds.forEach((workspaceId, i) => {
+            const workspaceItem = operationArguments.workspaces[i] as WorkspaceItem;
+            if (!workspaceItem.children) {
+                return;
+            }
+            const apiConfig = this._converter.convertToAPIConfig(manager.stateResolver.getWorkspaceConfig(workspaceId)) as WorkspaceItem;
+
+            this._locker.applyLockConfiguration(workspaceItem, apiConfig);
+        });
+
+    }
+
+    private handleCreateFrame(operationArguments: CreateFrameArguments): FrameSummary {
+        manager.setFrameContext(operationArguments?.context);
+
+        return manager.getFrameSummary(this._frameId);
+    }
+
     private publishEventData(action: EventActionType, payload: EventPayload, type: "workspace" | "frame" | "box" | "window"): void {
         const hasEventMethod = this._glue.agm.methods().some(m => m.name === this._workspacesEventMethod);
 
@@ -558,6 +586,21 @@ export class GlueFacade {
                 // console.warn(`Could not push data to ${this._workspacesEventMethod} because ${e.message}`);
             });
         }
+    }
+
+    private convertCreateWorkspaceArgumentsToWorkspaceItem(args: CreateWorkspaceArguments): WorkspaceItem {
+        const workspaceItem: WorkspaceItem = { ...args };
+        if (!workspaceItem.config) {
+            workspaceItem.config = {};
+        }
+        if (typeof args.config?.isSelected === "boolean") {
+            // The API friendly flag name is isSelected and to preserve backwards compatibility (the global layouts will use selected) the mapping is being made
+            workspaceItem.config.selected = args.config.isSelected;
+        }
+        workspaceItem.config.context = args.config?.context || args.context;
+        workspaceItem.config.allowDrop = undefined; // The property isn't supported in core
+
+        return workspaceItem;
     }
 }
 

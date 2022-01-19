@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import GoldenLayout from "@glue42/golden-layout";
 import shortId from "shortid";
 import { FrameLayoutConfig, APIWIndowSettings, WorkspaceOptionsWithTitle, GDWindowOptions } from "../types/internal";
@@ -6,6 +7,8 @@ import { idAsString } from "../utils";
 import store from "../state/store";
 import { EmptyVisibleWindowName } from "../utils/constants";
 import { Glue42Web } from "@glue42/web";
+import { RestoreWorkspaceConfig } from "../interop/types";
+import { LayoutsManager } from "../layouts";
 
 declare const window: { glue: Glue42Web.API };
 
@@ -149,11 +152,13 @@ export class WorkspacesConfigurationFactory {
     }
 
     public generateInitialConfig(workspaceContentConfigs: GoldenLayout.Config[]): FrameLayoutConfig {
+        const selectedWorkspace = workspaceContentConfigs.find((wcc) => wcc.workspacesOptions.selected);
         const workspacesConfig: GoldenLayout.Config = {
             settings: this._defaultWorkspaceLayoutSettings,
             content: [
                 {
                     type: "stack",
+                    activeItemIndex: selectedWorkspace ? workspaceContentConfigs.indexOf(selectedWorkspace) : workspaceContentConfigs.length - 1,
                     content: workspaceContentConfigs.map((wcc) => {
                         const defaultId = shortId.generate();
                         return {
@@ -196,6 +201,53 @@ export class WorkspacesConfigurationFactory {
         const instance = this._glue.appManager.instances().find(i => i.agm.windowId === windowId);
 
         return instance?.application.name;
+    }
+
+    public async convertLayoutOptionsToWorkspaceItem(name: string, options: RestoreWorkspaceConfig, layoutManager: LayoutsManager): Promise<GoldenLayout.Config> {
+        const savedConfigWithData = await layoutManager.getWorkspaceByName(name);
+        const savedConfig = savedConfigWithData.config;
+
+        savedConfig.workspacesOptions.context = savedConfigWithData.layoutData.context;
+
+        if (options?.context && savedConfig.workspacesOptions.context) {
+            savedConfig.workspacesOptions.context = Object.assign(savedConfigWithData.layoutData.context, options?.context);
+        } else if (options?.context) {
+            savedConfig.workspacesOptions.context = options?.context;
+        }
+
+        (savedConfig.workspacesOptions as WorkspaceOptionsWithTitle).title = options?.title || name;
+        savedConfig.workspacesOptions.icon = options?.icon ?? savedConfig.workspacesOptions.icon;
+
+        if (savedConfig && savedConfig.workspacesOptions && !savedConfig.workspacesOptions.name) {
+            savedConfig.workspacesOptions.name = name;
+        }
+
+        if (savedConfig) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+
+            savedConfig.workspacesOptions.layoutName = savedConfigWithData.layoutData.name;
+        }
+
+        if (savedConfig && options) {
+            (savedConfig.workspacesOptions as any).loadingStrategy = options.loadingStrategy;
+        }
+
+        if (savedConfig && options?.noTabHeader !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.noTabHeader = options?.noTabHeader;
+        }
+
+        if (savedConfig && options?.isPinned !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.isPinned = options?.isPinned;
+        }
+
+        if (savedConfig && options?.isSelected !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.selected = options?.isSelected;
+        }
+
+        return savedConfig;
     }
 
     private createWindowConfigurationCore(id?: string): GoldenLayout.ComponentConfig {

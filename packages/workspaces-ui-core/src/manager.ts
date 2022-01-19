@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable indent */
 import { LayoutController } from "./layout/controller";
-import { WindowSummary, Workspace, WorkspaceOptionsWithTitle, WorkspaceOptionsWithLayoutName, ComponentFactory, LoadingStrategy, WorkspaceLayout, Bounds, Constraints } from "./types/internal";
+import { WindowSummary, Workspace, WorkspaceOptionsWithTitle, WorkspaceOptionsWithLayoutName, ComponentFactory, LoadingStrategy, WorkspaceLayout, Bounds, Constraints, FrameSummary } from "./types/internal";
 import { LayoutEventEmitter } from "./layout/eventEmitter";
 import { IFrameController } from "./iframeController";
 import store from "./state/store";
@@ -15,7 +15,7 @@ import { idAsString, getAllWindowsFromConfig, getElementBounds, getWorkspaceCont
 import { WorkspacesConfigurationFactory } from "./config/factory";
 import { WorkspacesEventEmitter } from "./eventEmitter";
 import { Glue42Web } from "@glue42/web";
-import { LockColumnArguments, LockContainerArguments, LockGroupArguments, LockRowArguments, LockWindowArguments, LockWorkspaceArguments, ResizeItemArguments, RestoreWorkspaceConfig } from "./interop/types";
+import { LockColumnArguments, LockContainerArguments, LockGroupArguments, LockRowArguments, LockWindowArguments, LockWorkspaceArguments, OpenWorkspaceArguments, ResizeItemArguments, RestoreWorkspaceConfig, WorkspaceDefinition } from "./interop/types";
 import { TitleGenerator } from "./config/titleGenerator";
 import startupReader from "./config/startupReader";
 import componentStateMonitor from "./componentStateMonitor";
@@ -48,6 +48,7 @@ export class WorkspacesManager {
     private _applicationFactory: ApplicationFactory;
     private _facade: GlueFacade;
     private _isDisposing: boolean;
+    private _context?: object;
 
     public get stateResolver(): LayoutStateResolver {
         return this._stateResolver;
@@ -67,6 +68,10 @@ export class WorkspacesManager {
 
     public get frameId(): string {
         return this._frameId;
+    }
+
+    public get layoutsManager(): LayoutsManager {
+        return this._layoutsManager;
     }
 
     public init(glue: Glue42Web.API, frameId: string, facade: GlueFacade, componentFactory?: ComponentFactory): { cleanUp: () => void } {
@@ -97,6 +102,18 @@ export class WorkspacesManager {
         }
 
         return { cleanUp: this.cleanUp };
+    }
+
+    public async initFrameLayout(workspaces: GoldenLayout.Config[]): Promise<string[]> {
+        workspaces.forEach((wsp) => {
+            wsp.id = this._configFactory.getId();
+        });
+        this._layoutsManager.setInitialWorkspaceConfig(workspaces);
+        this._initPromise = this.initLayout();
+
+        await this._initPromise;
+
+        return workspaces.map((w) => idAsString(w.id));
     }
 
     public getComponentBounds = (): Bounds => {
@@ -176,7 +193,7 @@ export class WorkspacesManager {
         }
 
         if (!this._isLayoutInitialized) {
-            this._layoutsManager.setInitialWorkspaceConfig(savedConfig);
+            this._layoutsManager.setInitialWorkspaceConfig([savedConfig]);
 
             this._initPromise = this.initLayout();
 
@@ -345,7 +362,7 @@ export class WorkspacesManager {
     public async createWorkspace(config: GoldenLayout.Config): Promise<string> {
         if (!this._isLayoutInitialized) {
             config.id = this._configFactory.getId();
-            this._layoutsManager.setInitialWorkspaceConfig(config);
+            this._layoutsManager.setInitialWorkspaceConfig([config]);
 
             this._initPromise = this.initLayout();
 
@@ -447,13 +464,24 @@ export class WorkspacesManager {
         return this._glue.windows.my().moveTo(location.y, location.x);
     }
 
-    public getFrameSummary(itemId: string): { id: string } {
+    public getFrameSummary(itemId: string): FrameSummary {
         const workspace = store.getByContainerId(itemId) || store.getByWindowId(itemId) || store.getById(itemId);
         const isFrameId = this._frameId === itemId;
 
-        return {
-            id: (workspace || isFrameId) ? this._frameId : "none"
-        };
+        if (this._context) {
+            return {
+                id: (workspace || isFrameId) ? this._frameId : "none",
+                isInitialized: this._isLayoutInitialized,
+                initializationContext: {
+                    context: this._context
+                }
+            };
+        } else {
+            return {
+                id: (workspace || isFrameId) ? this._frameId : "none",
+                isInitialized: this._isLayoutInitialized,
+            };
+        }
     }
 
     public async moveWindowTo(itemId: string, containerId: string): Promise<void> {
@@ -808,6 +836,10 @@ export class WorkspacesManager {
         if (wrapper.isPinned) {
             uiExecutor.showWorkspaceIconButton({ workspaceTab: workspaceContentItem.tab, icon });
         }
+    }
+
+    public setFrameContext(context?: object) {
+        this._context = context;
     }
 
     private resizeWorkspaceItem(args: ResizeItemArguments): void {
@@ -1306,7 +1338,7 @@ export class WorkspacesManager {
 
     private closeHibernatedWorkspaceCore(workspace: Workspace): void {
         const workspaceSummary = this.stateResolver.getWorkspaceSummary(workspace.id);
-        const snapshot = this.stateResolver.getSnapshot(workspace.id) as GoldenLayout.Config;
+        const snapshot = this.stateResolver.getSnapshot(workspace.id, this) as GoldenLayout.Config;
         const windowSummaries = this.stateResolver.extractWindowSummariesFromSnapshot(snapshot);
 
         workspace.windows.forEach((w) => this._frameController.remove(w.id));
@@ -1592,7 +1624,7 @@ export class WorkspacesManager {
         const allOtherWindows = store.workspaceIds.filter((wId) => wId !== workspace.id).reduce((acc, w) => {
             return [...acc, ...store.getById(w).windows];
         }, []);
-        const snapshot = this._stateResolver.getWorkspaceSnapshot(workspace.id);
+        const snapshot = this._stateResolver.getWorkspaceSnapshot(workspace.id, this);
         this._workspacesEventEmitter.raiseWorkspaceEvent({
             action: "opened",
             payload: {

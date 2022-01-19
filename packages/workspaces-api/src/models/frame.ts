@@ -1,9 +1,10 @@
-import { checkThrowCallback, nonEmptyStringDecoder, restoreWorkspaceConfigDecoder, workspaceDefinitionDecoder, workspaceBuilderCreateConfigDecoder, resizeConfigDecoder, moveConfigDecoder } from "../shared/decoders";
+import { checkThrowCallback, nonEmptyStringDecoder, restoreWorkspaceConfigDecoder, workspaceDefinitionDecoder, workspaceBuilderCreateConfigDecoder, resizeConfigDecoder, moveConfigDecoder, frameInitConfigDecoder } from "../shared/decoders";
 import { SubscriptionConfig } from "../types/subscription";
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { FrameStreamData, WorkspaceStreamData, WindowStreamData } from "../types/protocol";
 import { Glue42Workspaces } from "../../workspaces.d";
 import { FramePrivateData } from "../types/privateData";
+import { FrameInitializationConfig, FrameInitializationContext } from "../../temp";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -23,6 +24,10 @@ export class Frame implements Glue42Workspaces.Frame {
 
     public get id(): string {
         return getData(this).summary.id;
+    }
+
+    public get isInitialized(): boolean {
+        return getData(this).summary.isInitialized;
     }
 
     public getBounds(): Promise<Glue42Workspaces.FrameBounds> {
@@ -116,6 +121,15 @@ export class Frame implements Glue42Workspaces.Frame {
         const validatedConfig = workspaceBuilderCreateConfigDecoder.runWithException(config);
 
         return getData(this).controller.createWorkspace(validatedDefinition, validatedConfig);
+    }
+
+    public async init(config: FrameInitializationConfig): Promise<void> {
+        frameInitConfigDecoder.runWithException(config);
+
+        if (getData(this).summary.isInitialized) {
+            throw new Error("The frame has already been initialized");
+        }
+        return getData(this).controller.initFrame(this.id, config);
     }
 
     public async onClosed(callback: (closed: { frameId: string }) => void): Promise<Glue42Workspaces.Unsubscribe> {
@@ -305,5 +319,13 @@ export class Frame implements Glue42Workspaces.Frame {
         };
         const unsubscribe = await getData(this).controller.processLocalSubscription(config, myId);
         return unsubscribe;
+    }
+
+    public async onInitializationRequested(callback: (context?: FrameInitializationContext) => Promise<void>): Promise<void> {
+        checkThrowCallback(callback);
+
+        if (!this.isInitialized) {
+            await callback(getData(this).summary.initializationContext);
+        }
     }
 }

@@ -39,7 +39,6 @@ import {
     PingResult,
     FrameStateConfig,
     FrameStateResult,
-    WorkspaceSelector,
     LockWorkspaceConfig,
     LockWindowConfig,
     LockContainerConfig,
@@ -51,10 +50,13 @@ import {
     FrameBoundsResult,
     GetWorkspaceIconResult,
     PinWorkspaceConfig,
-    SetWorkspaceIconConfig
+    SetWorkspaceIconConfig,
+    FrameInitializationConfigProtocol,
+    WorkspaceSelector
 } from "../types/protocol";
 import { WorkspaceEventType, WorkspaceEventAction } from "../types/subscription";
 import { Glue42Workspaces } from "../../workspaces";
+import { EmptyFrameDefinition, FrameInitializationConfig, FrameInitializationContext, RestoreWorkspaceDefinition } from "../../temp";
 
 export const nonEmptyStringDecoder: Decoder<string> = string().where((s) => s.length > 0, "Expected a non-empty string");
 export const nonNegativeNumberDecoder: Decoder<number> = number().where((num) => num >= 0, "Expected a non-negative number");
@@ -300,6 +302,35 @@ export const workspaceDefinitionDecoder: Decoder<Glue42Workspaces.WorkspaceDefin
     }))
 });
 
+export const workspaceSelectorDecoder: Decoder<WorkspaceSelector> =  object({
+    workspaceId: nonEmptyStringDecoder
+});
+
+export const restoreWorkspaceDefinitionDecoder: Decoder<RestoreWorkspaceDefinition> = object({
+    name: nonEmptyStringDecoder,
+    restoreOptions: optional(restoreWorkspaceConfigDecoder)
+});
+
+export const emptyFrameDefinitionDecoder: Decoder<EmptyFrameDefinition> = optional(object({
+    frameConfig: optional(newFrameConfigDecoder),
+    context: optional(object())
+}));
+
+export const frameInitConfigDecoder: Decoder<FrameInitializationConfig> = object({
+    workspaces: array(oneOf<Glue42Workspaces.WorkspaceDefinition | RestoreWorkspaceDefinition>(
+        optional(workspaceDefinitionDecoder),
+        optional(restoreWorkspaceDefinitionDecoder)
+    ))
+});
+
+export const frameInitProtocolConfigDecoder: Decoder<FrameInitializationConfigProtocol> = object({
+    frameId: nonEmptyStringDecoder,
+    workspaces: array(oneOf<Glue42Workspaces.WorkspaceDefinition | RestoreWorkspaceDefinition>(
+        workspaceDefinitionDecoder,
+        restoreWorkspaceDefinitionDecoder
+    ))
+});
+
 export const builderConfigDecoder: Decoder<Glue42Workspaces.BuilderConfig> = object({
     type: allParentDecoder,
     definition: optional(oneOf<Glue42Workspaces.WorkspaceDefinition | Glue42Workspaces.BoxDefinition>(
@@ -321,8 +352,14 @@ export const getFrameSummaryConfigDecoder: Decoder<GetFrameSummaryConfig> = obje
     itemId: nonEmptyStringDecoder
 });
 
+export const frameInitializationContextDecoder: Decoder<FrameInitializationContext> = object({
+    context: optional(object())
+});
+
 export const frameSummaryDecoder: Decoder<FrameSummaryResult> = object({
-    id: nonEmptyStringDecoder
+    id: nonEmptyStringDecoder,
+    isInitialized: optional(boolean()),
+    initializationContext: optional(frameInitializationContextDecoder)
 });
 
 export const containerSummaryDecoder: Decoder<Glue42Workspaces.BoxSummary> = object({
@@ -531,6 +568,8 @@ export const exportedLayoutsResultDecoder: Decoder<ExportedLayoutsResult> = obje
 
 export const frameSummaryResultDecoder: Decoder<FrameSummaryResult> = object({
     id: nonEmptyStringDecoder,
+    isInitialized: optional(boolean()),
+    initializationContext: optional(frameInitializationContextDecoder)
 });
 
 export const frameSummariesResultDecoder: Decoder<FrameSummariesResult> = object({
@@ -690,10 +729,6 @@ export const workspaceLayoutSaveConfigDecoder: Decoder<Glue42Workspaces.Workspac
     workspaceId: nonEmptyStringDecoder,
     saveContext: optional(boolean()),
     metadata: optional(object())
-});
-
-export const workspaceSelectorDecoder: Decoder<WorkspaceSelector> = object({
-    workspaceId: nonEmptyStringDecoder,
 });
 
 export const workspaceLockConfigDecoder: Decoder<Glue42Workspaces.WorkspaceLockConfig> = object({

@@ -1,3 +1,5 @@
+1.9.3
+feat: added support for the API frame initialization
 1.9.2
 feat: added support for workspace pinned tabs and workspace icons
 1.9.1

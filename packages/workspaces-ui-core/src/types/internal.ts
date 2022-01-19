@@ -170,6 +170,10 @@ export interface ContainerSummary {
 
 export interface FrameSummary {
     id: string;
+    isInitialized: boolean;
+    initializationContext?: {
+        context?: object;
+    };
 }
 
 export interface WorkspaceSnapshot {
@@ -303,7 +307,7 @@ export interface SaveWorkspaceConfig {
     workspace: Workspace;
     name: string;
     saveContext?: boolean;
-    metadata?:object;
+    metadata?: object;
 }
 
 export interface WorkspaceDropOptions {

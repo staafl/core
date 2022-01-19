@@ -11,6 +11,8 @@ export interface WorkspacesController {
     checkIsInSwimlane(windowId: string): Promise<boolean>;
     checkIsWindowLoaded(windowId: string): boolean;
     createWorkspace(definition: Glue42Workspaces.WorkspaceDefinition, saveConfig?: Glue42Workspaces.WorkspaceCreateConfig): Promise<Glue42Workspaces.Workspace>;
+    createEmptyFrame(definition: Glue42Workspaces.EmptyFrameDefinition): Promise<Glue42Workspaces.Frame>;
+    initFrame(frameId: string, config: Glue42Workspaces.FrameInitializationConfig): Promise<void>;
     restoreWorkspace(name: string, options?: Glue42Workspaces.RestoreWorkspaceConfig): Promise<Glue42Workspaces.Workspace>;
     add(type: "container" | "window", parentId: string, parentType: "row" | "column" | "group" | "workspace", definition: Glue42Workspaces.WorkspaceWindowDefinition | Glue42Workspaces.BoxDefinition): Promise<AddItemResult>;
     processLocalSubscription(config: SubscriptionConfig, levelId: string): Promise<Glue42Workspaces.Unsubscribe>;

@@ -40,6 +40,9 @@ import {
     getWorkspaceIconResultDecoder,
     pinWorkspaceDecoder,
     setWorkspaceIconDecoder,
+    frameSummaryResultDecoder,
+    emptyFrameDefinitionDecoder,
+    frameInitProtocolConfigDecoder
 } from "../shared/decoders";
 import { ControlOperation, StreamOperation } from "../types/protocol";
 import { WorkspaceEventType } from "../types/subscription";
@@ -82,7 +85,9 @@ type OperationsTypes = "isWindowInWorkspace" |
     "pinWorkspace" |
     "unpinWorkspace" |
     "getWorkspaceIcon" |
-    "setWorkspaceIcon";
+    "setWorkspaceIcon" |
+    "createFrame" |
+    "initFrame";
 type MethodsTypes = "control" | "frameStream" | "workspaceStream" | "containerStream" | "windowStream";
 
 export const webPlatformMethodName = "T42.Web.Platform.Control";
@@ -107,6 +112,8 @@ export const OPERATIONS: { [key in OperationsTypes]: ControlOperation } = {
     ping: { name: "ping", resultDecoder: pingResultDecoder },
     isWindowInWorkspace: { name: "isWindowInWorkspace", argsDecoder: simpleItemConfigDecoder, resultDecoder: isWindowInSwimlaneResultDecoder },
     createWorkspace: { name: "createWorkspace", resultDecoder: workspaceSnapshotResultDecoder, argsDecoder: workspaceCreateConfigDecoder },
+    createFrame: { name: "createFrame", resultDecoder: frameSummaryResultDecoder, argsDecoder: emptyFrameDefinitionDecoder },
+    initFrame: { name: "initFrame", resultDecoder: voidResultDecoder, argsDecoder: frameInitProtocolConfigDecoder },
     getAllFramesSummaries: { name: "getAllFramesSummaries", resultDecoder: frameSummariesResultDecoder },
     getFrameSummary: { name: "getFrameSummary", resultDecoder: frameSummaryDecoder, argsDecoder: getFrameSummaryConfigDecoder },
     getAllWorkspacesSummaries: { name: "getAllWorkspacesSummaries", resultDecoder: workspaceSummariesResultDecoder },

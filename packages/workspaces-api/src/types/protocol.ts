@@ -130,6 +130,8 @@ export interface FrameSnapshotResult {
 
 export interface FrameSummaryResult {
     id: string;
+    isInitialized?: boolean;
+    initializationContext?: Glue42Workspaces.FrameInitializationContext;
 }
 
 export interface FrameSummariesResult {
@@ -207,6 +209,10 @@ export interface WorkspaceCreateConfigProtocol extends Glue42Workspaces.Workspac
     saveConfig?: Glue42Workspaces.WorkspaceCreateConfig;
 }
 
+export interface FrameInitializationConfigProtocol extends Glue42Workspaces.FrameInitializationConfig {
+    frameId: string;
+}
+
 export interface GetFrameSummaryConfig {
     itemId: string;
 }
@@ -270,16 +276,16 @@ export interface BundleConfig {
     workspaceId: string;
 }
 
-export interface WorkspaceSelector {
-    workspaceId: string;
-}
-
 export interface WindowSelector {
     windowPlacementId: string;
 }
 
 export interface ItemSelector {
     itemId: string;
+}
+
+export interface WorkspaceSelector {
+    workspaceId: string;
 }
 
 // #endregion

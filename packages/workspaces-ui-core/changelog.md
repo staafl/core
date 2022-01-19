@@ -1,3 +1,5 @@
+1.7.3
+feat: added support for the API frame initialization
 1.7.2
 feat: added isSelected to control how the workspace is being opened
 feat: pinned tabs support and workspace icons

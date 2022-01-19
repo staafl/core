@@ -23,7 +23,7 @@ export interface RestoreWorkspaceConfig extends Glue42Workspaces.RestoreWorkspac
     /**
      * Sets the icon related for the workspace. The icon will be used for example for pinned workspaces.
      */
-    icon?: boolean;
+    icon?: string;
     /**
      * Controls whether the workspace will be focused or not in the frame when opened
      */
@@ -53,10 +53,59 @@ export interface Workspace extends Glue42Workspaces.Workspace {
      * Returns the workspace icon
      */
     getIcon(): Promise<string>;
-    
+
     /**
      * Changes the workspace icon to the specified one
      * @param icon 
      */
     setIcon(icon: string): Promise<void>;
+}
+
+export interface RestoreWorkspaceDefinition {
+    /**
+     * The name of a saved workspace layout, which will be restored.
+     */
+    name: string;
+    /**
+     * An optional object containing various workspace restore options.
+     */
+    restoreOptions?: RestoreWorkspaceConfig;
+}
+
+export interface EmptyFrameDefinition {
+    /**
+     * Optional frame related settings
+     */
+    frameConfig?: Glue42Workspaces.NewFrameConfig;
+    /**
+     * Optional context which will be passed to the initialization callback
+     */
+    context?: object;
+}
+
+export interface FrameInitializationConfig {
+    /**
+     * Array of workspace definitions with which the frame should be opened
+     */
+    workspaces: Array<Glue42Workspaces.WorkspaceDefinition | RestoreWorkspaceDefinition>;
+}
+
+export interface FrameInitializationContext {
+    /**
+     * Context passed when the frame was created
+     */
+    context?: object;
+}
+
+export interface FrameSummary extends Glue42Workspaces.FrameSummary {
+    /** Indicates whether the frame has been initialized or not */
+    isInitialized: boolean;
+}
+
+export interface API extends Glue42Workspaces.API {
+    /**
+     * 
+     * @param definition Optional definition of the frame
+     */
+    createEmptyFrame(definition?: EmptyFrameDefinition): Promise<Glue42Workspaces.Frame>;
 }

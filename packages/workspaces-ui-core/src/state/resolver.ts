@@ -9,6 +9,7 @@ import { WorkspaceWrapper } from "./workspaceWrapper";
 import { WorkspaceContainerWrapper } from "./containerWrapper";
 import { DefaultMaxSize, DefaultMinSize } from "../utils/constants";
 import { ConfigConverter } from "../config/converter";
+import { WorkspacesManager } from "../manager";
 
 export class LayoutStateResolver {
     constructor(private readonly _frameId: string,
@@ -46,16 +47,14 @@ export class LayoutStateResolver {
         return wrapper.config;
     }
 
-    public getWorkspaceSnapshot(workspaceId: string) {
+    public getWorkspaceSnapshot(workspaceId: string, manager: WorkspacesManager) {
         const workspaceConfig = this.getWorkspaceConfig(workspaceId);
         const workspaceItem = this.converter.convertToAPIConfig(workspaceConfig);
         return {
             id: workspaceItem.id,
             children: workspaceItem.children,
             config: workspaceItem.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -151,8 +150,8 @@ export class LayoutStateResolver {
         return !!store.getWindowContentItem(windowId);
     }
 
-    public getFrameSnapshot() {
-        const allWorkspaceSnapshots = store.workspaceIds.map(wid => this.getWorkspaceSnapshot(wid));
+    public getFrameSnapshot(manager: WorkspacesManager) {
+        const allWorkspaceSnapshots = store.workspaceIds.map(wid => this.getWorkspaceSnapshot(wid, manager));
         const constraints = this.getFrameConstraints();
         return {
             id: this._frameId,
@@ -163,11 +162,11 @@ export class LayoutStateResolver {
         };
     }
 
-    public getSnapshot(itemId: string) {
+    public getSnapshot(itemId: string, manager: WorkspacesManager) {
         try {
             return this.getWorkspaceConfig(itemId);
         } catch (error) {
-            return this.getFrameSnapshot();
+            return this.getFrameSnapshot(manager);
         }
     }
 

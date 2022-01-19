@@ -139,7 +139,7 @@ export class ConfigConverter {
                 children
             };
         }
-
+      
         if (config.type === "component" && config.componentName === EmptyVisibleWindowName) {
             return [];
         } else if (config.type !== "component" && config.workspacesConfig && config.workspacesConfig.wrapper) {
