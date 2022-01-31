@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Decoder } from "decoder-validate";
+import { FrameInitializationConfig, FrameInitializationContext } from "../../temp";
 import { Glue42Workspaces } from "../../workspaces";
 
 export interface StreamOperation {
@@ -44,6 +45,7 @@ export interface WorkspaceConfigResult {
     widthInPx?: number;
     heightInPx?: number;
     isSelected?: boolean;
+    isPinned?: boolean;
 }
 
 export interface BaseChildSnapshotConfig {
@@ -129,6 +131,8 @@ export interface FrameSnapshotResult {
 
 export interface FrameSummaryResult {
     id: string;
+    isInitialized?: boolean;
+    initializationContext?: FrameInitializationContext;
 }
 
 export interface FrameSummariesResult {
@@ -194,12 +198,20 @@ export interface FrameBoundsResult {
     };
 }
 
+export interface GetWorkspaceIconResult {
+    icon: string;
+}
+
 // #endregion
 
 // #region outgoing
 
 export interface WorkspaceCreateConfigProtocol extends Glue42Workspaces.WorkspaceDefinition {
     saveConfig?: Glue42Workspaces.WorkspaceCreateConfig;
+}
+
+export interface FrameInitializationConfigProtocol extends FrameInitializationConfig {
+    frameId: string;
 }
 
 export interface GetFrameSummaryConfig {
@@ -265,16 +277,16 @@ export interface BundleConfig {
     workspaceId: string;
 }
 
-export interface WorkspaceSelector {
-    workspaceId: string;
-}
-
 export interface WindowSelector {
     windowPlacementId: string;
 }
 
 export interface ItemSelector {
     itemId: string;
+}
+
+export interface WorkspaceSelector {
+    workspaceId: string;
 }
 
 // #endregion
@@ -363,4 +375,15 @@ export interface LockWorkspaceConfig {
         showSaveButton?: boolean;
     };
 }
+
+export interface PinWorkspaceConfig {
+    workspaceId: string;
+    icon?: string;
+}
+
+export interface SetWorkspaceIconConfig {
+    workspaceId: string;
+    icon?: string;
+}
+
 // #endregion

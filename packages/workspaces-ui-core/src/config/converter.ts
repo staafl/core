@@ -65,6 +65,7 @@ export class ConfigConverter {
             glConfig.workspacesConfig.minWidth = config.config?.minWidth;
             glConfig.workspacesConfig.maxHeight = config.config?.maxHeight;
             glConfig.workspacesConfig.minHeight = config.config?.minHeight;
+            glConfig.workspacesConfig.positionIndex = config.config?.positionIndex;
             glConfig.width = this.convertSizeToRendererConfigSafely(config.config?.width as any);
             glConfig.height = this.convertSizeToRendererConfigSafely(config.config?.height as any);
 
@@ -95,6 +96,7 @@ export class ConfigConverter {
             glConfig.workspacesConfig.maxHeight = config.config?.maxHeight;
             glConfig.workspacesConfig.minHeight = config.config?.minHeight;
             glConfig.activeItemIndex = config.config?.activeTabIndex;
+            glConfig.workspacesConfig.positionIndex = config.config?.positionIndex;
             glConfig.width = this.convertSizeToRendererConfigSafely(config.config?.width as any);
             glConfig.height = this.convertSizeToRendererConfigSafely(config.config?.height as any);
 
@@ -118,7 +120,8 @@ export class ConfigConverter {
                 minWidth: config?.config?.minWidth ?? (config as any).minWidth,
                 maxWidth: config?.config?.maxWidth ?? (config as any).maxWidth,
                 minHeight: config?.config?.minHeight ?? (config as any).minHeight,
-                maxHeight: config?.config?.maxHeight ?? (config as any).maxHeight
+                maxHeight: config?.config?.maxHeight ?? (config as any).maxHeight,
+                positionIndex: config?.config?.positionIndex ?? (config as any).positionIndex
             });
 
             if (parent.type !== "group") {

@@ -35,7 +35,7 @@ describe("typings - checks that d.ts works as expected, not real tests", () => {
         });
 
         // register style 2
-        glue.interop.register("my-method", (data: InputData) => {
+        glue.interop.register("my-method-2", (data: InputData) => {
             return {
                 inner: {},
                 error: ""

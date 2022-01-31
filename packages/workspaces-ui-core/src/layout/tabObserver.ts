@@ -1,18 +1,38 @@
+import { getElementBounds } from "../utils";
+
 export class TabObserver {
     private containerElement: Element;
 
-    public init(containerElementId: string) {
-        this.containerElement = $(containerElementId)[0];
+    public init(containerElementId: string): void {
+        this.containerElement = $(`${containerElementId}`)[0];
 
         this.setupEvents();
     }
 
-    private setupEvents() {
+    public refreshTabsMaxWidth(tabsElement: JQuery<Element>): void {
+        const tabChildren = tabsElement.children();
+        const visibleTabs = this.visibleTabs($(tabsElement));
+        const width = visibleTabs.reduce((acc, vt) => {
+            const tabSize = this.getTabWidth(vt);
+
+            return acc + tabSize;
+        }, 0);
+        tabsElement.css("max-width", `${width}px`);
+
+        Array.from(tabChildren).forEach((tab) => {
+            const title = $(tab).children(".lm_title");
+            const tabWidth = getElementBounds(tab).width;
+            title.css("max-width", `${tabWidth * 0.75}px`);
+            this.refreshTabClasses(tab);
+        });
+    }
+
+    private setupEvents(): () => void {
         const observer = new MutationObserver((records) => {
             Array.from(records).forEach((r) => {
                 if (r.type === "childList" && (r.target as Element).classList.contains("lm_tabs")) {
-                    const tabs = $(r.target);
-                    this.handleTabCountChanged(tabs, Array.from(r.removedNodes));
+                    const tabs = $(r.target as Element);
+                    this.handleTabCountChanged(tabs, Array.from(r.removedNodes), Array.from(r.addedNodes));
                 } else if (r.type === "attributes"
                     && (r.target as Element).classList.contains("lm_stack")
                     && r.attributeName === "style") {
@@ -31,46 +51,53 @@ export class TabObserver {
             characterDataOldValue: false
         });
 
-        return () => {
+        return (): void => {
             observer.disconnect();
         };
     }
 
-    private handleTabCountChanged(tabsElement: JQuery<Node>, removedNodes: Node[]) {
+    private handleTabCountChanged(tabsElement: JQuery<Element>, removedNodes: Node[], _: Node[]): void {
         const tabChildren = tabsElement.children();
         const visibleTabs = this.visibleTabs($(tabsElement));
-        tabsElement.css("max-width", `${visibleTabs.length * 200}px`);
+        const width = visibleTabs.reduce((acc, vt) => {
+            const tabSize = this.getTabWidth(vt);
 
-        const proportionalWidth = tabsElement.width() / visibleTabs.length;
+            return acc + tabSize;
+        }, 0);
+        tabsElement.css("max-width", `${width}px`);
 
         Array.from(tabChildren).forEach((tab) => {
             const title = $(tab).children(".lm_title");
-            title.css("max-width", `${proportionalWidth * 0.75}px`);
+            const tabWidth = getElementBounds(tab).width;
+            title.css("max-width", `${tabWidth * 0.75}px`);
             if (removedNodes.length) {
                 this.refreshTabClasses(tab);
             }
         });
     }
 
-    private handleTabHeaderResized(stackElement: JQuery<Node>) {
+    private handleTabHeaderResized(stackElement: JQuery<Node>): void {
         const headerElement = stackElement.children(".lm_header");
-        const tabElements = headerElement.children(".lm_tabs");
+        const tabElements = headerElement.children(".lm_tabs") as JQuery<Element>;
         const visibleTabs = this.visibleTabs($(tabElements));
 
-        const proportionalWidth = tabElements.width() / visibleTabs.length;
-        Array.from(tabElements.children()).forEach((tab) => {
+        visibleTabs.forEach((tab, i) => {
             const title = $(tab).children(".lm_title");
-            title.css("max-width", `${proportionalWidth * 0.65}px`);
+            const tabLength = getElementBounds(visibleTabs[i]).width;
+            title.css("max-width", `${tabLength * 0.75}px`);
 
             this.refreshTabClasses(tab);
         });
     }
 
-    private refreshTabClasses(tab: Node) {
+    private refreshTabClasses(tab: Node): void {
         const tabOuterWidth = $(tab).outerWidth();
         const classes = (tab as Element).classList;
 
-        if (tabOuterWidth >= 25 && tabOuterWidth < 35) {
+        if (this.isTabPinned(tab as HTMLElement)) {
+            classes.remove("lm_tab_mini");
+            classes.remove("lm_tab_small");
+        } else if (tabOuterWidth >= 25 && tabOuterWidth < 35) {
             if (classes.contains("lm_tab_mini")) {
                 classes.remove("lm_tab_mini");
             }
@@ -86,7 +113,19 @@ export class TabObserver {
         }
     }
 
-    private visibleTabs(tabsContainer: JQuery<Node>) {
-        return Array.from(tabsContainer.children()).filter((t) => $(t).is(":visible"));
+    private visibleTabs(tabsContainer: JQuery<Element>): HTMLElement[] {
+        return Array.from(tabsContainer.children()).filter((t) => $(t).is(":visible")).map((t) => t as HTMLElement);
+    }
+
+    private isTabPinned(tabElement: HTMLElement): boolean {
+        return tabElement.classList.contains("lm_pinned");
+    }
+
+    private getTabWidth(tabElement: HTMLElement): number {
+        if (this.isTabPinned(tabElement)) {
+            return getElementBounds(tabElement).width;
+        }
+
+        return 200;
     }
 }

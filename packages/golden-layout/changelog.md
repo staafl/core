@@ -1,3 +1,11 @@
+2.2.4
+feat: added positionIndex property as a config when opening workspaces
+fix: Unpinned tabs can be placed before unpinned ones in certain occasions
+2.2.3
+chore: Updated the typings file
+2.2.2
+feat: Added additional typings for isSelected
+feat: Pinned tabs
 2.2.1
 fix: Internal constraints logic improvement
 2.2.0

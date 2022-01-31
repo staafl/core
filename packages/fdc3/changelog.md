@@ -1,3 +1,9 @@
+2.4.4
+chore: bump due to dependencies update
+2.4.3
+chore: bump due to dependencies update
+2.4.2
+chore: bump due to dependencies update
 2.4.1
 feat: Enable fdc3 initialization in Electron container without @glue42/electron
 2.4.0

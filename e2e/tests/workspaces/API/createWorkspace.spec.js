@@ -1,6 +1,7 @@
 // validated V2
 describe('createWorkspace() ', function () {
-
+    const iconForTesting = `data:image/svg+xml,%3Csvg version='1.1' xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 512 512'%3E%3Cpath
+d='M224 448v-96h64v96l-32 64zM336 224v-160c48 0 80-32 80-64v0 0h-320c0 32 32 64 80 64v160c-73.6 22.4-112 64-112 128h384c0-64-38.4-105.6-112-128z'%3E%3C/path%3E%3C/svg%3E%0A`;
     before(() => coreReady);
 
     afterEach(async () => {
@@ -189,6 +190,24 @@ describe('createWorkspace() ', function () {
             const reuseFrameWorkspace = await glue.workspaces.createWorkspace(reuseFrameConfig);
 
             expect(reuseFrameWorkspace.frameId).to.eql(secondWorkspace.frameId);
+        });
+
+        it("create a workspace which isn't selected when isSelected false is passed", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(basicConfig);
+            const secondWorkspace = await glue.workspaces.createWorkspace(Object.assign({}, basicConfig, { config: { isSelected: false } }));
+            expect(secondWorkspace.isSelected).to.be.false;
+        });
+
+        it("create a workspace which is selected when isSelected true is passed", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(basicConfig);
+            const secondWorkspace = await glue.workspaces.createWorkspace(Object.assign({}, basicConfig, { config: { isSelected: true } }));
+            expect(secondWorkspace.isSelected).to.be.true;
+        });
+
+        it("create a workspace which is selected when isSelected true is undefined", async () => {
+            const firstWorkspace = await glue.workspaces.createWorkspace(basicConfig);
+            const secondWorkspace = await glue.workspaces.createWorkspace(Object.assign({}, basicConfig, { config: { isSelected: undefined } }));
+            expect(secondWorkspace.isSelected).to.be.true;
         });
 
         it("reject when reuseFrameId is specified, but it is not valid", (done) => {
@@ -661,7 +680,7 @@ describe('createWorkspace() ', function () {
         it("load all windows when the loadingStrategy is direct", async () => {
             let loadedWindowsCount = 0;
 
-            const directConfig = Object.assign(config, { config: { loadingStrategy: "direct" } });
+            const directConfig = Object.assign({}, config, { config: { loadingStrategy: "direct" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -678,7 +697,7 @@ describe('createWorkspace() ', function () {
         it("load only the visible windows when the loadingStrategy is lazy", async () => {
             let loadedWindowsCount = 0;
 
-            const lazyConfig = Object.assign(config, { config: { loadingStrategy: "lazy" } });
+            const lazyConfig = Object.assign({}, config, { config: { loadingStrategy: "lazy" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -695,7 +714,7 @@ describe('createWorkspace() ', function () {
 
         it("load all windows when the loadingStrategy is lazy and all windows are force loaded", async () => {
             let loadedWindowsCount = 0;
-            const lazyConfig = Object.assign(config, { config: { loadingStrategy: "lazy" } });
+            const lazyConfig = Object.assign({}, config, { config: { loadingStrategy: "lazy" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -713,7 +732,7 @@ describe('createWorkspace() ', function () {
 
         it("load all windows when the loadingStrategy is lazy and all windows are focused", async () => {
             let loadedWindowsCount = 0;
-            const lazyConfig = Object.assign(config, { config: { loadingStrategy: "lazy" } });
+            const lazyConfig = Object.assign({}, config, { config: { loadingStrategy: "lazy" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -731,7 +750,7 @@ describe('createWorkspace() ', function () {
 
         it("load one window for 4 seconds when the loadingStrategy is delayed", async () => {
             let loadedWindowsCount = 0;
-            const delayedConfig = Object.assign(config, { config: { loadingStrategy: "delayed" } });
+            const delayedConfig = Object.assign({}, config, { config: { loadingStrategy: "delayed" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -748,7 +767,7 @@ describe('createWorkspace() ', function () {
 
         it("load all windows when the loadingStrategy is delayed and all windows are force loaded", async () => {
             let loadedWindowsCount = 0;
-            const delayedConfig = Object.assign(config, { config: { loadingStrategy: "delayed" } });
+            const delayedConfig = Object.assign({}, config, { config: { loadingStrategy: "delayed" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -766,7 +785,7 @@ describe('createWorkspace() ', function () {
 
         it("load all windows when the loadingStrategy is delayed and all windows are focused", async () => {
             let loadedWindowsCount = 0;
-            const delayedConfig = Object.assign(config, { config: { loadingStrategy: "delayed" } });
+            const delayedConfig = Object.assign({}, config, { config: { loadingStrategy: "delayed" } });
 
             let unsub = await glue.workspaces.onWindowLoaded(() => {
                 loadedWindowsCount++;
@@ -792,7 +811,7 @@ describe('createWorkspace() ', function () {
                 });
 
                 let frameClosed = false;
-                const directConfig = Object.assign(config, { config: { loadingStrategy: "delayed" } });
+                const directConfig = Object.assign({}, config, { config: { loadingStrategy: "delayed" } });
 
                 let unsub = await glue.windows.onWindowAdded(() => {
                     if (frameClosed) {
@@ -1474,7 +1493,7 @@ describe('createWorkspace() ', function () {
         });
     });
 
-    describe("isPinned Should ", () => {
+    describe("isPinned container Should ", () => {
         Array.from([true, false]).forEach((value) => {
             it(`set the isPinned property to ${value} when the config contains a row with isPinned ${value}`, async () => {
                 const config = {
@@ -1537,6 +1556,239 @@ describe('createWorkspace() ', function () {
             });
         });
     });
+
+    describe("isPinned workspace Should ", () => {
+        it("create a pinned workspace when the definition contains isPinned:true", async () => {
+            const workspace = await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+                config: {
+                    isPinned: true,
+                    icon: iconForTesting
+                }
+            });
+
+            expect(workspace.isPinned).to.be.true;
+        });
+
+        it('create a normal workspace when the definition contains isPinned:false', async () => {
+            const workspace = await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+                config: {
+                    isPinned: false
+                }
+            });
+
+            expect(workspace.isPinned).to.be.false;
+        });
+
+        it("create a pinned workspace at the front when the definition contains isPinned:true", async () => {
+            await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+            });
+            const workspace = await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+                config: {
+                    isPinned: true,
+                    icon: iconForTesting
+                }
+            });
+
+            expect(workspace.positionIndex).to.eql(0);
+        });
+
+        it("create a pinned workspace behind the last pinned workspace when the definition contains isPinned:true", async () => {
+            await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+                config: {
+                    isPinned: true,
+                    icon: iconForTesting
+                }
+            });
+
+            await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }]
+            });
+            const workspace = await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+                config: {
+                    isPinned: true,
+                    icon: iconForTesting
+
+                }
+            });
+
+            expect(workspace.positionIndex).to.eql(1);
+        });
+
+        it("create a pinned workspace when the definition contains isPinned:true", async () => {
+            const workspace = await glue.workspaces.createWorkspace({
+                children: [{
+                    type: "group",
+                    children: [{
+                        type: "window",
+                        appName: "noGlueApp"
+                    }]
+                }],
+                config: {
+                    isPinned: true,
+                    icon: iconForTesting
+                }
+            });
+
+            expect(workspace.isPinned).to.be.true;
+        });
+    });
+
+    describe("positionIndex Should ", () => {
+        const workspaceChildren = [{
+            type: "group",
+            children: [{
+                type: "window",
+                appName: "noGlueApp"
+            }]
+        }];
+        let frameUnderTest;
+        beforeEach(async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: workspaceChildren, config: { newFrame: true } });
+
+            frameUnderTest = workspace.frame;
+        });
+
+        Array.from({ length: 3 }).forEach((_, i, arr) => {
+            it(`be placed on the specified position when there are ${arr.length} tabs and the target position is ${i}`, async () => {
+                await Promise.all(Array.from({ length: arr.length - 1 }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: i } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i);
+            });
+
+            it(`be the last one when nothing is specified and the workspace are ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+
+            it(`be the last one when the positionIndex is 42 and the workspace are ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: 42 } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+        });
+
+        it("place the pinned tab after the other pinned tabs when nothing is specified", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+
+            await Promise.all(threeItemsArr.map((_) => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(3);
+        });
+
+        it("place the pinned tab after when nothing is specified and there are no other pinned tabs", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(0);
+        });
+
+        it("place the pinned tab after the other pinned tabs when the positionIndex is bigger than the number of pinned tabs", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting, positionIndex: 4 } });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(3);
+        });
+
+        Array.from({ length: 3 }).forEach((_, i, arr) => {
+            it(`place the pinned tab at the desired positionIndex when there are ${arr.length} pinned tabs`, async () => {
+                const threeItemsArr = Array.from({ length: 3 });
+                const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+
+                await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+                await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting, positionIndex: i } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i);
+            });
+        });
+
+        it("reject when the positionIndex is smaller than the last pinned tab and the workspace is not pinned", (done) => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+            Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig))).then(() => {
+                frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: 0 } }).then(() => {
+                    done("Should not resolve");
+                }).catch(() => done());
+            }).catch(done)
+        });
+
+        it("reject when the positionIndex is negative", (done) => {
+            Promise.all(Array.from({ length: 3 }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren }))).then(() => {
+                return frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: -32 } });
+            }).then(() => {
+                done("Should not resolve");
+            }).catch(() => {
+                done();
+            });
+        });
+    });
+
     // SAVE CONFIG
     // after resolve the layout should be present in the layouts collection when specified in the save config
     // after resolve the layout should NOT be present in the layouts collection when there is no save config

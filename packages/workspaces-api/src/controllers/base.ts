@@ -13,6 +13,7 @@ import { AllParentTypes, Child, ContainerLockConfig, SubParentTypes } from "../t
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { Window } from "../models/window";
 import { UnsubscribeFunction } from "callback-registry";
+import { EmptyFrameDefinition, FrameInitializationConfig } from "../../temp";
 
 export class BaseController {
 
@@ -46,6 +47,19 @@ export class BaseController {
         const workspaceConfig: WorkspaceIoCCreateConfig = { frame, snapshot };
 
         return this.ioc.getModel<"workspace">("workspace", workspaceConfig);
+    }
+
+    public async createEmptyFrame(definition: EmptyFrameDefinition): Promise<Frame> {
+        const frameSummary = await this.bridge.send<FrameSummaryResult>(OPERATIONS.createFrame.name, definition);
+        const frameConfig: FrameCreateConfig = {
+            summary: frameSummary
+        };
+
+        return this.ioc.getModel<"frame">("frame", frameConfig);
+    }
+
+    public async initFrame(frameId: string, config: FrameInitializationConfig): Promise<void> {
+        await this.bridge.send<void>(OPERATIONS.initFrame.name, { frameId, ...config });
     }
 
     public async restoreWorkspace(name: string, options: Glue42Workspaces.RestoreWorkspaceConfig): Promise<Workspace> {
@@ -407,5 +421,22 @@ export class BaseController {
 
     public async lockContainer(itemId: string, type: SubParentTypes["type"], config?: ContainerLockConfig): Promise<void> {
         await this.bridge.send<void>(OPERATIONS.lockContainer.name, { itemId, type, config });
+    }
+
+    public async pinWorkspace(workspaceId: string, icon?: string): Promise<void> {
+        await this.bridge.send<void>(OPERATIONS.pinWorkspace.name, { workspaceId, icon });
+    }
+
+    public async unpinWorkspace(workspaceId: string): Promise<void> {
+        await this.bridge.send<void>(OPERATIONS.unpinWorkspace.name, { workspaceId });
+    }
+
+    public async getWorkspaceIcon(workspaceId: string): Promise<string> {
+        const result = await this.bridge.send<{ icon: string }>(OPERATIONS.getWorkspaceIcon.name, { workspaceId });
+        return result.icon;
+    }
+
+    public setWorkspaceIcon(workspaceId: string, icon: string): Promise<void> {
+        return this.bridge.send<void>(OPERATIONS.setWorkspaceIcon.name, { workspaceId, icon });
     }
 }

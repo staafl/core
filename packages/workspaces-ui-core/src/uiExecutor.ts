@@ -7,8 +7,8 @@ export class WorkspacesUIExecutor {
     public static readonly SaveWorkspaceButtonLabel = "save";
     private readonly hibernatedWorkspaceIconLabel = "hibernated";
 
-    public showWorkspaceSaveButton(workspaceId: string): void {
-        const workspaceTab = store.getWorkspaceTabElement(workspaceId);
+    public showWorkspaceSaveButton(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const workspaceTab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
 
         if (workspaceTab.element.hasClass(WorkspacesUIExecutor.HibernationIconClass)) {
             return;
@@ -17,8 +17,8 @@ export class WorkspacesUIExecutor {
         workspaceTab.element.children(".lm_saveButton").show();
     }
 
-    public hideWorkspaceSaveButton(workspaceId: string): void {
-        const workspaceTab = store.getWorkspaceTabElement(workspaceId);
+    public hideWorkspaceSaveButton(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const workspaceTab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
 
         if (workspaceTab.element.hasClass(WorkspacesUIExecutor.HibernationIconClass)) {
             return;
@@ -26,8 +26,51 @@ export class WorkspacesUIExecutor {
         workspaceTab.element.children(".lm_saveButton").hide();
     }
 
-    public showHibernationIcon(workspaceId: string): void {
-        const tab = store.getWorkspaceTabElement(workspaceId);
+    public showWorkspaceIconButton(options: { workspaceId?: string, workspaceTab?: GoldenLayout.Tab, icon: string }): void {
+        const workspaceTab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
+
+        if (!workspaceTab || workspaceTab.element.hasClass(WorkspacesUIExecutor.HibernationIconClass)) {
+            return;
+        }
+        const iconButton = workspaceTab.element.children(".lm_iconButton");
+        iconButton.css("display", "flex");
+        iconButton.show();
+
+        const content = workspaceTab.element.find(".lm_iconButtonContent");
+        content.css("-webkit-mask-image", `url("${options.icon}")`);
+    }
+
+    public hideWorkspaceIconButton(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const workspaceTab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
+
+        if (!workspaceTab || workspaceTab.element.hasClass(WorkspacesUIExecutor.HibernationIconClass)) {
+            return;
+        }
+        workspaceTab.element.children(".lm_iconButton").hide();
+    }
+
+    public replaceWorkspaceSaveButtonWithIcon(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab; icon: string }): void {
+        this.hideWorkspaceSaveButton(options);
+        this.showWorkspaceIconButton(options);
+    }
+
+    public replaceWorkspaceIconButtonWithSave(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        this.hideWorkspaceIconButton(options);
+        this.showWorkspaceSaveButton(options);
+    }
+
+    public hideHibernatedIcon(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const workspaceTab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
+
+        if (!workspaceTab) {
+            return;
+        }
+        const saveButton = workspaceTab.element.children(".lm_saveButton");
+        saveButton.removeClass(WorkspacesUIExecutor.HibernationIconClass);
+    }
+
+    public showHibernationIcon(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const tab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
 
         if (!tab) {
             return;
@@ -43,9 +86,9 @@ export class WorkspacesUIExecutor {
         saveButton.attr("title", this.hibernatedWorkspaceIconLabel);
     }
 
-    public showSaveIcon(workspaceId: string): void {
-        const tab = store.getWorkspaceTabElement(workspaceId);
-        const workspace = store.getById(workspaceId);
+    public showSaveIcon(options: { workspaceId: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const tab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
+        const workspace = store.getById(options.workspaceId);
 
         if (!tab) {
             return;
@@ -56,13 +99,13 @@ export class WorkspacesUIExecutor {
 
         saveButton.attr("title", WorkspacesUIExecutor.SaveWorkspaceButtonLabel);
 
-        if (workspace.layout && (workspace.layout.config.workspacesOptions as any).showSaveButton === false) {
+        if (workspace.layout && workspace.layout.config.workspacesOptions.showSaveButton === false) {
             saveButton.hide();
         }
     }
 
-    public showWorkspaceCloseButton(workspaceId: string): void {
-        const tab = store.getWorkspaceTabElement(workspaceId);
+    public showWorkspaceCloseButton(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const tab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
 
         if (!tab) {
             return;
@@ -73,8 +116,8 @@ export class WorkspacesUIExecutor {
         closeButton.show();
     }
 
-    public hideWorkspaceCloseButton(workspaceId: string): void {
-        const tab = store.getWorkspaceTabElement(workspaceId);
+    public hideWorkspaceCloseButton(options: { workspaceId?: string; workspaceTab?: GoldenLayout.Tab }): void {
+        const tab = options.workspaceTab || store.getWorkspaceTabElement(options.workspaceId);
 
         if (!tab) {
             return;
@@ -83,6 +126,13 @@ export class WorkspacesUIExecutor {
         const closeButton = tab.element.children(".lm_close_tab");
 
         closeButton.hide();
+    }
+
+    public addInvisibleStyle(transparentColor: string): void {
+        const style = document.createElement("style");
+        style.type = "text/css";
+        style.innerHTML = `.lm_content.transparent-color { background-color: ${transparentColor}; }`;
+        document.getElementsByTagName("head")[0].appendChild(style);
     }
 
     public makeContentInvisible(): void {
@@ -308,6 +358,46 @@ export class WorkspacesUIExecutor {
         allComponentItems.forEach((stackItem) => {
             this.hideAddWindowButton(idAsString(stackItem.config.id));
         });
+    }
+
+    public waitForTransition(element: HTMLElement): Promise<void> {
+        if (!this.hasTransition(element)) {
+            return Promise.resolve();
+        }
+
+        return new Promise<void>((res) => {
+            let unsub = (): void => {
+                // do nothing
+            };
+
+            const transitionEnd = (e: TransitionEvent): void => {
+                if (!e.pseudoElement && (e as any).path[0] === element) {
+                    res();
+                    unsub();
+                }
+            };
+
+            const transitionCancel = (e: TransitionEvent): void => {
+                if (!e.pseudoElement && (e as any).path[0] === element) {
+                    res();
+                    unsub();
+                }
+            };
+
+            unsub = (): void => {
+                element.removeEventListener("transitionend", transitionEnd);
+                element.removeEventListener("transitioncancel", transitionCancel);
+            };
+
+            element.addEventListener("transitionend", transitionEnd);
+            element.addEventListener("transitioncancel", transitionCancel);
+        });
+    }
+
+    private hasTransition(element: HTMLElement): boolean {
+        const transition = window.getComputedStyle(element, null).getPropertyValue("transition");
+
+        return transition !== "all 0s ease 0s";
     }
 }
 

@@ -1,6 +1,6 @@
 {
     "name": "@glue42/web-platform",
-    "version": "1.9.1",
+    "version": "1.9.4",
     "description": "Glue42 Core main application package",
     "main": "dist/platform.web.umd.js",
     "module": "dist/platform.web.es.js",
@@ -19,7 +19,8 @@
     "scripts": {
         "test": "echo \"Error: no test specified\"",
         "build": "rollup -c",
-        "audit": "node ../../scripts/audit/index.js",
+        "audit": "echo no audit found",
+        "audit:V1": "node ../../scripts/audit/index.js",
         "preversion": "npm run build && npm run test && npm run audit",
         "version": "npm run build"
     },
@@ -33,11 +34,11 @@
         "access": "public"
     },
     "dependencies": {
-        "@glue42/core": "^5.6.0",
+        "@glue42/core": "^5.6.1",
         "@glue42/desktop": "^5.7.6",
         "@glue42/gateway-web": "3.0.10",
-        "@glue42/web": "^2.5.1",
-        "@glue42/workspaces-api": "^1.10.1",
+        "@glue42/web": "^2.5.4",
+        "@glue42/workspaces-api": "^1.10.4",
         "callback-registry": "^2.7.1",
         "decoder-validate": "0.0.2",
         "deep-equal": "^2.0.5",

@@ -110,10 +110,16 @@ export default function (domain: string, connection: Connection, logger: Logger,
         };
         tryReconnecting = false;
         // #deleteme - handling
-        return send(leaveMsg).then(() => {
-            isJoined = false;
-            callbacks.execute("onLeft");
-        });
+        return send(leaveMsg)
+            .then(() => {
+                isJoined = false;
+                callbacks.execute("onLeft");
+            })
+            .catch(() => {
+                // may fail if socked is already closed
+                isJoined = false;
+                callbacks.execute("onLeft");
+            });
     }
 
     function handleJoined() {

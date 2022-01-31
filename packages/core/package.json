@@ -1,6 +1,6 @@
 {
     "name": "@glue42/core",
-    "version": "5.6.0",
+    "version": "5.6.1",
     "description": "Glue42 core library",
     "main": "dist/core.umd.js",
     "module": "dist/core.es.js",
@@ -14,12 +14,12 @@
     ],
     "homepage": "https://glue42.com/",
     "scripts": {
-        "test": "echo no tests found",
         "tslint": "tslint -t codeFrame ./src/**/*.ts",
         "validate-changelog": "node ./scripts/validate-config.js",
         "docs": "typedoc --options typedoc.json ./src",
         "preversion": "npm run validate-changelog && npm run build && npm run test && npm run audit",
         "version": "npm run build",
+        "test": "echo no tests found",
         "test:V1": "npm run build:tests && mocha ./tests/ --recursive --exit",
         "coverage": "nyc npm run test",
         "publish:beta": "npm publish --tag beta",

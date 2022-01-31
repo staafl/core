@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable indent */
 import { LayoutController } from "./layout/controller";
-import { WindowSummary, Workspace, WorkspaceOptionsWithTitle, WorkspaceOptionsWithLayoutName, ComponentFactory, LoadingStrategy, WorkspaceLayout, Bounds, Constraints } from "./types/internal";
+import { WindowSummary, Workspace, WorkspaceOptionsWithTitle, WorkspaceOptionsWithLayoutName, ComponentFactory, LoadingStrategy, WorkspaceLayout, Bounds, Constraints, FrameSummary } from "./types/internal";
 import { LayoutEventEmitter } from "./layout/eventEmitter";
 import { IFrameController } from "./iframeController";
 import store from "./state/store";
@@ -15,7 +15,7 @@ import { idAsString, getAllWindowsFromConfig, getElementBounds, getWorkspaceCont
 import { WorkspacesConfigurationFactory } from "./config/factory";
 import { WorkspacesEventEmitter } from "./eventEmitter";
 import { Glue42Web } from "@glue42/web";
-import { LockColumnArguments, LockContainerArguments, LockGroupArguments, LockRowArguments, LockWindowArguments, LockWorkspaceArguments, ResizeItemArguments, RestoreWorkspaceConfig } from "./interop/types";
+import { LockColumnArguments, LockContainerArguments, LockGroupArguments, LockRowArguments, LockWindowArguments, LockWorkspaceArguments, OpenWorkspaceArguments, ResizeItemArguments, RestoreWorkspaceConfig, WorkspaceDefinition } from "./interop/types";
 import { TitleGenerator } from "./config/titleGenerator";
 import startupReader from "./config/startupReader";
 import componentStateMonitor from "./componentStateMonitor";
@@ -29,6 +29,7 @@ import { DelayedExecutor } from "./utils/delayedExecutor";
 import systemSettings from "./config/system";
 import { ConstraintsValidator } from "./config/constraintsValidator";
 import { WorkspaceWrapper } from "./state/workspaceWrapper";
+import uiExecutor from "./uiExecutor";
 
 export class WorkspacesManager {
     private _controller: LayoutController;
@@ -47,6 +48,7 @@ export class WorkspacesManager {
     private _applicationFactory: ApplicationFactory;
     private _facade: GlueFacade;
     private _isDisposing: boolean;
+    private _context?: object;
 
     public get stateResolver(): LayoutStateResolver {
         return this._stateResolver;
@@ -66,6 +68,10 @@ export class WorkspacesManager {
 
     public get frameId(): string {
         return this._frameId;
+    }
+
+    public get layoutsManager(): LayoutsManager {
+        return this._layoutsManager;
     }
 
     public init(glue: Glue42Web.API, frameId: string, facade: GlueFacade, componentFactory?: ComponentFactory): { cleanUp: () => void } {
@@ -96,6 +102,18 @@ export class WorkspacesManager {
         }
 
         return { cleanUp: this.cleanUp };
+    }
+
+    public async initFrameLayout(workspaces: GoldenLayout.Config[]): Promise<string[]> {
+        workspaces.forEach((wsp) => {
+            wsp.id = this._configFactory.getId();
+        });
+        this._layoutsManager.setInitialWorkspaceConfig(workspaces);
+        this._initPromise = this.initLayout();
+
+        await this._initPromise;
+
+        return workspaces.map((w) => idAsString(w.id));
     }
 
     public getComponentBounds = (): Bounds => {
@@ -143,6 +161,8 @@ export class WorkspacesManager {
         }
 
         (savedConfig.workspacesOptions as WorkspaceOptionsWithTitle).title = options?.title || name;
+        savedConfig.workspacesOptions.icon = options?.icon ?? savedConfig.workspacesOptions.icon;
+        savedConfig.workspacesOptions.positionIndex= options?.positionIndex ?? savedConfig.workspacesOptions.positionIndex;
 
         if (savedConfig && savedConfig.workspacesOptions && !savedConfig.workspacesOptions.name) {
             savedConfig.workspacesOptions.name = name;
@@ -151,21 +171,30 @@ export class WorkspacesManager {
         if (savedConfig) {
             savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
 
-            (savedConfig.workspacesOptions as WorkspaceOptionsWithLayoutName).layoutName = savedConfigWithData.layoutData.name;
+            savedConfig.workspacesOptions.layoutName = savedConfigWithData.layoutData.name;
         }
 
         if (savedConfig && options) {
             (savedConfig.workspacesOptions as any).loadingStrategy = options.loadingStrategy;
         }
 
-
         if (savedConfig && options?.noTabHeader !== undefined) {
             savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
             savedConfig.workspacesOptions.noTabHeader = options?.noTabHeader;
         }
 
+        if (savedConfig && options?.isPinned !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.isPinned = options?.isPinned;
+        }
+
+        if (savedConfig && options?.isSelected !== undefined) {
+            savedConfig.workspacesOptions = savedConfig.workspacesOptions || {};
+            savedConfig.workspacesOptions.selected = options?.isSelected;
+        }
+
         if (!this._isLayoutInitialized) {
-            this._layoutsManager.setInitialWorkspaceConfig(savedConfig);
+            this._layoutsManager.setInitialWorkspaceConfig([savedConfig]);
 
             this._initPromise = this.initLayout();
 
@@ -182,10 +211,10 @@ export class WorkspacesManager {
                     .filter((w) => w)
                     .map((w) => this.closeTab(w, false));
 
-                await this.reinitializeWorkspace(savedConfig.id, savedConfig);
+                await this.reinitializeWorkspace(idAsString(savedConfig.id), savedConfig);
 
                 if (savedConfig.workspacesOptions?.context) {
-                    await this._glue.contexts.set(getWorkspaceContextName(savedConfig.id), savedConfig.workspacesOptions.context);
+                    await this._glue.contexts.set(getWorkspaceContextName(idAsString(savedConfig.id)), savedConfig.workspacesOptions.context);
                 }
             } else {
                 await this.addWorkspace(idAsString(savedConfig.id), savedConfig);
@@ -334,7 +363,7 @@ export class WorkspacesManager {
     public async createWorkspace(config: GoldenLayout.Config): Promise<string> {
         if (!this._isLayoutInitialized) {
             config.id = this._configFactory.getId();
-            this._layoutsManager.setInitialWorkspaceConfig(config);
+            this._layoutsManager.setInitialWorkspaceConfig([config]);
 
             this._initPromise = this.initLayout();
 
@@ -436,13 +465,24 @@ export class WorkspacesManager {
         return this._glue.windows.my().moveTo(location.y, location.x);
     }
 
-    public getFrameSummary(itemId: string): { id: string } {
+    public getFrameSummary(itemId: string): FrameSummary {
         const workspace = store.getByContainerId(itemId) || store.getByWindowId(itemId) || store.getById(itemId);
         const isFrameId = this._frameId === itemId;
 
-        return {
-            id: (workspace || isFrameId) ? this._frameId : "none"
-        };
+        if (this._context) {
+            return {
+                id: (workspace || isFrameId) ? this._frameId : "none",
+                isInitialized: this._isLayoutInitialized,
+                initializationContext: {
+                    context: this._context
+                }
+            };
+        } else {
+            return {
+                id: (workspace || isFrameId) ? this._frameId : "none",
+                isInitialized: this._isLayoutInitialized,
+            };
+        }
     }
 
     public async moveWindowTo(itemId: string, containerId: string): Promise<void> {
@@ -519,7 +559,16 @@ export class WorkspacesManager {
         await this.createWorkspace(hibernatedConfig);
 
         workspace.hibernateConfig = undefined;
-        this._controller.showSaveIcon(workspaceId);
+
+        const workspaceContentItem = store.getWorkspaceContentItem(workspace.id);
+        const wrapper = new WorkspaceWrapper(this.stateResolver, workspace, workspaceContentItem, this.frameId);
+        if (!wrapper.isPinned) {
+            uiExecutor.showSaveIcon({ workspaceTab: workspaceContentItem.tab, workspaceId: workspace.id });
+        } else {
+            uiExecutor.hideHibernatedIcon({ workspaceTab: workspaceContentItem.tab });
+            uiExecutor.hideWorkspaceSaveButton({ workspaceTab: workspaceContentItem.tab });
+            uiExecutor.showWorkspaceIconButton({ workspaceTab: workspaceContentItem.tab, icon: wrapper.icon });
+        }
     }
 
     public lockWorkspace(lockConfig: LockWorkspaceArguments): void {
@@ -769,6 +818,29 @@ export class WorkspacesManager {
             // tslint:disable-next-line: no-console
             console.warn(error);
         }
+    }
+
+    public pinWorkspace(workspaceId: string, icon?: string): void {
+        this._controller.pinWorkspace(workspaceId, icon);
+    }
+
+    public unpinWorkspace(workspaceId: string): void {
+        this._controller.unpinWorkspace(workspaceId);
+    }
+
+    public setWorkspaceIcon(workspaceId: string, icon?: string): void {
+        const workspaceContentItem = store.getWorkspaceContentItem(workspaceId);
+        const wrapper = new WorkspaceWrapper(this.stateResolver, store.getById(workspaceId), workspaceContentItem, this.frameId);
+
+        wrapper.icon = icon;
+
+        if (wrapper.isPinned) {
+            uiExecutor.showWorkspaceIconButton({ workspaceTab: workspaceContentItem.tab, icon });
+        }
+    }
+
+    public setFrameContext(context?: object) {
+        this._context = context;
     }
 
     private resizeWorkspaceItem(args: ResizeItemArguments): void {
@@ -1267,7 +1339,7 @@ export class WorkspacesManager {
 
     private closeHibernatedWorkspaceCore(workspace: Workspace): void {
         const workspaceSummary = this.stateResolver.getWorkspaceSummary(workspace.id);
-        const snapshot = this.stateResolver.getSnapshot(workspace.id) as GoldenLayout.Config;
+        const snapshot = this.stateResolver.getSnapshot(workspace.id, this) as GoldenLayout.Config;
         const windowSummaries = this.stateResolver.extractWindowSummariesFromSnapshot(snapshot);
 
         workspace.windows.forEach((w) => this._frameController.remove(w.id));
@@ -1553,7 +1625,7 @@ export class WorkspacesManager {
         const allOtherWindows = store.workspaceIds.filter((wId) => wId !== workspace.id).reduce((acc, w) => {
             return [...acc, ...store.getById(w).windows];
         }, []);
-        const snapshot = this._stateResolver.getWorkspaceSnapshot(workspace.id);
+        const snapshot = this._stateResolver.getWorkspaceSnapshot(workspace.id, this);
         this._workspacesEventEmitter.raiseWorkspaceEvent({
             action: "opened",
             payload: {

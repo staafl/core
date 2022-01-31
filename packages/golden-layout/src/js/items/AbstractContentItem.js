@@ -147,7 +147,7 @@ lm.utils.copy(lm.items.AbstractContentItem.prototype, {
 	 * @param {[Int]} index If omitted item will be appended
 	 */
 	addChild: function (contentItem, index) {
-		if (index === undefined) {
+		if (index === undefined || index > this.contentItems.length) {
 			index = this.contentItems.length;
 		}
 

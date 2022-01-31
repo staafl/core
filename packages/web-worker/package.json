@@ -1,13 +1,14 @@
 {
     "name": "@glue42/web-worker",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "main": "dist/web.worker.umd.js",
     "module": "dist/web.worker.es.js",
     "types": "./web.worker.d.ts",
     "scripts": {
         "build": "rollup -c",
         "test": "echo \"Error: no test specified\"",
-        "audit": "node ../../scripts/audit/index.js",
+        "audit": "echo no audit found",
+        "audit:V1": "node ../../scripts/audit/index.js",
         "preversion": "npm run build && npm run test && npm run audit",
         "version": "npm run build"
     },

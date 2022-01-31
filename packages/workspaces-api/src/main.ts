@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { IoC } from "./shared/ioc";
-import { checkThrowCallback, nonEmptyStringDecoder, workspaceLayoutDecoder, workspaceDefinitionDecoder, workspaceBuilderCreateConfigDecoder, builderConfigDecoder, restoreWorkspaceConfigDecoder, workspaceLayoutSaveConfigDecoder } from "./shared/decoders";
+import { checkThrowCallback, nonEmptyStringDecoder, workspaceLayoutDecoder, workspaceDefinitionDecoder, workspaceBuilderCreateConfigDecoder, builderConfigDecoder, restoreWorkspaceConfigDecoder, workspaceLayoutSaveConfigDecoder, emptyFrameDefinitionDecoder } from "./shared/decoders";
 import { FrameStreamData, WorkspaceStreamData, WorkspaceSnapshotResult, WindowStreamData } from "./types/protocol";
 import { FrameCreateConfig, WorkspaceIoCCreateConfig } from "./types/ioc";
 import { Glue42Workspaces } from "./../workspaces";
 import { WorkspacesController } from "./types/controller";
+import { API, EmptyFrameDefinition } from "../temp";
 
-export const composeAPI = (glue: any, ioc: IoC): Glue42Workspaces.API => {
+export const composeAPI = (glue: any, ioc: IoC): API => {
 
     const controller: WorkspacesController = ioc.controller;
 
@@ -111,6 +112,12 @@ export const composeAPI = (glue: any, ioc: IoC): Glue42Workspaces.API => {
         const validatedConfig = workspaceBuilderCreateConfigDecoder.runWithException(saveConfig);
 
         return controller.createWorkspace(validatedDefinition, validatedConfig);
+    };
+
+    const createEmptyFrame = async (definition?: EmptyFrameDefinition): Promise<Glue42Workspaces.Frame> => {
+        const validatedDefinition = emptyFrameDefinitionDecoder.runWithException(definition);
+
+        return controller.createEmptyFrame(validatedDefinition ?? {});
     };
 
     const layouts = {
@@ -291,6 +298,7 @@ export const composeAPI = (glue: any, ioc: IoC): Glue42Workspaces.API => {
         getBox: getParent,
         restoreWorkspace,
         createWorkspace,
+        createEmptyFrame,
         waitForFrame,
         layouts,
         onFrameOpened,

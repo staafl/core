@@ -1,5 +1,5 @@
 // tslint:disable:no-unused-expression
-import { registerGenericStream } from "./helpers";
+import { registerGenericStream, unregisterGenericStream } from "./helpers";
 import { createGlue, doneAllGlues } from "../initializer";
 import { Glue42Core } from "../../glue";
 import { expect } from "chai";
@@ -19,6 +19,7 @@ describe("Client subscription", () => {
     });
 
     afterEach(async () => {
+        unregisterGenericStream();
         await doneAllGlues();
     });
 

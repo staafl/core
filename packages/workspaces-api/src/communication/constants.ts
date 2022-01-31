@@ -36,7 +36,13 @@ import {
     lockWorkspaceDecoder,
     lockWindowDecoder,
     lockContainerDecoder,
-    frameBoundsResultDecoder
+    frameBoundsResultDecoder,
+    getWorkspaceIconResultDecoder,
+    pinWorkspaceDecoder,
+    setWorkspaceIconDecoder,
+    frameSummaryResultDecoder,
+    emptyFrameDefinitionDecoder,
+    frameInitProtocolConfigDecoder
 } from "../shared/decoders";
 import { ControlOperation, StreamOperation } from "../types/protocol";
 import { WorkspaceEventType } from "../types/subscription";
@@ -75,7 +81,13 @@ type OperationsTypes = "isWindowInWorkspace" |
     "resumeWorkspace" |
     "lockWorkspace" |
     "lockWindow" |
-    "lockContainer";
+    "lockContainer" |
+    "pinWorkspace" |
+    "unpinWorkspace" |
+    "getWorkspaceIcon" |
+    "setWorkspaceIcon" |
+    "createFrame" |
+    "initFrame";
 type MethodsTypes = "control" | "frameStream" | "workspaceStream" | "containerStream" | "windowStream";
 
 export const webPlatformMethodName = "T42.Web.Platform.Control";
@@ -100,6 +112,8 @@ export const OPERATIONS: { [key in OperationsTypes]: ControlOperation } = {
     ping: { name: "ping", resultDecoder: pingResultDecoder },
     isWindowInWorkspace: { name: "isWindowInWorkspace", argsDecoder: simpleItemConfigDecoder, resultDecoder: isWindowInSwimlaneResultDecoder },
     createWorkspace: { name: "createWorkspace", resultDecoder: workspaceSnapshotResultDecoder, argsDecoder: workspaceCreateConfigDecoder },
+    createFrame: { name: "createFrame", resultDecoder: frameSummaryResultDecoder, argsDecoder: emptyFrameDefinitionDecoder },
+    initFrame: { name: "initFrame", resultDecoder: voidResultDecoder, argsDecoder: frameInitProtocolConfigDecoder },
     getAllFramesSummaries: { name: "getAllFramesSummaries", resultDecoder: frameSummariesResultDecoder },
     getFrameSummary: { name: "getFrameSummary", resultDecoder: frameSummaryDecoder, argsDecoder: getFrameSummaryConfigDecoder },
     getAllWorkspacesSummaries: { name: "getAllWorkspacesSummaries", resultDecoder: workspaceSummariesResultDecoder },
@@ -131,5 +145,9 @@ export const OPERATIONS: { [key in OperationsTypes]: ControlOperation } = {
     resumeWorkspace: { name: "resumeWorkspace", argsDecoder: workspaceSelectorDecoder, resultDecoder: voidResultDecoder },
     lockWorkspace: { name: "lockWorkspace", argsDecoder: lockWorkspaceDecoder, resultDecoder: voidResultDecoder },
     lockWindow: { name: "lockWindow", argsDecoder: lockWindowDecoder, resultDecoder: voidResultDecoder },
-    lockContainer: { name: "lockContainer", argsDecoder: lockContainerDecoder, resultDecoder: voidResultDecoder }
+    lockContainer: { name: "lockContainer", argsDecoder: lockContainerDecoder, resultDecoder: voidResultDecoder },
+    pinWorkspace: { name: "pinWorkspace", argsDecoder: pinWorkspaceDecoder, resultDecoder: voidResultDecoder },
+    unpinWorkspace: { name: "unpinWorkspace", argsDecoder: workspaceSelectorDecoder, resultDecoder: voidResultDecoder },
+    getWorkspaceIcon: { name: "getWorkspaceIcon", argsDecoder: workspaceSelectorDecoder, resultDecoder: getWorkspaceIconResultDecoder },
+    setWorkspaceIcon: { name: "setWorkspaceIcon", argsDecoder: setWorkspaceIconDecoder, resultDecoder: voidResultDecoder }
 };

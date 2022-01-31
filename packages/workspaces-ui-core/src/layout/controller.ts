@@ -31,6 +31,7 @@ export class LayoutController {
     private readonly _stackRestoreLabel = "restore";
     private readonly _configFactory: WorkspacesConfigurationFactory;
     private _showLoadingIndicator: boolean;
+    private _tabObserver: TabObserver;
 
     constructor(emitter: LayoutEventEmitter,
         stateResolver: LayoutStateResolver,
@@ -54,8 +55,8 @@ export class LayoutController {
     public async init(config: FrameLayoutConfig): Promise<void> {
         this._frameId = config.frameId;
         this._showLoadingIndicator = config.showLoadingIndicator;
-        const tabObserver = new TabObserver();
-        tabObserver.init(this._workspaceLayoutElementId);
+        this._tabObserver = new TabObserver();
+        this._tabObserver.init(this._workspaceLayoutElementId);
         await this.initWorkspaceConfig(config.workspaceLayout);
         this.refreshLayoutSize();
         await Promise.all(config.workspaceConfigs.map(async (c) => {
@@ -297,26 +298,56 @@ export class LayoutController {
         const componentConfig: GoldenLayout.ComponentConfig = {
             componentName: this._configFactory.getWorkspaceLayoutComponentName(id),
             type: "component",
-            workspacesConfig: {},
+            workspacesConfig: {
+                ...config.workspacesOptions
+            },
             id,
             noTabHeader: config?.workspacesOptions?.noTabHeader,
             title: (config?.workspacesOptions as any)?.title || this._configFactory.getWorkspaceTitle(store.workspaceTitles)
         };
 
+        let shouldActivateChild = true;
+
+        if (componentConfig.noTabHeader === true) {
+            shouldActivateChild = false;
+        } else if (typeof config.workspacesOptions.selected === "boolean") {
+            shouldActivateChild = config.workspacesOptions.selected;
+        }
+
         this.registerWorkspaceComponent(id);
 
-        stack.addChild(componentConfig, undefined, !componentConfig.noTabHeader);
+        const index = config.workspacesOptions?.positionIndex;
+        delete config.workspacesOptions?.positionIndex;
+
+        if (index < 0) {
+            throw new Error(`Cannot place the workspace on index ${index} because its negative`);
+        }
+
+        const lastPinnedTabIndex = ((stack as GoldenLayout.Stack).header as any)._getLastIndexOfPinnedTab();
+        if (index <= lastPinnedTabIndex && !config.workspacesOptions.isPinned) {
+            throw new Error(`Cannot place and unpinned workspace before the last pinned workspace at position ${lastPinnedTabIndex}`);
+        }
+
+        stack.addChild(componentConfig, index, shouldActivateChild);
 
         await this.initWorkspaceContents(id, config, false);
 
-        const wrapper = new WorkspaceWrapper(this._stateResolver, store.getById(id), store.getWorkspaceContentItem(id), this._frameId);
+        const workspaceContentItem = store.getWorkspaceContentItem(id);
+        const wrapper = new WorkspaceWrapper(this._stateResolver, store.getById(id), workspaceContentItem, this._frameId);
 
         if (wrapper.showCloseButton === false) {
-            uiExecutor.hideWorkspaceCloseButton(id);
+            uiExecutor.hideWorkspaceCloseButton({ workspaceTab: workspaceContentItem.tab });
         }
 
         if (wrapper.showSaveButton === false) {
-            uiExecutor.hideWorkspaceSaveButton(id);
+            uiExecutor.hideWorkspaceSaveButton({ workspaceTab: workspaceContentItem.tab });
+        }
+
+        if (wrapper.isPinned) {
+            uiExecutor.replaceWorkspaceSaveButtonWithIcon({ workspaceTab: workspaceContentItem.tab, icon: wrapper.icon });
+            uiExecutor.waitForTransition(workspaceContentItem.tab.element[0]).then(() => {
+                this._tabObserver.refreshTabsMaxWidth(workspaceContentItem.parent.header.tabsContainer);
+            });
         }
 
         this.setupContentLayouts(id);
@@ -643,7 +674,9 @@ export class LayoutController {
         const wrapper = new WorkspaceWrapper(this._stateResolver, workspace, workspaceContentItem, this._frameId);
 
         wrapper.showSaveButton = true;
-        uiExecutor.showWorkspaceSaveButton(workspaceId);
+        if (!wrapper.isPinned) {
+            uiExecutor.showWorkspaceSaveButton({ workspaceTab: workspaceContentItem.tab });
+        }
     }
 
     public disableWorkspaceSaveButton(workspaceId: string): void {
@@ -652,7 +685,7 @@ export class LayoutController {
         const wrapper = new WorkspaceWrapper(this._stateResolver, workspace, workspaceContentItem, this._frameId);
 
         wrapper.showSaveButton = false;
-        uiExecutor.hideWorkspaceSaveButton(workspaceId);
+        uiExecutor.hideWorkspaceSaveButton({ workspaceTab: workspaceContentItem.tab });
     }
 
     public enableWorkspaceCloseButton(workspaceId: string): void {
@@ -661,7 +694,9 @@ export class LayoutController {
         const wrapper = new WorkspaceWrapper(this._stateResolver, workspace, workspaceContentItem, this._frameId);
 
         wrapper.showCloseButton = true;
-        uiExecutor.showWorkspaceCloseButton(workspaceId);
+        if (!wrapper.isPinned) {
+            uiExecutor.showWorkspaceCloseButton({ workspaceTab: workspaceContentItem.tab });
+        }
     }
 
     public disableWorkspaceCloseButton(workspaceId: string): void {
@@ -670,7 +705,7 @@ export class LayoutController {
         const wrapper = new WorkspaceWrapper(this._stateResolver, workspace, workspaceContentItem, this._frameId);
 
         wrapper.showCloseButton = false;
-        uiExecutor.hideWorkspaceCloseButton(workspaceId);
+        uiExecutor.hideWorkspaceCloseButton({ workspaceTab: workspaceContentItem.tab });
     }
 
     public enableSplitters(workspaceId: string): void {
@@ -1052,6 +1087,57 @@ export class LayoutController {
         this.resizeComponentCore(componentItem, width, height);
     }
 
+    public togglePinWorkspace(workspaceId: string): void {
+        const workspace = store.getById(workspaceId);
+        const workspaceContentItem = store.getWorkspaceContentItem(workspaceId);
+        const workspaceWrapper = new WorkspaceWrapper(this._stateResolver, workspace, workspaceContentItem, this._frameId);
+
+        if (workspaceWrapper.isPinned) {
+            this.unpinWorkspace(workspaceId);
+        } else {
+            this.pinWorkspace(workspaceId, undefined);
+        }
+    }
+
+    public pinWorkspace(workspaceId: string, icon: string): void {
+        const workspaceContentItem = store.getWorkspaceContentItem(workspaceId);
+        const wrapper = new WorkspaceWrapper(this._stateResolver, store.getById(workspaceId), workspaceContentItem, this._frameId);
+
+        const iconToUse = icon || wrapper.icon;
+
+        if (!iconToUse) {
+            throw new Error(`Workspace ${workspaceId} cannot be pinned because ${iconToUse} is an invalid icon`);
+        }
+
+        workspaceContentItem.tab.pin();
+
+        if (icon) {
+            wrapper.icon = icon;
+        }
+
+        uiExecutor.replaceWorkspaceSaveButtonWithIcon({ workspaceTab: workspaceContentItem.tab, icon: iconToUse });
+        uiExecutor.waitForTransition(workspaceContentItem.tab.element[0]).then(() => {
+            this._tabObserver.refreshTabsMaxWidth(workspaceContentItem.parent.header.tabsContainer);
+        });
+    }
+
+    public unpinWorkspace(workspaceId: string): void {
+        const workspaceContentItem = store.getWorkspaceContentItem(workspaceId);
+        const wrapper = new WorkspaceWrapper(this._stateResolver, store.getById(workspaceId), workspaceContentItem, this._frameId);
+        workspaceContentItem.tab.unpin();
+
+        if (wrapper.showSaveButton) {
+            uiExecutor.showWorkspaceSaveButton({ workspaceTab: workspaceContentItem.tab });
+        }
+        if (!wrapper.showCloseButton) {
+            uiExecutor.hideWorkspaceCloseButton({ workspaceTab: workspaceContentItem.tab });
+        }
+        uiExecutor.hideWorkspaceIconButton({ workspaceTab: workspaceContentItem.tab });
+        uiExecutor.waitForTransition(workspaceContentItem.tab.element[0]).then(() => {
+            this._tabObserver.refreshTabsMaxWidth(workspaceContentItem.parent.header.tabsContainer);
+        });
+    }
+
     private resizeComponentCore(componentItem: GoldenLayout.Component, width?: number, height?: number): void {
         const widthToResize = this.validateComponentWidth(componentItem, width);
         const heightToResize = this.validateComponentHeight(componentItem, height);
@@ -1231,8 +1317,8 @@ export class LayoutController {
 
         if (!(config as GoldenLayout.Config).settings) {
             (config as GoldenLayout.Config).settings = this._configFactory.getDefaultWorkspaceSettings();
-
         }
+
         if (config.type && config.type !== "workspace") {
             // Wrap the component in a column when you don't have a workspace;
             config = {
@@ -1244,11 +1330,14 @@ export class LayoutController {
         }
         const workspaceContentItem = store.getWorkspaceContentItem(id);
 
-        // TODO fix typings
-        const optionsFromItem = (workspaceContentItem.config as any).workspacesConfig;
+        const optionsFromItem = workspaceContentItem.config.workspacesConfig;
         const optionsFromConfig = (config as GoldenLayout.Config).workspacesOptions;
 
         const mergedOptions = useWorkspaceSpecificConfig ? Object.assign({}, optionsFromItem, optionsFromConfig) : optionsFromConfig;
+
+        if (typeof mergedOptions.selected === "boolean") {
+            delete mergedOptions.selected;
+        }
 
         workspaceContentItem.config.workspacesConfig = mergedOptions;
         (config as GoldenLayout.Config).workspacesOptions = mergedOptions;
@@ -1363,13 +1452,7 @@ export class LayoutController {
                 uiExecutor.hideMaximizeButton(stack);
             }
 
-            const ejectButton = (stack as any)
-                .element
-                .children(".lm_header")
-                .children(".lm_controls")
-                .children(".lm_popout")[0];
-
-            if ((layout.config.workspacesOptions as any).showEjectButtons === false && wrapper.showEjectButton !== true) {
+            if (layout.config.workspacesOptions.showEjectButtons === false && wrapper.showEjectButton !== true) {
                 uiExecutor.hideAddWindowButton(stack);
             }
 
@@ -1391,7 +1474,7 @@ export class LayoutController {
                 stack.header.controlsContainer.prepend($(button));
             }
 
-            if ((layout.config.workspacesOptions as any).showAddWindowButtons === false && wrapper.showAddWindowButton !== true) {
+            if (layout.config.workspacesOptions.showAddWindowButtons === false && wrapper.showAddWindowButton !== true) {
                 uiExecutor.hideAddWindowButton(stack);
             }
 
@@ -1536,6 +1619,23 @@ export class LayoutController {
 
             store.workspaceLayout.on("initialised", () => {
                 this.emitter.raiseEvent("workspace-layout-initialised", {});
+
+                const stack = store.workspaceLayout.root.getItemsByType("stack")[0] as GoldenLayout.Stack;
+                const tabs = stack.header.tabs as GoldenLayout.Tab[];
+                tabs.forEach((tab) => {
+                    const wrapper = new WorkspaceWrapper(this._stateResolver, undefined, tab.contentItem as GoldenLayout.Component, this._frameId);
+                    if (wrapper.isPinned) {
+                        uiExecutor.replaceWorkspaceSaveButtonWithIcon({ workspaceTab: tab, icon: wrapper.icon });
+                        uiExecutor.waitForTransition(tab.element[0]).then(() => {
+                            this._tabObserver.refreshTabsMaxWidth((tab.contentItem.parent as GoldenLayout.Stack).header.tabsContainer);
+                        });
+                    }
+
+                    if (tab.contentItem?.config?.workspacesConfig?.selected) {
+                        delete tab.contentItem.config.workspacesConfig.selected;
+                    }
+                });
+
                 res();
             });
 
@@ -1619,12 +1719,18 @@ export class LayoutController {
 
             store.workspaceLayout.on("tabCreated", (tab: GoldenLayout.Tab) => {
                 const saveButton = document.createElement("div");
+                const iconButton = document.createElement("div");
+                const iconButtonContent = document.createElement("span");
+                iconButton.classList.add("lm_iconButton");
+                iconButtonContent.classList.add("lm_iconButtonContent");
+                iconButton.appendChild(iconButtonContent);
                 saveButton.classList.add("lm_saveButton");
                 saveButton.onclick = (e): void => {
                     // e.stopPropagation();
                     this.emitter.raiseEvent("workspace-save-requested", { workspaceId: idAsString(tab.contentItem.config.id) });
                 };
                 if (!this._options.disableCustomButtons) {
+                    tab.element[0].prepend(iconButton);
                     tab.element[0].prepend(saveButton);
                     tab.element[0].onclick = (e): void => {
                         if (e.composedPath().indexOf(saveButton) !== -1) {
@@ -1635,6 +1741,17 @@ export class LayoutController {
                 }
 
                 this.refreshTabSizeClass(tab);
+
+                const workspace = store.getById(tab.contentItem.config.id);
+                const wrapper = new WorkspaceWrapper(this._stateResolver, workspace, tab.contentItem as GoldenLayout.Component, this._frameId);
+
+                if (wrapper.showSaveButton === false) {
+                    uiExecutor.hideWorkspaceSaveButton({ workspaceTab: tab });
+                }
+
+                if (wrapper.showCloseButton === false) {
+                    uiExecutor.hideWorkspaceCloseButton({ workspaceTab: tab });
+                }
 
                 tab._dragListener.on("reorderStop", () => {
                     store.syncWorkspaceOrder();

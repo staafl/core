@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { WorkspaceSnapshotResult, WindowStreamData } from "../types/protocol";
-import { checkThrowCallback, nonEmptyStringDecoder, workspaceLockConfigDecoder } from "../shared/decoders";
+import { checkThrowCallback, nonEmptyStringDecoder, workspaceLockConfigDecoder, workspacePinOptionsDecoder } from "../shared/decoders";
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { FrameCreateConfig } from "../types/ioc";
 import { Frame } from "./frame";
 import { SubscriptionConfig } from "../types/subscription";
 import { WorkspacePrivateData } from "../types/privateData";
 import { Glue42Workspaces } from "../../workspaces";
+import { WorkspacePinOptions } from "../../temp";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -138,6 +139,10 @@ export class Workspace implements Glue42Workspaces.Workspace {
         return getData(this).config.showAddWindowButtons;
     }
 
+    public get isPinned(): boolean {
+        return getData(this).config.isPinned;
+    }
+
     public async removeChild(predicate: (child: Glue42Workspaces.WorkspaceElement) => boolean): Promise<void> {
         checkThrowCallback(predicate);
         const child = this.children.find(predicate);
@@ -246,6 +251,16 @@ export class Workspace implements Glue42Workspaces.Workspace {
             children: newChildren,
             frame: actualFrame
         });
+    }
+
+    public async getIcon(): Promise<string> {
+        const controller = getData(this).controller;
+        return controller.getWorkspaceIcon(this.id);
+    }
+
+    public async setIcon(icon: string): Promise<void> {
+        const controller = getData(this).controller;
+        return controller.setWorkspaceIcon(this.id, icon);
     }
 
     public getBox(predicate: (box: Glue42Workspaces.WorkspaceBox) => boolean): Glue42Workspaces.WorkspaceBox {
@@ -394,6 +409,17 @@ export class Workspace implements Glue42Workspaces.Workspace {
         const verifiedConfig = lockConfigResult === undefined ? undefined : workspaceLockConfigDecoder.runWithException(lockConfigResult);
 
         await getData(this).controller.lockWorkspace(this.id, verifiedConfig);
+        await this.refreshReference();
+    }
+
+    public async pin(options: WorkspacePinOptions): Promise<void> {
+        workspacePinOptionsDecoder.runWithException(options);
+        await getData(this).controller.pinWorkspace(this.id, options?.icon);
+        await this.refreshReference();
+    }
+
+    public async unpin(): Promise<void> {
+        await getData(this).controller.unpinWorkspace(this.id);
         await this.refreshReference();
     }
 

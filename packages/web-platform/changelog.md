@@ -1,3 +1,9 @@
+1.9.4
+feat: added positionIndex property as a config when opening workspaces
+1.9.3
+feat: added support for the API frame initialization
+1.9.2
+feat: added support for workspace pinned tabs and workspace icons
 1.9.1
 chore: bump due to dependencies update
 1.9.0

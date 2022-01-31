@@ -1,4 +1,6 @@
 describe('saveLayout() Should ', function () {
+    const iconForTesting = `data:image/svg+xml,%3Csvg version='1.1' xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 512 512'%3E%3Cpath
+    d='M224 448v-96h64v96l-32 64zM336 224v-160c48 0 80-32 80-64v0 0h-320c0 32 32 64 80 64v160c-73.6 22.4-112 64-112 128h384c0-64-38.4-105.6-112-128z'%3E%3C/path%3E%3C/svg%3E%0A`;
     const basicConfig = {
         children: [
             {
@@ -118,6 +120,41 @@ describe('saveLayout() Should ', function () {
         await workspace.refreshReference();
 
         expect(workspace.title).to.eql(title);
+    });
+
+    it("save a layout with isPinned:false when the workspace is not pinned", async () => {
+        const layoutName = gtf.getWindowName("layout.integration");
+
+        await workspace.saveLayout(layoutName);
+        const savedLayout = (await glue.workspaces.layouts.export()).find(l => l.name === layoutName);
+
+        expect(savedLayout.components[0].state.config.isPinned).to.eql(false);
+    });
+
+    it("save a layout with isPinned:true when the workspace is pinned", async () => {
+        const layoutName = gtf.getWindowName("layout.integration");
+        await workspace.pin({ icon: iconForTesting });
+        await workspace.saveLayout(layoutName);
+        const savedLayout = (await glue.workspaces.layouts.export()).find(l => l.name === layoutName);
+
+        expect(savedLayout.components[0].state.config.isPinned).to.eql(true);
+    });
+
+    it("save a layout with an icon when the workspace has an icon", async () => {
+        const layoutName = gtf.getWindowName("layout.integration");
+        await workspace.pin({ icon: iconForTesting });
+        await workspace.saveLayout(layoutName);
+        const savedLayout = (await glue.workspaces.layouts.export()).find(l => l.name === layoutName);
+
+        expect(savedLayout.components[0].state.config.icon).to.eql(iconForTesting);
+    });
+
+    it("save a layout without an icon when the workspace doesn't have an icon", async () => {
+        const layoutName = gtf.getWindowName("layout.integration");
+        await workspace.saveLayout(layoutName);
+        const savedLayout = (await glue.workspaces.layouts.export()).find(l => l.name === layoutName);
+
+        expect(savedLayout.components[0].state.config.icon).to.be.null; // the interop converts undefined to null
     });
 
     it("successfully save the passed metadata", async () => {

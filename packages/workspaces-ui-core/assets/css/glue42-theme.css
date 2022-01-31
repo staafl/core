@@ -157,12 +157,19 @@
 .lm_header .lm_tab::after {
   background-color: rgb(var(--t42-bg-dark));
 }
+.lm_header .lm_tab .lm_iconButton .lm_iconButtonContent,
+.lm_header .lm_tab .lm_saveButton .lm_iconButtonContent,
+.lm_header .lm_tab .lm_iconButton::before,
 .lm_header .lm_tab .lm_saveButton::before {
   background-color: var(--t42-content-color-muted);
 }
+.lm_header .lm_tab .lm_iconButton:hover,
 .lm_header .lm_tab .lm_saveButton:hover {
   background-color: var(--t42-color-opacity-10);
 }
+.lm_header .lm_tab .lm_iconButton:hover .lm_iconButtonContent,
+.lm_header .lm_tab .lm_saveButton:hover .lm_iconButtonContent,
+.lm_header .lm_tab .lm_iconButton:hover::before,
 .lm_header .lm_tab .lm_saveButton:hover::before {
   background-color: var(--t42-content-color);
 }

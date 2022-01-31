@@ -1,4 +1,4 @@
-import { WorkspaceItem, WorkspaceSnapshot, RowItem, ColumnItem, GroupItem, WindowDefinition, LoadingStrategy } from "../types/internal";
+import { WorkspaceItem, WorkspaceSnapshot, RowItem, ColumnItem, GroupItem, WindowDefinition, LoadingStrategy, WindowItem } from "../types/internal";
 
 //#region Requests
 
@@ -162,6 +162,36 @@ export interface ResizeItemRequest {
     operationArguments: ResizeItemArguments;
 }
 
+export interface PinWorkspaceRequest {
+    operation: "pinWorkspace";
+    operationArguments: PinWorkspaceArguments;
+}
+
+export interface UnpinWorkspaceRequest {
+    operation: "unpinWorkspace";
+    operationArguments: WorkspaceSelector;
+}
+
+export interface GetWorkspaceIconRequest {
+    operation: "getWorkspaceIcon";
+    operationArguments: WorkspaceSelector;
+}
+
+export interface SetWorkspaceIconRequest {
+    operation: "setWorkspaceIcon";
+    operationArguments: SetWorkspaceIconArguments;
+}
+
+export interface InitFrameRequest {
+    operation: "initFrame";
+    operationArguments: InitFrameArguments;
+}
+
+export interface CreateFrameRequest {
+    operation: "createFrame";
+    operationArguments: CreateFrameArguments;
+}
+
 //#endregion
 
 //#region Arguments
@@ -201,6 +231,10 @@ export interface RestoreWorkspaceConfig {
     noTabHeader?: boolean;
     reuseWorkspaceId?: string;
     loadingStrategy?: LoadingStrategy;
+    icon?: string;
+    isPinned?: boolean;
+    isSelected?: boolean;
+    positionIndex?: number;
 }
 
 export interface AddWindowArguments {
@@ -220,8 +254,28 @@ export interface AddWorkspaceChildrenArguments {
     children: Array<ColumnItem | RowItem | GroupItem>;
 }
 
-export interface CreateWorkspaceArguments extends WorkspaceItem {
-    // add the save config
+export interface WorkspaceDefinition {
+    children: Array<RowItem | ColumnItem | GroupItem | WindowItem>;
+    config?: {
+        name?: string;
+        context?: object;
+        reuseWorkspaceId?: string;
+        minWidth?: number;
+        maxWidth?: number;
+        minHeight?: number;
+        maxHeight?: number;
+        allowDrop?: boolean;
+        allowExtract?: boolean;
+        showEjectButtons?: boolean;
+        allowSplitters?: boolean;
+        showWindowCloseButtons?: boolean;
+        showAddWindowButtons?: boolean;
+        isSelected?: boolean;
+    };
+}
+
+export interface CreateWorkspaceArguments extends WorkspaceDefinition {
+    type?: "workspace";
     saveConfig?: object;
     context?: object;
     loadingStrategy: LoadingStrategy;
@@ -309,6 +363,25 @@ export interface ResizeItemArguments {
     height?: number;
 }
 
+export interface PinWorkspaceArguments {
+    workspaceId: string;
+    frameId?: string;
+    icon?: string;
+}
+
+export interface SetWorkspaceIconArguments {
+    workspaceId: string;
+    icon?: string;
+}
+
+export interface InitFrameArguments {
+    workspaces: Array<OpenWorkspaceArguments | CreateWorkspaceArguments>;
+}
+
+export interface CreateFrameArguments {
+    context?: object;
+}
+
 //#endregion
 
 //#region Results
@@ -369,4 +442,5 @@ export type ControlArguments = SaveLayoutRequest | DeleteLayoutRequest |
     AddWorkspaceChildrenRequest | EjectRequest | CreateWorkspaceRequest | ForceLoadWindowRequest | FocusItemRequest |
     BundleWorkspaceRequest | IsWindowInWorkspaceRequest | GetFrameSummaryRequest | MoveFrameRequest | GetFrameSnapshotRequest |
     GetSnapshotRequest | MoveWindowToRequest | GenerateLayoutRequest | PingRequest | HibernateWorkspaceRequest | ResumeWorkspaceRequest |
-    LockWorkspaceRequest | LockContainerRequest | LockWindowRequest | ResizeItemRequest;
+    LockWorkspaceRequest | LockContainerRequest | LockWindowRequest | ResizeItemRequest | PinWorkspaceRequest | UnpinWorkspaceRequest |
+    GetWorkspaceIconRequest | SetWorkspaceIconRequest | InitFrameRequest | CreateFrameRequest;

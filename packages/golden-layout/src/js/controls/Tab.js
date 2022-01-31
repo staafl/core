@@ -16,6 +16,7 @@ lm.controls.Tab = function (header, contentItem) {
 	this.closeElement = this.element.find('.lm_close_tab');
 	this.closeElement[contentItem.config.isClosable ? 'show' : 'hide']();
 	this.isActive = false;
+	this.isPinned = false;
 
 	this.setTitle(contentItem.config.title);
 	this.contentItem.on('titleChanged', this.setTitle, this);
@@ -83,6 +84,42 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 	},
 
 	onCloseClick: undefined,
+	pin: function (index) {
+		if (this.isPinned) {
+			return;
+		}
+		this.titleElement.hide();
+		this.closeElement.hide();
+
+		const currentIndex = this.header.tabs.indexOf(this);
+		const lastPinnedTabIndex = this.header._getLastIndexOfPinnedTab();
+
+		let newIndex = lastPinnedTabIndex + 1;
+		if (typeof index === "number") {
+			newIndex = Math.min(index, lastPinnedTabIndex + 1);;
+		}
+
+		this.header.moveTab(currentIndex, newIndex);
+		this.element.addClass('lm_pinned');
+		this.isPinned = true;
+	},
+	unpin: function () {
+		if (!this.isPinned) {
+			return;
+		}
+		this.titleElement.show();
+		this.closeElement.show();
+
+		const currentIndex = this.header.tabs.indexOf(this);
+		const lastPinnedTabIndex = this.header._getLastIndexOfPinnedTab();
+		if (currentIndex != lastPinnedTabIndex) {
+			this.header.moveTab(currentIndex, lastPinnedTabIndex);
+		}
+
+		this.element.removeClass('lm_pinned');
+
+		this.isPinned = false;
+	},
 
 	/**
 	 * Sets this tab's active state. To programmatically
@@ -213,6 +250,19 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 		this.element.css("z-index", `42`);
 	},
 	_onReorderStop: function (x, y) {
+		const tabIndex = this.header.tabs.indexOf(this);
+		const lastPinnedTabIndex = this.header._getLastIndexOfPinnedTab((t) => t != this);
+
+		// Triggered when a pinned tab is put after an unpinned one
+		if (this.isPinned && lastPinnedTabIndex + 1 < tabIndex) {
+			this.header.moveTab(tabIndex, lastPinnedTabIndex + 1);
+		}
+
+		// Triggered when a unpinned tab is put before a pinned one
+		if (!this.isPinned && tabIndex < lastPinnedTabIndex) {
+			this.header.moveTab(tabIndex, lastPinnedTabIndex);
+		}
+
 		this.element.css("left", "");
 		this.element.css("width", "");
 		this.element.css("position", "");

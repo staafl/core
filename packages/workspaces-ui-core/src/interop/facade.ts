@@ -27,10 +27,14 @@ import {
     LockWindowArguments,
     LockWorkspaceArguments,
     ResizeItemArguments,
+    PinWorkspaceArguments,
+    SetWorkspaceIconArguments,
+    InitFrameArguments,
+    CreateFrameArguments,
 } from "./types";
 import manager from "../manager";
 import store from "../state/store";
-import { WorkspaceSummary, ColumnItem, RowItem, WorkspaceLayout, WorkspaceItem } from "../types/internal";
+import { WorkspaceSummary, ColumnItem, RowItem, WorkspaceLayout, WorkspaceItem, FrameSummary } from "../types/internal";
 import GoldenLayout, { RowConfig, ColumnConfig } from "@glue42/golden-layout";
 import { idAsString } from "../utils";
 import { Glue42Web } from "@glue42/web";
@@ -217,6 +221,28 @@ export class GlueFacade {
                     this.handleResizeItem(args.operationArguments);
                     successCallback(undefined);
                     break;
+                case "pinWorkspace":
+                    this.handlePinWorkspace(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "unpinWorkspace":
+                    this.handleUnpinWorkspace(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "getWorkspaceIcon":
+                    successCallback(this.handleGetWorkspaceIcon(args.operationArguments));
+                    break;
+                case "setWorkspaceIcon":
+                    this.handleSetWorkspaceIcon(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "initFrame":
+                    await this.handleInitFrame(args.operationArguments);
+                    successCallback(undefined);
+                    break;
+                case "createFrame":
+                    successCallback(this.handleCreateFrame(args.operationArguments));
+                    break;
                 default:
                     errorCallback(`Invalid operation - ${((args as unknown) as { operation: string }).operation}`);
             }
@@ -242,9 +268,7 @@ export class GlueFacade {
             id: workspaceItem.id,
             children: workspaceItem.children,
             config: workspaceItem.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -275,9 +299,7 @@ export class GlueFacade {
             id: workspaceItem.id,
             children: workspaceItem.children,
             config: workspaceItem.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -409,24 +431,21 @@ export class GlueFacade {
         if (!operationArguments.config) {
             operationArguments.config = {};
         }
-        operationArguments.config.context = operationArguments.config.context || operationArguments.context;
-        operationArguments.config.allowDrop = undefined; // The property isn't supported in core
+        const workspaceItem = this.convertCreateWorkspaceArgumentsToWorkspaceItem(operationArguments);
 
-        this._constraintValidator.fixWorkspace(operationArguments);
+        this._constraintValidator.fixWorkspace(workspaceItem);
 
-        const config = this._converter.convertToRendererConfig(operationArguments);
+        const config = this._converter.convertToRendererConfig(workspaceItem);
         const workspaceId = await manager.createWorkspace(config as GoldenLayout.Config);
         const apiConfig = this._converter.convertToAPIConfig(manager.stateResolver.getWorkspaceConfig(workspaceId)) as WorkspaceItem;
 
-        this._locker.applyLockConfiguration(operationArguments, apiConfig);
+        this._locker.applyLockConfiguration(workspaceItem, apiConfig);
 
         return {
             id: apiConfig.id,
             children: apiConfig.children,
             config: apiConfig.config,
-            frameSummary: {
-                id: this._frameId
-            }
+            frameSummary: manager.getFrameSummary(this._frameId)
         };
     }
 
@@ -457,11 +476,11 @@ export class GlueFacade {
     }
 
     private handleGetFrameSnapshot() {
-        return manager.stateResolver.getFrameSnapshot();
+        return manager.stateResolver.getFrameSnapshot(manager);
     }
 
     private async handleGetSnapshot(operationArguments: ItemSelector) {
-        const snapshot = manager.stateResolver.getSnapshot(operationArguments.itemId);
+        const snapshot = manager.stateResolver.getSnapshot(operationArguments.itemId, manager);
         return snapshot;
     }
 
@@ -501,6 +520,58 @@ export class GlueFacade {
         return manager.resizeItem(operationArguments);
     }
 
+    private handlePinWorkspace(operationArguments: PinWorkspaceArguments): void {
+        return manager.pinWorkspace(operationArguments.workspaceId, operationArguments.icon);
+    }
+
+    private handleUnpinWorkspace(operationArguments: WorkspaceSelector): void {
+        return manager.unpinWorkspace(operationArguments.workspaceId);
+    }
+
+    private handleGetWorkspaceIcon(operationArguments: WorkspaceSelector): { icon?: string } {
+        const icon = manager.stateResolver.getWorkspaceIcon(operationArguments.workspaceId);
+        if (icon) {
+            return { icon };
+        } else {
+            return {};
+        }
+    }
+
+    private handleSetWorkspaceIcon(operationArguments: SetWorkspaceIconArguments): void {
+        manager.setWorkspaceIcon(operationArguments.workspaceId, operationArguments.icon);
+    }
+
+    private async handleInitFrame(operationArguments: InitFrameArguments): Promise<void> {
+        const contentConfigs = await Promise.all(operationArguments.workspaces.map(async (def) => {
+            const defAsLayout = def as OpenWorkspaceArguments;
+            const defAsWorkspace = def as CreateWorkspaceArguments;
+
+            if (defAsLayout.name) {
+                return this._configFactory.convertLayoutOptionsToWorkspaceItem(defAsLayout.name, defAsLayout.restoreOptions, manager.layoutsManager);
+            }
+
+            return this._converter.convertToRendererConfig(this.convertCreateWorkspaceArgumentsToWorkspaceItem(defAsWorkspace)) as GoldenLayout.Config;
+        }));
+        const workspaceIds = await manager.initFrameLayout(contentConfigs);
+
+        workspaceIds.forEach((workspaceId, i) => {
+            const workspaceItem = operationArguments.workspaces[i] as WorkspaceItem;
+            if (!workspaceItem.children) {
+                return;
+            }
+            const apiConfig = this._converter.convertToAPIConfig(manager.stateResolver.getWorkspaceConfig(workspaceId)) as WorkspaceItem;
+
+            this._locker.applyLockConfiguration(workspaceItem, apiConfig);
+        });
+
+    }
+
+    private handleCreateFrame(operationArguments: CreateFrameArguments): FrameSummary {
+        manager.setFrameContext(operationArguments?.context);
+
+        return manager.getFrameSummary(this._frameId);
+    }
+
     private publishEventData(action: EventActionType, payload: EventPayload, type: "workspace" | "frame" | "box" | "window"): void {
         const hasEventMethod = this._glue.agm.methods().some(m => m.name === this._workspacesEventMethod);
 
@@ -515,6 +586,21 @@ export class GlueFacade {
                 // console.warn(`Could not push data to ${this._workspacesEventMethod} because ${e.message}`);
             });
         }
+    }
+
+    private convertCreateWorkspaceArgumentsToWorkspaceItem(args: CreateWorkspaceArguments): WorkspaceItem {
+        const workspaceItem: WorkspaceItem = { ...args };
+        if (!workspaceItem.config) {
+            workspaceItem.config = {};
+        }
+        if (typeof args.config?.isSelected === "boolean") {
+            // The API friendly flag name is isSelected and to preserve backwards compatibility (the global layouts will use selected) the mapping is being made
+            workspaceItem.config.selected = args.config.isSelected;
+        }
+        workspaceItem.config.context = args.config?.context || args.context;
+        workspaceItem.config.allowDrop = undefined; // The property isn't supported in core
+
+        return workspaceItem;
     }
 }
 

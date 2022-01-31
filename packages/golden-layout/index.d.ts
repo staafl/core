@@ -458,6 +458,18 @@ declare module '@glue42/golden-layout' {
              * Enables the pinned functionality of a row or column
              */
             isPinned?:boolean;
+
+            /**
+             * The icon related to the workspace - will be used for pinned icon.
+             */
+            icon?: string;
+
+            selected?: boolean;
+
+            /**
+             * Specifies where the item should be placed
+             */
+            positionIndex?: number;
         }
 
         interface BaseItemConfig {
@@ -514,6 +526,7 @@ declare module '@glue42/golden-layout' {
         }
 
         export interface StackConfig extends BaseItemConfig {
+            activeItemIndex?: number;
             /**
             * The type of the item. Possible values are 'row', 'column', 'stack', 'component' and 'react-component'.
             */
@@ -642,6 +655,26 @@ declare module '@glue42/golden-layout' {
              * The name of the layout with which the workspace is associated with
              */
             layoutName?: string;
+
+            /**
+             * Controls whether the tab should be opened as pinned or not 
+             */
+            isPinned?:boolean;
+
+            /**
+             * The icon associated with the layout
+             */
+            icon?:string;
+
+            /**
+             * Flag which indicates how to workspace should open selected or not
+             */
+            selected?: boolean;
+
+            /**
+             * Specifies where the workspace should appear
+             */
+            positionIndex?: number;
         }
 
         export interface Config {
@@ -1353,6 +1386,21 @@ declare module '@glue42/golden-layout' {
              * Function which is called on tab close button click. Similar to the document .onclick function
              */
             onCloseClick: () => void;
+
+            /**
+             * Changed the tab state to pinned which consists of placing the workspace tab at the front of the frame and hiding its title close and save buttons
+             */
+            pin(): void;
+
+            /**
+             * Restores the workspace tab from a pinned to a normal state - the title, close and save button are shown and the tab is moved to the end of the pinned tabs
+             */
+            unpin():void;
+
+            /**
+             * Indicates whether the tab is pinned or not
+             */
+            isPinned: boolean;
         }
 
         export interface EventEmitter {

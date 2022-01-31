@@ -92,7 +92,8 @@ describe("convertToRendererConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    positionIndex: undefined
                 },
             };
 
@@ -146,7 +147,8 @@ describe("convertToRendererConfig() Should", () => {
                                     minWidth: undefined,
                                     maxWidth: undefined,
                                     minHeight: undefined,
-                                    maxHeight: undefined
+                                    maxHeight: undefined,
+                                    positionIndex: undefined
                                 }
                             }
                         ]
@@ -177,7 +179,8 @@ describe("convertToRendererConfig() Should", () => {
                                     minWidth: undefined,
                                     maxWidth: undefined,
                                     minHeight: undefined,
-                                    maxHeight: undefined
+                                    maxHeight: undefined,
+                                    positionIndex: undefined
                                 }
                             }
                         ]
@@ -208,7 +211,8 @@ describe("convertToRendererConfig() Should", () => {
                                     minWidth: undefined,
                                     maxWidth: undefined,
                                     minHeight: undefined,
-                                    maxHeight: undefined
+                                    maxHeight: undefined,
+                                    positionIndex: undefined
                                 }
                             }
                         ]
@@ -221,7 +225,8 @@ describe("convertToRendererConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    positionIndex: undefined
                 },
             };
 
@@ -290,7 +295,8 @@ describe("convertToRendererConfig() Should", () => {
                             minWidth: undefined,
                             maxWidth: undefined,
                             minHeight: undefined,
-                            maxHeight: undefined
+                            maxHeight: undefined,
+                            positionIndex: undefined
                         },
                     },
                     {
@@ -308,7 +314,8 @@ describe("convertToRendererConfig() Should", () => {
                             minWidth: undefined,
                             maxWidth: undefined,
                             minHeight: undefined,
-                            maxHeight: undefined
+                            maxHeight: undefined,
+                            positionIndex: undefined
                         },
                     },
                     {
@@ -325,7 +332,8 @@ describe("convertToRendererConfig() Should", () => {
                             minWidth: undefined,
                             maxWidth: undefined,
                             minHeight: undefined,
-                            maxHeight: undefined
+                            maxHeight: undefined,
+                            positionIndex: undefined
                         },
                     }
                 ],
@@ -336,7 +344,8 @@ describe("convertToRendererConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    positionIndex: undefined
                 },
             };
 
@@ -397,7 +406,8 @@ describe("convertToRendererConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    positionIndex: undefined
                 },
             };
 
@@ -418,7 +428,8 @@ describe("convertToRendererConfig() Should", () => {
                     minWidth: undefined,
                     maxWidth: undefined,
                     minHeight: undefined,
-                    maxHeight: undefined
+                    maxHeight: undefined,
+                    positionIndex: undefined
                 },
             };
 
@@ -465,7 +476,8 @@ describe("convertToRendererConfig() Should", () => {
                 minWidth: undefined,
                 maxWidth: undefined,
                 minHeight: undefined,
-                maxHeight: undefined
+                maxHeight: undefined,
+                positionIndex: undefined
             }
         };
 
@@ -510,7 +522,8 @@ describe("convertToRendererConfig() Should", () => {
                         minWidth: undefined,
                         maxWidth: undefined,
                         minHeight: undefined,
-                        maxHeight: undefined
+                        maxHeight: undefined,
+                        positionIndex: undefined
                     }
                 },
                 {
@@ -532,7 +545,8 @@ describe("convertToRendererConfig() Should", () => {
                         minWidth: undefined,
                         maxWidth: undefined,
                         minHeight: undefined,
-                        maxHeight: undefined
+                        maxHeight: undefined,
+                        positionIndex: undefined
                     }
                 },
                 {
@@ -554,7 +568,8 @@ describe("convertToRendererConfig() Should", () => {
                         minWidth: undefined,
                         maxWidth: undefined,
                         minHeight: undefined,
-                        maxHeight: undefined
+                        maxHeight: undefined,
+                        positionIndex: undefined
                     }
                 }
             ],
@@ -572,7 +587,8 @@ describe("convertToRendererConfig() Should", () => {
                 minWidth: undefined,
                 maxWidth: undefined,
                 minHeight: undefined,
-                maxHeight: undefined
+                maxHeight: undefined,
+                positionIndex: undefined
             },
         };
 
@@ -628,7 +644,8 @@ describe("convertToRendererConfig() Should", () => {
                         minWidth: undefined,
                         maxWidth: undefined,
                         minHeight: undefined,
-                        maxHeight: undefined
+                        maxHeight: undefined,
+                        positionIndex: undefined
                     }
                 }
             ]
@@ -686,7 +703,8 @@ describe("convertToRendererConfig() Should", () => {
                         minWidth: undefined,
                         maxWidth: undefined,
                         minHeight: undefined,
-                        maxHeight: undefined
+                        maxHeight: undefined,
+                        positionIndex: undefined
                     },
                 }
             ]
@@ -738,7 +756,8 @@ describe("convertToRendererConfig() Should", () => {
                 minWidth: undefined,
                 maxWidth: undefined,
                 minHeight: undefined,
-                maxHeight: undefined
+                maxHeight: undefined,
+                positionIndex: undefined
             },
         };
 
@@ -824,7 +843,8 @@ describe("convertToRendererConfig() Should", () => {
                                             minWidth: undefined,
                                             maxWidth: undefined,
                                             minHeight: undefined,
-                                            maxHeight: undefined
+                                            maxHeight: undefined,
+                                            positionIndex: undefined
                                         }
                                     }
                                 ],
@@ -842,7 +862,8 @@ describe("convertToRendererConfig() Should", () => {
                                     minWidth: undefined,
                                     maxWidth: undefined,
                                     minHeight: undefined,
-                                    maxHeight: undefined
+                                    maxHeight: undefined,
+                                    positionIndex: undefined
                                 },
                                 workspacesOptions: {},
                             }],
@@ -853,7 +874,8 @@ describe("convertToRendererConfig() Should", () => {
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                positionIndex: undefined
                             },
                             workspacesOptions: {},
                         },
@@ -890,7 +912,8 @@ describe("convertToRendererConfig() Should", () => {
                                                 minWidth: undefined,
                                                 maxWidth: undefined,
                                                 minHeight: undefined,
-                                                maxHeight: undefined
+                                                maxHeight: undefined,
+                                                positionIndex: undefined
                                             }
                                         }
                                     ],
@@ -908,7 +931,8 @@ describe("convertToRendererConfig() Should", () => {
                                         minWidth: undefined,
                                         maxWidth: undefined,
                                         minHeight: undefined,
-                                        maxHeight: undefined
+                                        maxHeight: undefined,
+                                        positionIndex: undefined
                                     },
                                     workspacesOptions: {},
                                 }],
@@ -919,7 +943,8 @@ describe("convertToRendererConfig() Should", () => {
                                     minWidth: undefined,
                                     maxWidth: undefined,
                                     minHeight: undefined,
-                                    maxHeight: undefined
+                                    maxHeight: undefined,
+                                    positionIndex: undefined
                                 },
                                 workspacesOptions: {},
                             }],
@@ -930,7 +955,8 @@ describe("convertToRendererConfig() Should", () => {
                                 minWidth: undefined,
                                 maxWidth: undefined,
                                 minHeight: undefined,
-                                maxHeight: undefined
+                                maxHeight: undefined,
+                                positionIndex: undefined
                             },
                             workspacesOptions: {},
                         }
@@ -942,7 +968,8 @@ describe("convertToRendererConfig() Should", () => {
                         minWidth: undefined,
                         maxWidth: undefined,
                         minHeight: undefined,
-                        maxHeight: undefined
+                        maxHeight: undefined,
+                        positionIndex: undefined
                     },
                     workspacesOptions: {},
                 }

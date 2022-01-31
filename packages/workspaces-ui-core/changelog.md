@@ -1,3 +1,11 @@
+1.7.4
+feat: added positionIndex property as a config when opening workspaces
+chore: added null check for workspaceOptions when initializing the frame
+1.7.3
+feat: added support for the API frame initialization
+1.7.2
+feat: added isSelected to control how the workspace is being opened
+feat: pinned tabs support and workspace icons
 1.7.1
 chore: bump due to dependencies update
 1.7.0

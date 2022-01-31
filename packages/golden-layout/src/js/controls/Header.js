@@ -100,7 +100,7 @@ lm.utils.copy(lm.controls.Header.prototype, {
 			return;
 		}
 
-		if (index === undefined) {
+		if (index === undefined || index > this.tabs.length) {
 			index = this.tabs.length;
 		}
 
@@ -515,6 +515,21 @@ lm.utils.copy(lm.controls.Header.prototype, {
 			this.tabsContainer.append(tabElement);
 		}
 
+	},
+
+	_getLastIndexOfPinnedTab(filter) {
+		const lastPinnedTab = this.tabs.reduce((acc, t) => {
+			if (t.isPinned && (typeof filter != "function" || filter(t))) {
+				return t;
+			}
+			return acc;
+		}, undefined);
+
+		if (!lastPinnedTab) {
+			return -1;
+		}
+
+		return this.tabs.indexOf(lastPinnedTab);
 	}
 });
 

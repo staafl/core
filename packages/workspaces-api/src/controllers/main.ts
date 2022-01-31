@@ -12,6 +12,7 @@ import { WorkspacesController } from "../types/controller";
 import { GDWindow } from "../types/glue";
 import { BaseController } from "./base";
 import { UnsubscribeFunction } from "callback-registry";
+import { EmptyFrameDefinition, FrameInitializationConfig } from "../../temp";
 
 export class MainController implements WorkspacesController {
 
@@ -35,6 +36,14 @@ export class MainController implements WorkspacesController {
         const createConfig: WorkspaceCreateConfigProtocol = Object.assign({}, definition, { saveConfig });
 
         return await this.base.createWorkspace(createConfig);
+    }
+
+    public async createEmptyFrame(definition: EmptyFrameDefinition): Promise<Frame> {
+        return await this.base.createEmptyFrame(definition);
+    }
+
+    public async initFrame(frameId: string, config: FrameInitializationConfig): Promise<void> {
+        return this.base.initFrame(frameId, config);
     }
 
     public async restoreWorkspace(name: string, options?: Glue42Workspaces.RestoreWorkspaceConfig): Promise<Workspace> {
@@ -350,6 +359,22 @@ export class MainController implements WorkspacesController {
 
     public lockContainer(itemId: string, type: SubParentTypes["type"], config?: ContainerLockConfig): Promise<void> {
         return this.base.lockContainer(itemId, type, config);
+    }
+
+    public pinWorkspace(workspaceId: string, icon?: string): Promise<void> {
+        return this.base.pinWorkspace(workspaceId, icon);
+    }
+
+    public unpinWorkspace(workspaceId: string): Promise<void> {
+        return this.base.unpinWorkspace(workspaceId);
+    }
+
+    public getWorkspaceIcon(workspaceId: string): Promise<string> {
+        return this.base.getWorkspaceIcon(workspaceId);
+    }
+
+    public setWorkspaceIcon(workspaceId: string, icon: string): Promise<void> {
+        return this.base.setWorkspaceIcon(workspaceId, icon);
     }
 
     public async getFrameConstraints(frameId: string): Promise<Glue42Workspaces.FrameConstraints> {
