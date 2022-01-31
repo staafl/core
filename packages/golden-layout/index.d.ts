@@ -465,6 +465,11 @@ declare module '@glue42/golden-layout' {
             icon?: string;
 
             selected?: boolean;
+
+            /**
+             * Specifies where the item should be placed
+             */
+            positionIndex?: number;
         }
 
         interface BaseItemConfig {
@@ -665,6 +670,11 @@ declare module '@glue42/golden-layout' {
              * Flag which indicates how to workspace should open selected or not
              */
             selected?: boolean;
+
+            /**
+             * Specifies where the workspace should appear
+             */
+            positionIndex?: number;
         }
 
         export interface Config {

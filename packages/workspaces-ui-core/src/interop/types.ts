@@ -234,6 +234,7 @@ export interface RestoreWorkspaceConfig {
     icon?: string;
     isPinned?: boolean;
     isSelected?: boolean;
+    positionIndex?: number;
 }
 
 export interface AddWindowArguments {

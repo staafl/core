@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Decoder } from "decoder-validate";
+import { FrameInitializationConfig, FrameInitializationContext } from "../../temp";
 import { Glue42Workspaces } from "../../workspaces";
 
 export interface StreamOperation {
@@ -131,7 +132,7 @@ export interface FrameSnapshotResult {
 export interface FrameSummaryResult {
     id: string;
     isInitialized?: boolean;
-    initializationContext?: Glue42Workspaces.FrameInitializationContext;
+    initializationContext?: FrameInitializationContext;
 }
 
 export interface FrameSummariesResult {
@@ -209,7 +210,7 @@ export interface WorkspaceCreateConfigProtocol extends Glue42Workspaces.Workspac
     saveConfig?: Glue42Workspaces.WorkspaceCreateConfig;
 }
 
-export interface FrameInitializationConfigProtocol extends Glue42Workspaces.FrameInitializationConfig {
+export interface FrameInitializationConfigProtocol extends FrameInitializationConfig {
     frameId: string;
 }
 

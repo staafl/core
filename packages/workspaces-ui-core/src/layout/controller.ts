@@ -316,7 +316,19 @@ export class LayoutController {
 
         this.registerWorkspaceComponent(id);
 
-        stack.addChild(componentConfig, undefined, shouldActivateChild);
+        const index = config.workspacesOptions?.positionIndex;
+        delete config.workspacesOptions?.positionIndex;
+
+        if (index < 0) {
+            throw new Error(`Cannot place the workspace on index ${index} because its negative`);
+        }
+
+        const lastPinnedTabIndex = ((stack as GoldenLayout.Stack).header as any)._getLastIndexOfPinnedTab();
+        if (index <= lastPinnedTabIndex && !config.workspacesOptions.isPinned) {
+            throw new Error(`Cannot place and unpinned workspace before the last pinned workspace at position ${lastPinnedTabIndex}`);
+        }
+
+        stack.addChild(componentConfig, index, shouldActivateChild);
 
         await this.initWorkspaceContents(id, config, false);
 
@@ -1306,7 +1318,7 @@ export class LayoutController {
         if (!(config as GoldenLayout.Config).settings) {
             (config as GoldenLayout.Config).settings = this._configFactory.getDefaultWorkspaceSettings();
         }
-        
+
         if (config.type && config.type !== "workspace") {
             // Wrap the component in a column when you don't have a workspace;
             config = {
@@ -1323,9 +1335,9 @@ export class LayoutController {
 
         const mergedOptions = useWorkspaceSpecificConfig ? Object.assign({}, optionsFromItem, optionsFromConfig) : optionsFromConfig;
 
-        if(typeof mergedOptions.selected ==="boolean"){
+        if (typeof mergedOptions.selected === "boolean") {
             delete mergedOptions.selected;
-        } 
+        }
 
         workspaceContentItem.config.workspacesConfig = mergedOptions;
         (config as GoldenLayout.Config).workspacesOptions = mergedOptions;

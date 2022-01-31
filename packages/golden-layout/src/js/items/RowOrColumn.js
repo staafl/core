@@ -39,7 +39,7 @@ lm.utils.copy(lm.items.RowOrColumn.prototype, {
 
 		contentItem = this.layoutManager._$normalizeContentItem(contentItem, this);
 
-		if (index === undefined) {
+		if (index === undefined || index > this.contentItems.length) {
 			index = this.contentItems.length;
 		}
 

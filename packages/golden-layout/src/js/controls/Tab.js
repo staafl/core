@@ -84,7 +84,7 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 	},
 
 	onCloseClick: undefined,
-	pin: function () {
+	pin: function (index) {
 		if (this.isPinned) {
 			return;
 		}
@@ -93,7 +93,13 @@ lm.utils.copy(lm.controls.Tab.prototype, {
 
 		const currentIndex = this.header.tabs.indexOf(this);
 		const lastPinnedTabIndex = this.header._getLastIndexOfPinnedTab();
-		this.header.moveTab(currentIndex, lastPinnedTabIndex + 1);
+
+		let newIndex = lastPinnedTabIndex + 1;
+		if (typeof index === "number") {
+			newIndex = Math.min(index, lastPinnedTabIndex + 1);;
+		}
+
+		this.header.moveTab(currentIndex, newIndex);
 		this.element.addClass('lm_pinned');
 		this.isPinned = true;
 	},

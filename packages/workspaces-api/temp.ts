@@ -13,6 +13,11 @@ export interface WorkspaceConfig extends Glue42Workspaces.WorkspaceConfig {
      * Controls whether the workspace will be focused or not in the frame when opened
      */
     isSelected?: boolean;
+
+     /**
+     * Specifies where in the frame should the workspace be placed
+     */
+      positionIndex?: number;
 }
 
 export interface RestoreWorkspaceConfig extends Glue42Workspaces.RestoreWorkspaceConfig {
@@ -28,6 +33,11 @@ export interface RestoreWorkspaceConfig extends Glue42Workspaces.RestoreWorkspac
      * Controls whether the workspace will be focused or not in the frame when opened
      */
     isSelected?: boolean;
+
+    /**
+     * Specifies where in the frame should the workspace be placed
+     */
+    positionIndex?: number;
 }
 
 export interface Workspace extends Glue42Workspaces.Workspace {

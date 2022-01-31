@@ -1681,6 +1681,114 @@ d='M224 448v-96h64v96l-32 64zM336 224v-160c48 0 80-32 80-64v0 0h-320c0 32 32 64 
         });
     });
 
+    describe("positionIndex Should ", () => {
+        const workspaceChildren = [{
+            type: "group",
+            children: [{
+                type: "window",
+                appName: "noGlueApp"
+            }]
+        }];
+        let frameUnderTest;
+        beforeEach(async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: workspaceChildren, config: { newFrame: true } });
+
+            frameUnderTest = workspace.frame;
+        });
+
+        Array.from({ length: 3 }).forEach((_, i, arr) => {
+            it(`be placed on the specified position when there are ${arr.length} tabs and the target position is ${i}`, async () => {
+                await Promise.all(Array.from({ length: arr.length - 1 }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: i } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i);
+            });
+
+            it(`be the last one when nothing is specified and the workspace are ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+
+            it(`be the last one when the positionIndex is 42 and the workspace are ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: 42 } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+        });
+
+        it("place the pinned tab after the other pinned tabs when nothing is specified", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+
+            await Promise.all(threeItemsArr.map((_) => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(3);
+        });
+
+        it("place the pinned tab after when nothing is specified and there are no other pinned tabs", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(0);
+        });
+
+        it("place the pinned tab after the other pinned tabs when the positionIndex is bigger than the number of pinned tabs", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting, positionIndex: 4 } });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(3);
+        });
+
+        Array.from({ length: 3 }).forEach((_, i, arr) => {
+            it(`place the pinned tab at the desired positionIndex when there are ${arr.length} pinned tabs`, async () => {
+                const threeItemsArr = Array.from({ length: 3 });
+                const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+
+                await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+                await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting, positionIndex: i } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i);
+            });
+        });
+
+        it("reject when the positionIndex is smaller than the last pinned tab and the workspace is not pinned", (done) => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+            Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig))).then(() => {
+                frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: 0 } }).then(() => {
+                    done("Should not resolve");
+                }).catch(() => done());
+            }).catch(done)
+        });
+
+        it("reject when the positionIndex is negative", (done) => {
+            Promise.all(Array.from({ length: 3 }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren }))).then(() => {
+                return frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: -32 } });
+            }).then(() => {
+                done("Should not resolve");
+            }).catch(() => {
+                done();
+            });
+        });
+    });
+
     // SAVE CONFIG
     // after resolve the layout should be present in the layouts collection when specified in the save config
     // after resolve the layout should NOT be present in the layouts collection when there is no save config

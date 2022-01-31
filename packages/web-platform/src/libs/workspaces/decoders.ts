@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { Glue42Workspaces } from "@glue42/workspaces-api";
-import { EmptyFrameDefinition, RestoreWorkspaceDefinition} from "@glue42/workspaces-api/temp";
+import { EmptyFrameDefinition, RestoreWorkspaceDefinition } from "@glue42/workspaces-api/temp";
 import { anyJson, array, boolean, constant, Decoder, intersection, lazy, number, object, oneOf, optional, string } from "decoder-validate";
 import { nonEmptyStringDecoder, nonNegativeNumberDecoder, windowLayoutItemDecoder } from "../../shared/decoders";
 import { AddContainerConfig, AddItemResult, AddWindowConfig, BaseChildSnapshotConfig, BundleConfig, ChildSnapshotResult, ColumnDefinitionConfig, ContainerStreamData, ContainerSummaryResult, DeleteLayoutConfig, ExportedLayoutsResult, FrameBoundsResult, FrameHello, FrameInitializationConfigProtocol, FrameSnapshotResult, FrameStateConfig, FrameStateResult, FrameStreamData, FrameSummariesResult, FrameSummaryResult, GetFrameSummaryConfig, GroupDefinitionConfig, IsWindowInSwimlaneResult, LayoutSummariesResult, LayoutSummary, LockColumnConfig, LockContainerConfig, LockGroupConfig, LockRowConfig, LockWindowConfig, LockWorkspaceConfig, MoveFrameConfig, MoveWindowConfig, OpenWorkspaceConfig, ParentSnapshotConfig, PingResult, PinWorkspaceConfig, ResizeItemConfig, RowDefinitionConfig, SetItemTitleConfig, SetWorkspaceIconConfig, SimpleItemConfig, SimpleWindowOperationSuccessResult, SwimlaneWindowSnapshotConfig, WindowStreamData, WorkspaceConfigResult, WorkspaceCreateConfigProtocol, WorkspaceEventAction, WorkspaceEventType, WorkspaceIconResult, WorkspaceSelector, WorkspacesLayoutImportConfig, WorkspaceSnapshotResult, WorkspacesOperationsTypes, WorkspaceStreamData, WorkspaceSummariesResult, WorkspaceSummaryResult, WorkspaceWindowData } from "./types";
@@ -254,7 +254,8 @@ export const restoreWorkspaceConfigDecoder: Decoder<Glue42Workspaces.RestoreWork
     inMemoryLayout: optional(boolean()),
     isPinned: optional(boolean()),
     icon: optional(nonEmptyStringDecoder),
-    isSelected:optional(boolean())
+    isSelected: optional(boolean()),
+    positionIndex: optional(nonNegativeNumberDecoder)
 });
 
 export const openWorkspaceConfigDecoder: Decoder<OpenWorkspaceConfig> = object({
@@ -283,6 +284,7 @@ export const workspaceDefinitionDecoder: Decoder<Glue42Workspaces.WorkspaceDefin
         showSaveButton: optional(boolean()),
         showCloseButton: optional(boolean()),
         allowSplitters: optional(boolean()),
+        positionIndex: optional(nonNegativeNumberDecoder)
     })),
     frame: optional(object({
         reuseFrameId: optional(nonEmptyStringDecoder),

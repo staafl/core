@@ -100,7 +100,7 @@ lm.utils.copy(lm.controls.Header.prototype, {
 			return;
 		}
 
-		if (index === undefined) {
+		if (index === undefined || index > this.tabs.length) {
 			index = this.tabs.length;
 		}
 

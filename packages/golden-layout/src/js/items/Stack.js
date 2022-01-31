@@ -199,7 +199,7 @@ lm.utils.copy(lm.items.Stack.prototype, {
 		this.header.createTab(contentItem, index);
 
 		if (isPinned) {
-			contentItem.tab.pin();
+			contentItem.tab.pin(index);
 		}
 
 		if ($(this.layoutManager.container).is(":visible") && activate) {

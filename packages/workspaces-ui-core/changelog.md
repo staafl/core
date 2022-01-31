@@ -1,4 +1,5 @@
 1.7.4
+feat: added positionIndex property as a config when opening workspaces
 chore: added null check for workspaceOptions when initializing the frame
 1.7.3
 feat: added support for the API frame initialization

@@ -2313,4 +2313,130 @@ describe('restoreWorkspace() Should', function () {
             expect(restoredWorkspace.isSelected).to.be.false;
         });
     });
+
+    describe("positionIndex Should ", () => {
+        const workspaceChildren = [{
+            type: "group",
+            children: [{
+                type: "window",
+                appName: "noGlueApp"
+            }]
+        }];
+        let frameUnderTest;
+        const layoutName = "workspace.integration.tests";
+        beforeEach(async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: workspaceChildren, frame: { newFrame: true } });
+
+            await workspace.saveLayout(layoutName);
+
+            frameUnderTest = workspace.frame;
+        });
+
+        after(() => {
+            return glue.workspaces.layouts.delete(layoutName);
+        });
+
+        Array.from({ length: 3 }).forEach((_, i, arr) => {
+            it(`be placed on the specified position when there are ${arr.length} tabs and the target position is ${i}`, async () => {
+                await Promise.all(Array.from({ length: arr.length - 1 }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName, { positionIndex: i });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i);
+            });
+
+            it(`be the last one when nothing is specified and the workspace are ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName);
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+
+            it(`be the last one when the position index is 42 and the workspace are ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName, { positionIndex: 42 });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+
+            it(`be the last one when nothing is specified and the layout which is being restored has a specified position index ${i}`, async () => {
+                await Promise.all(Array.from({ length: i }).map((_, ii) => frameUnderTest.createWorkspace({ children: workspaceChildren, config: { positionIndex: ii } })));
+
+                const workspacesInFrame = await frameUnderTest.workspaces();
+
+                await workspacesInFrame[i].saveLayout(layoutName);
+                const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName);
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i + 1);
+            });
+        });
+
+        it("place the pinned tab after the other pinned tabs when nothing is specified", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+
+            await Promise.all(threeItemsArr.map((_) => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName, { isPinned: true, icon: iconForTesting });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(3);
+        });
+
+        it("place the pinned tab after when nothing is specified and there are no other pinned tabs", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName, { isPinned: true, icon: iconForTesting });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(0);
+        });
+
+        it("place the pinned tab after the other pinned tabs when the positionIndex is bigger than the number of pinned tabs", async () => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+            await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+            const workspaceUnderTest = await frameUnderTest.restoreWorkspace(layoutName, { isPinned: true, icon: iconForTesting, positionIndex: 4 });
+
+            expect(workspaceUnderTest.positionIndex).to.eql(3);
+        });
+
+        Array.from({ length: 3 }).forEach((_, i, arr) => {
+            it(`place the pinned tab at the desired positionIndex when there are ${arr.length} pinned tabs`, async () => {
+                const threeItemsArr = Array.from({ length: 3 });
+                const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+
+                await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig)));
+                await Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace({ children: workspaceChildren })));
+
+                const workspaceUnderTest = await frameUnderTest.createWorkspace({ children: workspaceChildren, config: { isPinned: true, icon: iconForTesting, positionIndex: i } });
+
+                expect(workspaceUnderTest.positionIndex).to.eql(i);
+            });
+        });
+
+        it("reject when the positionIndex is smaller than the last pinned tab and the workspace is not pinned", (done) => {
+            const threeItemsArr = Array.from({ length: 3 });
+            const pinnedWorkspaceConfig = { children: workspaceChildren, config: { isPinned: true, icon: iconForTesting } };
+            Promise.all(threeItemsArr.map(_ => frameUnderTest.createWorkspace(pinnedWorkspaceConfig))).then(() => {
+                frameUnderTest.restoreWorkspace(layoutName, { positionIndex: 0 }).then(() => {
+                    done("Should not resolve");
+                }).catch(() => done());
+            }).catch(done)
+        });
+
+        it("reject when the positionIndex is negative", (done) => {
+            Promise.all(Array.from({ length: 3 }).map(() => frameUnderTest.createWorkspace({ children: workspaceChildren }))).then(() => {
+                return frameUnderTest.restoreWorkspace(layoutName, { positionIndex: -24 });
+            }).then(() => {
+                done("Should not resolve");
+            }).catch(() => {
+                done();
+            });
+        });
+    });
 });

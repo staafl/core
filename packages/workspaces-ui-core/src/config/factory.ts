@@ -46,7 +46,8 @@ export class WorkspacesConfigurationFactory {
             minWidth: args.minWidth,
             minHeight: args.minHeight,
             maxWidth: args.maxWidth,
-            maxHeight: args.maxHeight
+            maxHeight: args.maxHeight,
+            positionIndex: args.positionIndex
         } as GoldenLayout.BaseItemConfig["workspacesConfig"];
         return {
             ...baseConfiguration,

@@ -291,6 +291,7 @@ export interface GDWindowOptions {
     maxWidth: number;
     minHeight: number;
     maxHeight: number;
+    positionIndex?: number;
 }
 
 export interface SavedConfigWithData {

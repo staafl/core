@@ -105,6 +105,9 @@ export class LayoutsManager {
         const savedWorkspace: WorkspaceItem = savedWorkspaceLayout.components[0].state as WorkspaceItem;
         this._constraintsValidator.fixWorkspace(savedWorkspace);
         const rendererFriendlyConfig = this._configConverter.convertToRendererConfig(savedWorkspace);
+        
+        // If a positionIndex is present in the layout it should be ignored
+        delete (rendererFriendlyConfig as GoldenLayout.Config)?.workspacesOptions?.positionIndex;
 
         this.addWorkspaceIds(rendererFriendlyConfig);
 
