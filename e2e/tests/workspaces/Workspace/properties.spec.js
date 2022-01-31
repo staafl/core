@@ -2001,13 +2001,13 @@ describe("properties: ", () => {
 
         it("be true after its pinned", async () => {
             const workspace = await glue.workspaces.createWorkspace(threeContainersConfig);
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             expect(workspace.isPinned).to.be.true;
         });
 
         it("be true after its unpinned", async () => {
             const workspace = await glue.workspaces.createWorkspace(threeContainersConfig);
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             await workspace.unpin();
             expect(workspace.isPinned).to.be.false;
         });

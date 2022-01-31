@@ -56,7 +56,7 @@ import {
 } from "../types/protocol";
 import { WorkspaceEventType, WorkspaceEventAction } from "../types/subscription";
 import { Glue42Workspaces } from "../../workspaces";
-import { EmptyFrameDefinition, FrameInitializationConfig, FrameInitializationContext, RestoreWorkspaceDefinition } from "../../temp";
+import { EmptyFrameDefinition, FrameInitializationConfig, FrameInitializationContext, RestoreWorkspaceDefinition, WorkspacePinOptions } from "../../temp";
 
 export const nonEmptyStringDecoder: Decoder<string> = string().where((s) => s.length > 0, "Expected a non-empty string");
 export const nonNegativeNumberDecoder: Decoder<number> = number().where((num) => num >= 0, "Expected a non-negative number");
@@ -302,7 +302,7 @@ export const workspaceDefinitionDecoder: Decoder<Glue42Workspaces.WorkspaceDefin
     }))
 });
 
-export const workspaceSelectorDecoder: Decoder<WorkspaceSelector> =  object({
+export const workspaceSelectorDecoder: Decoder<WorkspaceSelector> = object({
     workspaceId: nonEmptyStringDecoder
 });
 
@@ -818,3 +818,7 @@ export const setWorkspaceIconDecoder: Decoder<SetWorkspaceIconConfig> = object({
     workspaceId: nonEmptyStringDecoder,
     icon: optional(nonEmptyStringDecoder) // to enable the user to remove the icon from the workspace altogether
 });
+
+export const workspacePinOptionsDecoder: Decoder<WorkspacePinOptions> = optional(object({
+    icon: optional(nonEmptyStringDecoder)
+}));

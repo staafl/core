@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { WorkspaceSnapshotResult, WindowStreamData } from "../types/protocol";
-import { checkThrowCallback, nonEmptyStringDecoder, workspaceLockConfigDecoder } from "../shared/decoders";
+import { checkThrowCallback, nonEmptyStringDecoder, workspaceLockConfigDecoder, workspacePinOptionsDecoder } from "../shared/decoders";
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { FrameCreateConfig } from "../types/ioc";
 import { Frame } from "./frame";
 import { SubscriptionConfig } from "../types/subscription";
 import { WorkspacePrivateData } from "../types/privateData";
 import { Glue42Workspaces } from "../../workspaces";
+import { WorkspacePinOptions } from "../../temp";
 
 interface PrivateData {
     manager: PrivateDataManager;
@@ -411,8 +412,9 @@ export class Workspace implements Glue42Workspaces.Workspace {
         await this.refreshReference();
     }
 
-    public async pin(icon?: string): Promise<void> {
-        await getData(this).controller.pinWorkspace(this.id, icon);
+    public async pin(options: WorkspacePinOptions): Promise<void> {
+        workspacePinOptionsDecoder.runWithException(options);
+        await getData(this).controller.pinWorkspace(this.id, options?.icon);
         await this.refreshReference();
     }
 

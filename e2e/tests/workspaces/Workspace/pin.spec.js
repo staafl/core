@@ -62,26 +62,26 @@ describe("pin() Should", () => {
     });
 
     it("resolve when the workspace is selected", async () => {
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         expect(workspace.isPinned).to.be.true;
     });
 
     it("resolve when the workspace is selected and locked", async () => {
         await workspace.lock();
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         expect(workspace.isPinned).to.be.true;
     });
 
     it("change the workspace icon", async () => {
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         const workspaceIcon = await workspace.getIcon();
 
         expect(workspaceIcon).to.eql(iconForTesting);
     });
 
     it("change the workspace icon when the workspace has already been pinned", async () => {
-        await workspace.pin(iconForTesting2);
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting2 });
+        await workspace.pin({ icon: iconForTesting });
         const workspaceIcon = await workspace.getIcon();
 
         expect(workspaceIcon).to.eql(iconForTesting);
@@ -90,7 +90,7 @@ describe("pin() Should", () => {
     it("resolve when the workspace is empty", async () => {
         const emptyWorkspace = await glue.workspaces.createWorkspace(emptyConfig);
 
-        await emptyWorkspace.pin(iconForTesting);
+        await emptyWorkspace.pin({ icon: iconForTesting });
         expect(emptyWorkspace.isPinned).to.be.true;
     });
 
@@ -99,7 +99,7 @@ describe("pin() Should", () => {
         const secondWorkspace = await glue.workspaces.createWorkspace(emptyConfig);
         const thirdWorkspace = await glue.workspaces.createWorkspace(emptyConfig);
 
-        await thirdWorkspace.pin(iconForTesting);
+        await thirdWorkspace.pin({ icon: iconForTesting });
         expect(thirdWorkspace.positionIndex).to.eql(0);
     });
 
@@ -108,8 +108,8 @@ describe("pin() Should", () => {
         const secondWorkspace = await glue.workspaces.createWorkspace(emptyConfig);
         const thirdWorkspace = await glue.workspaces.createWorkspace(emptyConfig);
 
-        await thirdWorkspace.pin(iconForTesting);
-        await secondWorkspace.pin(iconForTesting);
+        await thirdWorkspace.pin({ icon: iconForTesting });
+        await secondWorkspace.pin({ icon: iconForTesting });
         expect(secondWorkspace.positionIndex).to.eql(1);
     });
 
@@ -119,19 +119,19 @@ describe("pin() Should", () => {
         });
 
         it("resolve when the workspace is not selected", async () => {
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             expect(workspace.isPinned).to.be.true;
         });
 
         it("resolve when the workspace is not selected and hibernated", async () => {
             await workspace.hibernate();
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             expect(workspace.isPinned).to.be.true;
         });
 
         it("resolve when the workspace is not selected and locked", async () => {
             await workspace.lock();
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
 
             expect(workspace.isPinned).to.be.true;
         });

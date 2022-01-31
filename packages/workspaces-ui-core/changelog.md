@@ -1,3 +1,5 @@
+1.7.4
+chore: added null check for workspaceOptions when initializing the frame
 1.7.3
 feat: added support for the API frame initialization
 1.7.2

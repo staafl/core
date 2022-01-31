@@ -60,7 +60,7 @@ describe("unpin() Should", () => {
     });
 
     it("resolve", async () => {
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         await workspace.unpin();
         expect(workspace.isPinned).to.be.false;
     });
@@ -71,7 +71,7 @@ describe("unpin() Should", () => {
     });
 
     it("unpin the workspace when it's locked", async () => {
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         await workspace.lock();
         await workspace.unpin();
         expect(workspace.isPinned).to.be.false;
@@ -80,7 +80,7 @@ describe("unpin() Should", () => {
     it("unpin the workspace when it's empty", async () => {
         const emptyWorkspace = await glue.workspaces.createWorkspace(emptyConfig);
 
-        await emptyWorkspace.pin(iconForTesting);
+        await emptyWorkspace.pin({ icon: iconForTesting });
         await emptyWorkspace.unpin();
 
         expect(emptyWorkspace.isPinned).to.eql(false);
@@ -92,7 +92,7 @@ describe("unpin() Should", () => {
         });
 
         it("resolve when the workspace is not selected", async () => {
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             await workspace.unpin();
             expect(workspace.isPinned).to.be.false;
         });
@@ -103,14 +103,14 @@ describe("unpin() Should", () => {
         });
 
         it("unpin the workspace when it's locked and is not selected", async () => {
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             await workspace.lock();
             await workspace.unpin();
             expect(workspace.isPinned).to.be.false;
         });
 
         it("unpin the workspace when it's hibernated", async () => {
-            await workspace.pin(iconForTesting);
+            await workspace.pin({ icon: iconForTesting });
             await workspace.hibernate();
             await workspace.unpin();
             expect(workspace.isPinned).to.be.false;

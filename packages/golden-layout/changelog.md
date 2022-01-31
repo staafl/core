@@ -1,3 +1,5 @@
+2.2.4
+fix: Unpinned tabs can be placed before unpinned ones in certain occasions
 2.2.3
 chore: Updated the typings file
 2.2.2

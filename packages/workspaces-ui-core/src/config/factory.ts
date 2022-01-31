@@ -152,7 +152,7 @@ export class WorkspacesConfigurationFactory {
     }
 
     public generateInitialConfig(workspaceContentConfigs: GoldenLayout.Config[]): FrameLayoutConfig {
-        const selectedWorkspace = workspaceContentConfigs.find((wcc) => wcc.workspacesOptions.selected);
+        const selectedWorkspace = workspaceContentConfigs.find((wcc) => wcc.workspacesOptions?.selected);
         const workspacesConfig: GoldenLayout.Config = {
             settings: this._defaultWorkspaceLayoutSettings,
             content: [

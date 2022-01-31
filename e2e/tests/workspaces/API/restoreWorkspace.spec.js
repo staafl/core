@@ -2148,7 +2148,7 @@ describe('restoreWorkspace() Should', function () {
 
         it("restore a workspace as pinned when the layout contains a pinned workspace", async () => {
             const workspaceToSave = await glue.workspaces.createWorkspace(basicConfig);
-            await workspaceToSave.pin(iconForTesting);
+            await workspaceToSave.pin({ icon: iconForTesting });
             await workspaceToSave.saveLayout(layoutName);
             await workspaceToSave.close();
             const restoredWorkspace = await glue.workspaces.restoreWorkspace(layoutName);
@@ -2158,7 +2158,7 @@ describe('restoreWorkspace() Should', function () {
 
         it("restore a workspace with the correct icon when the layout contains a pinned workspace", async () => {
             const workspaceToSave = await glue.workspaces.createWorkspace(basicConfig);
-            await workspaceToSave.pin(iconForTesting);
+            await workspaceToSave.pin({ icon: iconForTesting });
             await workspaceToSave.saveLayout(layoutName);
             await workspaceToSave.close();
 
@@ -2170,7 +2170,7 @@ describe('restoreWorkspace() Should', function () {
 
         it("restore a workspace as pinned when the layout contains a pinned and locked workspace", async () => {
             const workspaceToSave = await glue.workspaces.createWorkspace(basicConfig);
-            await workspaceToSave.pin(iconForTesting);
+            await workspaceToSave.pin({ icon: iconForTesting });
             await workspaceToSave.lock();
             await workspaceToSave.saveLayout(layoutName);
             await workspaceToSave.close();
@@ -2181,7 +2181,7 @@ describe('restoreWorkspace() Should', function () {
 
         it("restore a workspace as not pinned when the layout contains a pinned workspace and isPinned:false is passed in the configuration object", async () => {
             const workspaceToSave = await glue.workspaces.createWorkspace(basicConfig);
-            await workspaceToSave.pin(iconForTesting);
+            await workspaceToSave.pin({ icon: iconForTesting });
             await workspaceToSave.saveLayout(layoutName);
             await workspaceToSave.close();
             const restoredWorkspace = await glue.workspaces.restoreWorkspace(layoutName, { isPinned: false });
@@ -2261,7 +2261,7 @@ describe('restoreWorkspace() Should', function () {
             await workspaceToSave.close();
 
             const pinnedWorkspace = await glue.workspaces.createWorkspace(basicConfig);
-            await pinnedWorkspace.pin(iconForTesting);
+            await pinnedWorkspace.pin({ icon: iconForTesting });
             await glue.workspaces.createWorkspace(basicConfig);
 
             const restoredWorkspace = await glue.workspaces.restoreWorkspace(layoutName, { isPinned: true, icon: newIcon });

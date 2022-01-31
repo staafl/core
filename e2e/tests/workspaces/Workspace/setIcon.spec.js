@@ -69,7 +69,7 @@ describe("setIcon() Should ", () => {
         });
 
         it(`set the icon when the icon is a ${iconType} and the workspace is pinned`, async () => {
-            await workspace.pin("neutralIcon");
+            await workspace.pin({ icon: "neutralIcon" });
             await workspace.setIcon(iconForTesting);
             const icon = await workspace.getIcon();
 

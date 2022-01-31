@@ -133,7 +133,7 @@ describe('saveLayout() Should ', function () {
 
     it("save a layout with isPinned:true when the workspace is pinned", async () => {
         const layoutName = gtf.getWindowName("layout.integration");
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         await workspace.saveLayout(layoutName);
         const savedLayout = (await glue.workspaces.layouts.export()).find(l => l.name === layoutName);
 
@@ -142,7 +142,7 @@ describe('saveLayout() Should ', function () {
 
     it("save a layout with an icon when the workspace has an icon", async () => {
         const layoutName = gtf.getWindowName("layout.integration");
-        await workspace.pin(iconForTesting);
+        await workspace.pin({ icon: iconForTesting });
         await workspace.saveLayout(layoutName);
         const savedLayout = (await glue.workspaces.layouts.export()).find(l => l.name === layoutName);
 
@@ -156,7 +156,7 @@ describe('saveLayout() Should ', function () {
 
         expect(savedLayout.components[0].state.config.icon).to.be.null; // the interop converts undefined to null
     });
-    
+
     it("successfully save the passed metadata", async () => {
         const metadata = {
             test: 42

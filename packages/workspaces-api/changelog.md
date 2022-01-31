@@ -1,3 +1,5 @@
+1.10.4
+feat: added a WorkspacePinOptions interface for better extensibility 
 1.10.3
 feat: added createFrame, frame.init, frame.isInitialized and frame.onInitializationRequested
 1.10.2

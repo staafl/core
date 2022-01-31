@@ -41,9 +41,9 @@ export interface Workspace extends Glue42Workspaces.Workspace {
     icon?: string;
     /**
      * Changes the state of the workspace to pinned - moves the workspace tab to the index before all unpinned tabs, removes the save button, title, close button and shows the workspace icon
-     * @param icon - the icon which will be used as a workspace icon
+     * @param options - object which controls the pinning
      */
-    pin(icon?: string): Promise<void>;
+    pin(options?: WorkspacePinOptions): Promise<void>;
     /**
      * Changes the state of the workspace to normal -  moves the workspace tab to the index after all pinned tabs, returns the save button, title, close button and hides the workspace icon
      */
@@ -108,4 +108,8 @@ export interface API extends Glue42Workspaces.API {
      * @param definition Optional definition of the frame
      */
     createEmptyFrame(definition?: EmptyFrameDefinition): Promise<Glue42Workspaces.Frame>;
+}
+
+export interface WorkspacePinOptions {
+    icon?: string;
 }
